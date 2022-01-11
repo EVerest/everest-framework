@@ -118,15 +118,19 @@ void Everest::disconnect() {
     this->mqtt_abstraction.disconnect();
 }
 
+// TODO(tmolitor): remove this signature once the c++ autogenerator is updated
 json Everest::call_cmd(const std::string& requirement_id, const std::string& cmd_name, json json_args) {
+    return this->call_cmd(requirement_id, 0, cmd_name, json_args);
+}
+
+json Everest::call_cmd(const std::string& requirement_id, uint64_t index, const std::string& cmd_name, json json_args) {
     BOOST_LOG_FUNCTION();
 
     // resolve requirement
-    json connection = this->config.resolve_requirement(this->module_id, requirement_id);
-    if (connection.is_null()) {
-        EVLOG_AND_THROW(EVEXCEPTION(EverestApiError, this->config.printable_identifier(this->module_id),
-                                    " tried to call non-existent command '", cmd_name, "' of optional requirement '",
-                                    requirement_id, "'!"));
+    json connections = this->config.resolve_requirement(this->module_id, requirement_id);
+    auto& connection = connections;             // this is for a min/max == 1 requirement
+    if ( connections.is_array()) {              // this is for every other requirement
+        connection = connections[index];
     }
 
     // extract manifest definition of this command
@@ -348,28 +352,27 @@ void Everest::publish_var(const std::string& impl_id, const std::string& var_nam
     return this->publish_var(impl_id, var_name, convertTo<json>(value));
 }
 
+// TODO(tmolitor): remove this signature once the c++ autogenerator is updated
 void Everest::subscribe_var(const std::string& requirement_id, const std::string& var_name,
+                            const JsonCallback& callback) {
+    this->subscribe_var(requirement_id, 0, var_name, callback);
+}
+
+void Everest::subscribe_var(const std::string& requirement_id, uint64_t index, const std::string& var_name,
                             const JsonCallback& callback) {
     BOOST_LOG_FUNCTION();
 
     EVLOG(debug) << "subscribing to var: " << requirement_id << ":" << var_name;
 
     // resolve requirement
-    json connection = this->config.resolve_requirement(this->module_id, requirement_id);
-    if (connection.is_null()) {
-        if (requirement_id.rfind("optional:", 0) == 0) {
-            EVLOG(warning) << "Subscribed to non-existent optional var '" << var_name << "' of requirement '"
-                           << requirement_id << "', ignoring handler";
-            return;
-        }
-        EVLOG_AND_THROW(EVEXCEPTION(EverestApiError, "Subscribed to non-existent var '"
-                                                         << var_name << "' of requirement '" << requirement_id << "'"));
+    json connections = this->config.resolve_requirement(this->module_id, requirement_id);
+    auto& connection = connections;             // this is for a min/max == 1 requirement
+    if ( connections.is_array()) {              // this is for every other requirement
+        connection = connections[index];
     }
-
-    std::string module_name =
-        this->config.get_main_config()[connection["module_id"].get<std::string>()]["module"].get<std::string>();
-    auto module_manifest = this->config.get_manifests()[module_name];
-    auto requirement_module_id = connection["module_id"];
+    
+    auto requirement_module_id = connection["module_id"].get<std::string>();
+    auto module_name = this->config.get_main_config()[requirement_module_id]["module"].get<std::string>();
     auto requirement_impl_id = connection["implementation_id"].get<std::string>();
     auto requirement_impl_manifest = this->config.get_interfaces()[module_name][requirement_impl_id];
 

@@ -76,6 +76,7 @@ public:
     /// requirement_id, the command by the given command name \p cmd_name and the needed arguments by \p args
     ///
     json call_cmd(const std::string& requirement_id, const std::string& cmd_name, json json_args);
+    json call_cmd(const std::string& requirement_id, uint64_t index, const std::string& cmd_name, json json_args);
     Result call_cmd(const std::string& requirement_id, const std::string& cmd_name, Parameters args);
 
     ///
@@ -90,6 +91,8 @@ public:
     ///
     void subscribe_var(const std::string& requirement_id, const std::string& var_name, const ValueCallback& callback);
     void subscribe_var(const std::string& requirement_id, const std::string& var_name, const JsonCallback& callback);
+    void subscribe_var(const std::string& requirement_id, uint64_t index, const std::string& var_name,
+                       const JsonCallback& callback);
 
     ///
     /// \brief publishes the given \p data on the given \p topic

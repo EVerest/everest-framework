@@ -40,6 +40,7 @@ private:
 
     json manifests;
     json interfaces;
+    json interface_definitions;
     json base_interfaces;
     schemas _schemas;
 
@@ -111,6 +112,10 @@ public:
     ///
     /// \returns a json object that contains the available interfaces
     json get_interfaces();
+
+    ///
+    /// \returns a json object that contains the interface definition
+    json get_interface_definition(std::string interface_name);
 
     ///
     /// \brief turns then given \p module_id into a printable identifier
