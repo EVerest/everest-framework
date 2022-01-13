@@ -13,44 +13,15 @@ find_program(
         REQUIRED
 )
 
-# check node API version based on https://nodejs.org/api/n-api.html#node-api-version-matrix
 execute_process(COMMAND ${NODE} --version
         OUTPUT_VARIABLE NODE_VERSION
+        OUTPUT_STRIP_TRAILING_WHITESPACE
 )
-string(REGEX REPLACE "[\r\n\"]" "" NODE_VERSION "${NODE_VERSION}")
-string(REPLACE "v" "" NODE_VERSION "${NODE_VERSION}")
-if(     ("${NODE_VERSION}" VERSION_GREATER_EQUAL "16")
-        OR ("${NODE_VERSION}" VERSION_GREATER_EQUAL "15.12")
-        OR ("${NODE_VERSION}" VERSION_GREATER_EQUAL "12.22"))
-        set(NODE_API_VERSION 8)
-elseif(     ("${NODE_VERSION}" VERSION_GREATER_EQUAL "15")
-        OR ("${NODE_VERSION}" VERSION_GREATER_EQUAL "14.12")
-        OR ("${NODE_VERSION}" VERSION_GREATER_EQUAL "12.19")
-        OR ("${NODE_VERSION}" VERSION_GREATER_EQUAL "10.23"))
-        set(NODE_API_VERSION 7)
-elseif(     ("${NODE_VERSION}" VERSION_GREATER_EQUAL "14")
-        OR ("${NODE_VERSION}" VERSION_GREATER_EQUAL "12.17")
-        OR ("${NODE_VERSION}" VERSION_GREATER_EQUAL "10.20"))
-        set(NODE_API_VERSION 6)
-elseif(     ("${NODE_VERSION}" VERSION_GREATER_EQUAL "13")
-        OR ("${NODE_VERSION}" VERSION_GREATER_EQUAL "12.11")
-        OR ("${NODE_VERSION}" VERSION_GREATER_EQUAL "10.17"))
-        set(NODE_API_VERSION 5)
-elseif(     ("${NODE_VERSION}" VERSION_GREATER_EQUAL "12")
-        OR ("${NODE_VERSION}" VERSION_GREATER_EQUAL "11.8")
-        OR ("${NODE_VERSION}" VERSION_GREATER_EQUAL "10.16"))
-        set(NODE_API_VERSION 4)
-elseif(("${NODE_VERSION}" VERSION_GREATER_EQUAL "10"))
-        set(NODE_API_VERSION 3)
-endif()
 
 # We need Node-API version 6 or higher
 set(NODE_API_VERSION_REQUIRED 6)
-if("${NODE_API_VERSION}" LESS "${NODE_API_VERSION_REQUIRED}")
-        message(FATAL_ERROR "Node-API version ${NODE_API_VERSION_REQUIRED} or higher is required. However your nodejs version '${NODE_VERSION}' can only provide Node-API version '${NODE_API_VERSION}'")
-else()
-        message("Found nodejs version '${NODE_VERSION}' that can provide Node-API version '${NODE_API_VERSION}' which satifies the requirement of Node-API version '${NODE_API_VERSION_REQUIRED}'")
-endif()
+include(NodeApiVersion)
+require_node_api_version("${NODE_VERSION}" "${NODE_API_VERSION_REQUIRED}")
 
 find_program(
         NPM
@@ -90,7 +61,7 @@ target_include_directories(everestjs
 target_compile_features(everestjs PRIVATE cxx_std_14)
 
 # define NAPI_VERSION
-add_definitions(-DNAPI_VERSION=6)
+add_definitions(-DNAPI_VERSION=${NODE_API_VERSION_REQUIRED})
 add_definitions(-DNAPI_CPP_EXCEPTIONS)
 
 install(TARGETS everestjs
