@@ -20,7 +20,7 @@ execute_process(COMMAND ${NODE} --version
 
 # We need Node-API version 6 or higher
 set(NODE_API_VERSION_REQUIRED 6)
-include("${PROJECT_SOURCE_DIR}/cmake/NodeApiVersion.cmake")
+include(NodeApiVersion)
 require_node_api_version("${NODE_VERSION}" "${NODE_API_VERSION_REQUIRED}")
 
 find_program(
