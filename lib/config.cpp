@@ -65,26 +65,25 @@ static json parse_config_map(const json& config_map_schema, const json& config_m
         std::string config_entry_name = config_entry_el.key();
         json config_entry = config_entry_el.value();
 
+        // only convenience exception, would be catched by schema validation below if not thrown here
         if (!config_entry.contains("default") and !config_map.contains(config_entry_name)) {
             throw ConfigParseException(ConfigParseException::MISSING_ENTRY, config_entry_name);
         }
 
-        // default value if not existing is None (should validate to
-        // default value or error)
-        json config_entry_value = json();
-        if (config_map.contains(config_entry_name)) {
-            config_entry_value = config_map[config_entry_name];
-
-            json_validator validator(Config::loader, Config::format_checker);
-            validator.set_root_schema(config_entry);
-
-            try {
-                validator.validate(config_entry_value);
-            } catch (const std::exception& err) {
-                throw ConfigParseException(ConfigParseException::SCHEMA, config_entry_name, err.what());
+        json config_entry_value = config_map[config_entry_name];        // will be null if not present in json
+        if (!config_map.contains(config_entry_name) && config_entry.contains("default")) {
+            config_entry_value = config_entry["default"];               // use default value defined in manifest
+        }
+        json_validator validator(Config::loader, Config::format_checker);
+        validator.set_root_schema(config_entry);
+        try {
+            auto patch = validator.validate(config_entry_value);
+            if (!patch.is_null()) {
+                // extend config entry with default values
+                config_entry_value = config_entry_value.patch(patch);
             }
-        } else {
-            config_entry_value = config_entry["default"];
+        } catch (const std::exception& err) {
+            throw ConfigParseException(ConfigParseException::SCHEMA, config_entry_name, err.what());
         }
 
         parsed_config_map[config_entry_name] = config_entry_value;
@@ -139,7 +138,11 @@ Config::Config(std::string schemas_dir, std::string config_file, std::string mod
 
         json_validator validator(Config::loader);
         validator.set_root_schema(this->_schemas.config);
-        validator.validate(this->main);
+        auto patch = validator.validate(this->main);
+        if (!patch.is_null()) {
+            // extend config with default values
+            this->main = this->main.patch(patch);
+        }
     } catch (const std::exception& e) {
         EVLOG_AND_THROW(EVEXCEPTION(EverestConfigError, "Failed to load and parse config file: ", e.what()));
     }
@@ -164,32 +167,32 @@ Config::Config(std::string schemas_dir, std::string config_file, std::string mod
 
             json_validator validator(Config::loader, Config::format_checker);
             validator.set_root_schema(this->_schemas.manifest);
-            validator.validate(this->manifests[module_name]);
+            auto patch = validator.validate(this->manifests[module_name]);
+            if (!patch.is_null()) {
+                // extend manifest with default values
+                this->manifests[module_name] = this->manifests[module_name].patch(patch);
+            }
         } catch (const std::exception& e) {
             EVLOG_AND_THROW(EVEXCEPTION(EverestConfigError, "Failed to load and parse manifest file: ", e.what()));
         }
 
         // validate user-defined default values for the config meta-schemas
-        if (this->manifests[module_name].contains("config")) {
-            try {
-                validate_config_schema(this->manifests[module_name]["config"]);
-            } catch (const std::exception& e) {
-                EVLOG_AND_THROW(EVEXCEPTION(EverestConfigError,
-                                            "Failed to validate the module configuration meta-schema for module '",
-                                            module_name, "'. Reason:\n", e.what()));
-            }
+        try {
+            validate_config_schema(this->manifests[module_name]["config"]);
+        } catch (const std::exception& e) {
+            EVLOG_AND_THROW(EVEXCEPTION(EverestConfigError,
+                                        "Failed to validate the module configuration meta-schema for module '",
+                                        module_name, "'. Reason:\n", e.what()));
         }
 
         for (auto& impl : this->manifests[module_name]["provides"].items()) {
-            if (impl.value().contains("config")) {
-                try {
-                    validate_config_schema(impl.value()["config"]);
-                } catch (const std::exception& e) {
-                    EVLOG_AND_THROW(EVEXCEPTION(
-                        EverestConfigError,
-                        "Failed to validate the implementation configuration meta-schema for implementation '",
-                        impl.key(), "' in module '", module_name, "'. Reason:\n", e.what()));
-                }
+            try {
+                validate_config_schema(impl.value()["config"]);
+            } catch (const std::exception& e) {
+                EVLOG_AND_THROW(EVEXCEPTION(
+                    EverestConfigError,
+                    "Failed to validate the implementation configuration meta-schema for implementation '",
+                    impl.key(), "' in module '", module_name, "'. Reason:\n", e.what()));
             }
         }
 
@@ -201,7 +204,6 @@ Config::Config(std::string schemas_dir, std::string config_file, std::string mod
         for (const auto& impl_id : provided_impls) {
             EVLOG(info) << "Loading interface for implementation: " << impl_id;
             auto intf_name = this->manifests[module_name]["provides"][impl_id]["interface"].get<std::string>();
-            // the std::set is only needed for internal loop detection
             auto seen_interfaces = std::set<std::string>();
             auto interface_definition = resolve_interface(intf_name, seen_interfaces);
             this->interfaces[module_name][impl_id] = interface_definition;
@@ -232,13 +234,7 @@ Config::Config(std::string schemas_dir, std::string config_file, std::string mod
             EVLOG(debug) << "Validating implementation config of " << printable_identifier(module_id, impl_id)
                          << " against json schemas defined in module mainfest...";
 
-            // default value for missing implementation configs is an empty dict
-            json config_map = json({});
-            if (module_config.contains("config_implementation") &&
-                module_config["config_implementation"].contains(impl_id)) {
-                config_map = module_config["config_implementation"][impl_id];
-            }
-
+            json config_map = module_config["config_implementation"][impl_id];
             json config_map_schema =
                 this->manifests[module_config["module"].get<std::string>()]["provides"][impl_id]["config"];
 
@@ -255,7 +251,7 @@ Config::Config(std::string schemas_dir, std::string config_file, std::string mod
                 } else if (err.err_t == ConfigParseException::SCHEMA) {
                     EVLOG_AND_THROW(EVEXCEPTION(EverestConfigError, "Schema validation for config entry '", err.entry,
                                                 "' failed in ", printable_identifier(module_id, impl_id),
-                                                "!  Reason:\n"
+                                                "! Reason:\n"
                                                     << err.what));
                 } else {
                     throw err;
@@ -265,8 +261,7 @@ Config::Config(std::string schemas_dir, std::string config_file, std::string mod
 
         // validate config for !module
         {
-            // default value for missing !module config is an empty dict
-            json config_map = module_config.value("config_module", json({}));
+            json config_map = module_config["config_module"];
             json config_map_schema = this->manifests[module_config["module"].get<std::string>()]["config"];
 
             try {
@@ -391,7 +386,7 @@ json Config::resolve_requirement(const std::string& module_id, const std::string
     std::string module_name = module_config["module"].get<std::string>();
     auto& requirement = this->manifests[module_name]["requires"][requirement_id];
     if (!module_config["connections"].contains(requirement_id)) {
-        return json({}); // return an empty array if our config does not contain any connections for this requirement id
+        return json::array(); // return an empty array if our config does not contain any connections for this requirement id
     }
 
     // if only one single connection entry was required, return only this one
@@ -741,7 +736,7 @@ void Config::resolve_all_requirements() {
             if (connections.size() < requirement["min_connections"] ||
                             connections.size() > requirement["max_connections"]) {
                 EVLOG_AND_THROW(EVEXCEPTION(EverestConfigError, "Requirement '", requirement_id, "' of module ",
-                                            printable_identifier(module_id), " not fulfilled: requirement list does",
+                                            printable_identifier(module_id), " not fulfilled: requirement list does ",
                                             "not have an entry count between ", requirement["min_connections"],
                                             " and ", requirement["max_connections"], "!"));
             }
