@@ -44,8 +44,6 @@ private:
     json base_interfaces;
     schemas _schemas;
 
-    const std::regex optional_requirement_regex = std::regex("^optional:.*$");
-
     ///
     /// \brief loads the contents of the interface file referenced by the give \p intf_name from disk and validates its
     /// contents

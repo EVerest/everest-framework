@@ -75,9 +75,8 @@ public:
     /// \brief Provides functionality for calling commands of other modules. The module is identified by the given \p
     /// requirement_id, the command by the given command name \p cmd_name and the needed arguments by \p args
     ///
-    json call_cmd(const std::string& requirement_id, const std::string& cmd_name, json json_args);
     json call_cmd(const std::string& requirement_id, uint64_t index, const std::string& cmd_name, json json_args);
-    Result call_cmd(const std::string& requirement_id, const std::string& cmd_name, Parameters args);
+    Result call_cmd(const std::string& requirement_id, uint64_t index, const std::string& cmd_name, Parameters args);
 
     ///
     /// \brief Publishes a variable of the given \p impl_id, names \p var_name with the given \p value
@@ -89,8 +88,8 @@ public:
     /// \brief Subscribes to a variable of another module identified by the given \p requirement_id and variable name \p
     /// var_name. The given \p callback is called when a new value becomes available
     ///
-    void subscribe_var(const std::string& requirement_id, const std::string& var_name, const ValueCallback& callback);
-    void subscribe_var(const std::string& requirement_id, const std::string& var_name, const JsonCallback& callback);
+    void subscribe_var(const std::string& requirement_id, uint64_t index, const std::string& var_name,
+                       const ValueCallback& callback);
     void subscribe_var(const std::string& requirement_id, uint64_t index, const std::string& var_name,
                        const JsonCallback& callback);
 

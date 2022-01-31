@@ -118,11 +118,6 @@ void Everest::disconnect() {
     this->mqtt_abstraction.disconnect();
 }
 
-// TODO(tmolitor): remove this signature once the c++ autogenerator is updated
-json Everest::call_cmd(const std::string& requirement_id, const std::string& cmd_name, json json_args) {
-    return this->call_cmd(requirement_id, 0, cmd_name, json_args);
-}
-
 json Everest::call_cmd(const std::string& requirement_id, uint64_t index, const std::string& cmd_name, json json_args) {
     BOOST_LOG_FUNCTION();
 
@@ -303,9 +298,10 @@ json Everest::call_cmd(const std::string& requirement_id, uint64_t index, const 
     return result;
 }
 
-Result Everest::call_cmd(const std::string& requirement_id, const std::string& cmd_name, Parameters args) {
+Result Everest::call_cmd(const std::string& requirement_id, const uint64_t idx,
+                         const std::string& cmd_name, Parameters args) {
     BOOST_LOG_FUNCTION();
-    json result = this->call_cmd(requirement_id, cmd_name, convertTo<json>(args));
+    json result = this->call_cmd(requirement_id, idx, cmd_name, convertTo<json>(args));
     return convertTo<Result>(result["retval"]); // FIXME: other datatype so we can return the data["origin"] as well
 }
 
@@ -350,12 +346,6 @@ void Everest::publish_var(const std::string& impl_id, const std::string& var_nam
 void Everest::publish_var(const std::string& impl_id, const std::string& var_name, Value value) {
     BOOST_LOG_FUNCTION();
     return this->publish_var(impl_id, var_name, convertTo<json>(value));
-}
-
-// TODO(tmolitor): remove this signature once the c++ autogenerator is updated
-void Everest::subscribe_var(const std::string& requirement_id, const std::string& var_name,
-                            const JsonCallback& callback) {
-    this->subscribe_var(requirement_id, 0, var_name, callback);
 }
 
 void Everest::subscribe_var(const std::string& requirement_id, uint64_t index, const std::string& var_name,
@@ -411,10 +401,12 @@ void Everest::subscribe_var(const std::string& requirement_id, uint64_t index, c
     Token token = this->mqtt_abstraction.register_handler(topic.str(), handler, true);
 }
 
-void Everest::subscribe_var(const std::string& requirement_id, const std::string& var_name,
+void Everest::subscribe_var(const std::string& requirement_id, const uint64_t idx, const std::string& var_name,
                             const ValueCallback& callback) {
     BOOST_LOG_FUNCTION();
-    return this->subscribe_var(requirement_id, var_name, [callback](json data) { callback(convertTo<Value>(data)); });
+    return this->subscribe_var(requirement_id, idx, var_name, [callback](json data) {
+        callback(convertTo<Value>(data));
+    });
 }
 
 void Everest::external_mqtt_publish(const std::string& topic, const std::string& data) {
