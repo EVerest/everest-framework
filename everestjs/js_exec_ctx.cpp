@@ -23,15 +23,7 @@ void JsExecCtx::tramp(Napi::Env env, Napi::Function callback, std::nullptr_t* co
 Napi::Value JsExecCtx::on_fulfill(const Napi::CallbackInfo& info) {
     JsExecCtx* this_ = reinterpret_cast<JsExecCtx*>(info.Data());
     if (this_->res_func != nullptr)
-        this_->res_func(info[0], false);
-    this_->promise.set_value();
-    return info.Env().Undefined();
-}
-
-Napi::Value JsExecCtx::on_reject(const Napi::CallbackInfo& info) {
-    JsExecCtx* this_ = reinterpret_cast<JsExecCtx*>(info.Data());
-    if (this_->res_func != nullptr)
-        this_->res_func(info[0], true);
+        this_->res_func(info[0]);
     this_->promise.set_value();
     return info.Env().Undefined();
 }

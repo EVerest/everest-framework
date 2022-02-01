@@ -93,8 +93,7 @@ static Napi::Value setup_cmd_handler(const std::string& impl_id, const std::stri
                     std::vector<napi_value> args{ctx->cmd_handlers[cmd_key].Value(), ctx->js_module_ref.Value(), arg};
                     return args;
                 },
-                [&result](const Napi::Value& retval, bool) {
-                    // FIXME (aw): we could check the bool for failure ...
+                [&result](const Napi::Value& retval) {
                     result = convertToJson(retval);
                 });
 

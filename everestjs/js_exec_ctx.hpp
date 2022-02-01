@@ -16,12 +16,11 @@ class JsExecCtx {
 private:
     static void tramp(Napi::Env env, Napi::Function callback, std::nullptr_t*, JsExecCtx* this_);
     static Napi::Value on_fulfill(const Napi::CallbackInfo& info);
-    static Napi::Value on_reject(const Napi::CallbackInfo& info);
 
 public:
     using TsfnType = Napi::TypedThreadSafeFunction<std::nullptr_t, JsExecCtx, JsExecCtx::tramp>;
     using ArgFuncType = std::function<std::vector<napi_value>(Napi::Env&)>;
-    using ResFuncType = std::function<void(const Napi::Value&, bool)>;
+    using ResFuncType = std::function<void(const Napi::Value&)>;
 
     // FIXME (aw): proper module_instance handling if nullptr
     JsExecCtx(const Napi::Env& env, const Napi::Function& func, const std::string& res_name = "RequestDispatcher") :
@@ -31,8 +30,6 @@ public:
 
         result_handler_ref.Value().DefineProperty(Napi::PropertyDescriptor::Value(
             "fulfill", Napi::Function::New(env, on_fulfill, nullptr, this), napi_enumerable));
-        result_handler_ref.Value().DefineProperty(Napi::PropertyDescriptor::Value(
-            "reject", Napi::Function::New(env, on_reject, nullptr, this), napi_enumerable));
     }
 
     ~JsExecCtx() {
