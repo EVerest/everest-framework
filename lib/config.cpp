@@ -28,6 +28,13 @@ public:
     const std::string what;
 };
 
+static json draft07 = R"(
+{
+    "$ref": "http://json-schema.org/draft-07/schema#"
+}
+
+)"_json;
+
 static void validate_config_schema(const json& config_map_schema) {
     // iterate over every config entry
     json_validator validator(Config::loader, Config::format_checker);
@@ -363,9 +370,28 @@ json Config::load_interface_file(const std::string& intf_name) {
 
         json interface_json = json::parse(intf_file);
 
+        // this subschema can not use allOf with the draft-07 schema because that will cause our validator to
+        // add all draft-07 default values which never validate (the {"not": true} default contradicts everything)
+        // --> validating against draft-07 will be done in an extra step below
         json_validator validator(Config::loader, Config::format_checker);
         validator.set_root_schema(this->_schemas.interface);
-        validator.validate(interface_json);
+        auto patch = validator.validate(interface_json);
+        if (!patch.is_null()) {
+            // extend config entry with default values
+            interface_json = interface_json.patch(patch);
+        }
+
+        // validate every cmd arg/result and var definition against draft-07 schema
+        validator.set_root_schema(draft07);
+        for (auto& var_entry : interface_json["vars"].items()) {
+            validator.validate(var_entry.value());
+        }
+        for (auto& cmd_entry : interface_json["cmds"].items()) {
+            for (auto& arguments_entry : interface_json["cmds"][cmd_entry.key()]["arguments"].items()) {
+                validator.validate(arguments_entry.value());
+            }
+            validator.validate(interface_json["cmds"][cmd_entry.key()]["result"]);
+        }
 
         return interface_json;
     } catch (const std::exception& e) {
