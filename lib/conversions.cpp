@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
-// Copyright 2020 - 2021 Pionix GmbH and Contributors to EVerest
+// Copyright 2020 - 2022 Pionix GmbH and Contributors to EVerest
 #include <boost/current_function.hpp>
+#include <fmt/core.h>
 
 #include <everest/exceptions.hpp>
 #include <everest/logging.hpp>
@@ -28,7 +29,7 @@ template <> json convertTo<json>(Result retval) {
         } else if (ret_any.type() == typeid(Object)) {
             return boost::any_cast<Object>(ret_any);
         } else {
-            EVLOG_AND_THROW(EVEXCEPTION(EverestApiError, "WRONG C++ TYPE: ", ret_any.type().name())); // FIXME
+            EVLOG_AND_THROW(EverestApiError(fmt::format("WRONG C++ TYPE: {}", ret_any.type().name()))); // FIXME
         }
     }
 }
@@ -51,7 +52,7 @@ template <> Result convertTo<Result>(json data) {
     } else if (data.is_null()) {
         retval = nullptr;
     } else {
-        EVLOG_AND_THROW(EVEXCEPTION(EverestApiError, "WRONG JSON TYPE: ", data.type_name())); // FIXME
+        EVLOG_AND_THROW(EverestApiError(fmt::format("WRONG JSON TYPE: {}", data.type_name()))); // FIXME
     }
     return retval;
 }
@@ -73,7 +74,7 @@ template <> json convertTo<json>(Parameters params) {
         } else if (param.second.type() == typeid(Object)) {
             j[param.first] = boost::any_cast<Object>(param.second);
         } else {
-            EVLOG_AND_THROW(EVEXCEPTION(EverestApiError, "WRONG C++ TYPE: ", param.second.type().name())); // FIXME
+            EVLOG_AND_THROW(EverestApiError(fmt::format("WRONG C++ TYPE: {}", param.second.type().name()))); // FIXME
         }
     }
     return j;
@@ -99,8 +100,8 @@ template <> Parameters convertTo<Parameters>(json data) {
         } else if (value.is_null()) {
             params[arg.key()] = nullptr;
         } else {
-            EVLOG_AND_THROW(EVEXCEPTION(EverestApiError, "WRONG JSON TYPE: ", value.type_name(),
-                                        " FOR ENTRY: ", arg.key())); // FIXME
+            EVLOG_AND_THROW(EverestApiError(fmt::format("WRONG JSON TYPE: {} FOR ENTRY: {}", value.type_name(),
+                                                        arg.key()))); // FIXME
         }
     }
     return params;
@@ -121,7 +122,7 @@ template <> json convertTo<json>(Value value) {
     } else if (value.type() == typeid(Object)) {
         return boost::any_cast<Object>(value);
     } else {
-        EVLOG_AND_THROW(EVEXCEPTION(EverestApiError, "WRONG C++ TYPE: ", value.type().name())); // FIXME
+        EVLOG_AND_THROW(EverestApiError(fmt::format("WRONG C++ TYPE: {}", value.type().name()))); // FIXME
     }
 }
 
@@ -140,7 +141,7 @@ template <> Value convertTo<Value>(json data) {
     } else if (data.is_object()) {
         return data.get<Object>();
     } else {
-        EVLOG_AND_THROW(EVEXCEPTION(EverestApiError, "WRONG JSON TYPE: ", data.type_name())); // FIXME
+        EVLOG_AND_THROW(EverestApiError(fmt::format("WRONG JSON TYPE: {}", data.type_name()))); // FIXME
     }
 }
 
