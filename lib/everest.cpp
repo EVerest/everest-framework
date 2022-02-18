@@ -210,8 +210,9 @@ json Everest::call_cmd(const Requirement& req, const std::string& cmd_name, json
             return;
         }
 
-        EVLOG(debug) << "Incoming res {} for {}->{}()", data["id"],
-            this->config.printable_identifier(connection["module_id"], connection["implementation_id"]), cmd_name;
+        EVLOG(debug) << fmt::format(
+            "Incoming res {} for {}->{}()", data["id"],
+            this->config.printable_identifier(connection["module_id"], connection["implementation_id"]), cmd_name);
 
         // make sure to only return the intended parts of the incoming result to not open up the api to internals
         res_promise.set_value(
@@ -483,7 +484,6 @@ void Everest::provide_cmd(const std::string impl_id, const std::string cmd_name,
             arg_names = Config::keys(cmd_definition["arguments"]);
         }
 
-        std::ostringstream oss;
         EVLOG(debug) << fmt::format("Incoming {}->{}({}) for <handler>",
                                     this->config.printable_identifier(this->module_id, impl_id), cmd_name,
                                     fmt::join(arg_names, ","));

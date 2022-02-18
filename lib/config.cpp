@@ -536,7 +536,7 @@ schemas Config::load_schemas(std::string schemas_dir) {
     BOOST_LOG_FUNCTION();
     schemas schemas;
 
-    EVLOG(info) << fmt::format("Loading base schema files for config and manifests... from:", schemas_dir);
+    EVLOG(info) << fmt::format("Loading base schema files for config and manifests... from: {}", schemas_dir);
     schemas.config = Config::load_schema(fs::path(schemas_dir) / "config.json");
     schemas.manifest = Config::load_schema(fs::path(schemas_dir) / "manifest.json");
     schemas.interface = Config::load_schema(fs::path(schemas_dir) / "interface.json");
