@@ -299,7 +299,6 @@ void Everest::publish_var(const std::string& impl_id, const std::string& var_nam
             validator.set_root_schema(var_definition);
             validator.validate(json_value);
         } catch (const std::exception& e) {
-            // FIXME (aw): previously there was an setw(4) for output of the json_value here, is that needed?
             EVLOG_AND_THROW(EverestApiError(fmt::format(
                 "Publish var of {} with variable name '{}' with value '{}' could not be validated with schema: {}",
                 this->config.printable_identifier(this->module_id, impl_id), var_name, json_value, e.what())));

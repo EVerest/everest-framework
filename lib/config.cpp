@@ -468,8 +468,6 @@ ModuleConfigs Config::get_module_configs(const std::string& module_id) {
                     value = data.get<double>();
                 } else if (data.is_number_integer()) {
                     if (entry_type == "number") {
-                        // FIXME (aw): where does this belong to?
-                        EVLOG(debug) << "      (this is provided as an integer but converted to double";
                         value = data.get<double>();
                     } else {
                         value = data.get<int>();
