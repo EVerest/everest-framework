@@ -300,8 +300,8 @@ void Everest::publish_var(const std::string& impl_id, const std::string& var_nam
             validator.validate(json_value);
         } catch (const std::exception& e) {
             EVLOG_AND_THROW(EverestApiError(fmt::format(
-                "Publish var of {} with variable name '{}' with value '{}' could not be validated with schema: {}",
-                this->config.printable_identifier(this->module_id, impl_id), var_name, json_value, e.what())));
+                "Publish var of {} with variable name '{}' with value: {}\ncould not be validated with schema: {}",
+                this->config.printable_identifier(this->module_id, impl_id), var_name, json_value.dump(2), e.what())));
         }
     }
 
