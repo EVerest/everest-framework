@@ -287,7 +287,8 @@ void Everest::publish_var(const std::string& impl_id, const std::string& var_nam
 
         // validate var contents before publishing
         auto var_definition = impl_intf["vars"][var_name];
-        json_validator validator(Config::loader, Config::format_checker);
+        json_validator validator([this](const json_uri& uri, json& schema) { this->config.ref_loader(uri, schema); },
+                                 Config::format_checker);
         try {
             validator.set_root_schema(var_definition);
             validator.validate(json_value);
@@ -342,7 +343,9 @@ void Everest::subscribe_var(const Requirement& req, const std::string& var_name,
 
         // check data and ignore it if not matching (publishing it should have been prohibited already)
         try {
-            json_validator validator(Config::loader, Config::format_checker);
+            json_validator validator(
+                [this](const json_uri& uri, json& schema) { this->config.ref_loader(uri, schema); },
+                Config::format_checker);
             validator.set_root_schema(requirement_manifest_vardef);
             validator.validate(data);
         } catch (const std::exception& e) {
