@@ -38,7 +38,6 @@ private:
     std::map<std::string, Handler> registered_external_mqtt_handlers;
     std::vector<Token> registered_handlers;
     bool ready_received;
-    std::chrono::seconds remote_cmd_ack_timeout;
     std::chrono::seconds remote_cmd_res_timeout;
     bool validate_data_with_schema;
     std::unique_ptr<std::function<void()>> on_ready;

@@ -18,7 +18,6 @@
 
 namespace Everest {
 sigslot::signal<std::string, json> signalPublish;
-const auto remote_cmd_ack_timeout_seconds = 4;
 const auto remote_cmd_res_timeout_seconds = 300;
 
 Everest::Everest(std::string module_id, Config config, bool validate_data_with_schema,
@@ -26,7 +25,6 @@ Everest::Everest(std::string module_id, Config config, bool validate_data_with_s
     mqtt_abstraction(MQTTAbstraction::get_instance(mqtt_server_address, mqtt_server_port)),
     config(std::move(config)),
     module_id(std::move(module_id)),
-    remote_cmd_ack_timeout(remote_cmd_ack_timeout_seconds),
     remote_cmd_res_timeout(remote_cmd_res_timeout_seconds),
     validate_data_with_schema(validate_data_with_schema) {
     BOOST_LOG_FUNCTION();
@@ -172,30 +170,6 @@ json Everest::call_cmd(const Requirement& req, const std::string& cmd_name, json
 
     std::string call_id = boost::uuids::to_string(boost::uuids::random_generator()());
 
-    // handle acks by registering an mqtt handler on the ack-topic
-    std::ostringstream ack_topic_str;
-    ack_topic_str << this->config.mqtt_prefix(connection["module_id"], connection["implementation_id"]) << "/ack/"
-                  << cmd_name;
-    std::string ack_topic = ack_topic_str.str();
-
-    std::promise<bool> ack_promise;
-    std::future<bool> ack_future = ack_promise.get_future();
-
-    Handler ack_handler = [this, &ack_promise, call_id, connection, cmd_name](json data) {
-        if (data["id"] != call_id) {
-            EVLOG(debug) << fmt::format("ACK: data_id != call_id ({} != {})", data["id"], call_id);
-            return;
-        }
-
-        EVLOG(debug) << fmt::format(
-            "Incoming ack {} for {}->{}()", data["id"],
-            this->config.printable_identifier(connection["module_id"], connection["implementation_id"]), cmd_name);
-
-        ack_promise.set_value(true);
-    };
-
-    Token ack_token = this->mqtt_abstraction.register_handler(ack_topic, ack_handler, true);
-
     std::promise<json> res_promise;
     std::future<json> res_future = res_promise.get_future();
 
@@ -231,21 +205,6 @@ json Everest::call_cmd(const Requirement& req, const std::string& cmd_name, json
     cmd_publish_data["origin"] = this->module_id;
 
     this->mqtt_abstraction.publish(cmd_topic.str(), cmd_publish_data);
-
-    // wait for ack future
-    std::chrono::system_clock::time_point ack_wait = std::chrono::system_clock::now() + this->remote_cmd_ack_timeout;
-    std::future_status ack_future_status;
-    do {
-        ack_future_status = ack_future.wait_until(ack_wait);
-    } while (ack_future_status == std::future_status::deferred);
-    if (ack_future_status == std::future_status::timeout) {
-        EVLOG_AND_THROW(EverestTimeoutError(fmt::format(
-            "Timeout while waiting for ack of {}->{}()",
-            this->config.printable_identifier(connection["module_id"], connection["implementation_id"]), cmd_name)));
-    } else if (ack_future_status == std::future_status::ready) {
-        EVLOG(debug) << "ack future ready";
-    }
-    this->mqtt_abstraction.unregister_handler(ack_topic, ack_token);
 
     // wait for result future
     std::chrono::system_clock::time_point res_wait = std::chrono::system_clock::now() + this->remote_cmd_res_timeout;
@@ -508,15 +467,6 @@ void Everest::provide_cmd(const std::string impl_id, const std::string cmd_name,
                 return;
             }
         }
-
-        // send back cmd ack: this will acknowledge that the command and
-        // arguments were received and validated successfully
-        std::ostringstream ack_topic;
-        ack_topic << this->config.mqtt_prefix(this->module_id, impl_id) << "/ack/" << cmd_name;
-        json ack_publish_data = json({});
-        ack_publish_data["id"] = data["id"];
-        ack_publish_data["origin"] = this->module_id;
-        this->mqtt_abstraction.publish(ack_topic.str(), ack_publish_data);
 
         // publish results
         std::ostringstream res_topic;
