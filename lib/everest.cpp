@@ -40,7 +40,7 @@ Everest::Everest(std::string module_id, Config config, bool validate_data_with_s
 
     // register handler for global ready signal
     std::shared_ptr<Handler> everest_ready = this->mqtt_abstraction.register_handler(
-        "everest/ready", [this](auto&& PH1) { handle_ready(std::forward<decltype(PH1)>(PH1)); });
+        "everest/ready", [this](auto&& PH1) { handle_ready(std::forward<decltype(PH1)>(PH1)); }, false, QOS::QOS2);
 
     signalPublish.connect(&Everest::internal_publish, this);
 }
@@ -193,7 +193,7 @@ json Everest::call_cmd(const Requirement& req, const std::string& cmd_name, json
             json::object({{"retval", data["retval"]}, {"origin", data["origin"]}, {"id", data["id"]}}));
     };
 
-    Token res_token = this->mqtt_abstraction.register_handler(res_topic, res_handler, true);
+    Token res_token = this->mqtt_abstraction.register_handler(res_topic, res_handler, true, QOS::QOS2);
 
     // call cmd (e.g. publish cmd via mqtt on the cmd-topic)
     std::ostringstream cmd_topic;
@@ -323,7 +323,7 @@ void Everest::subscribe_var(const Requirement& req, const std::string& var_name,
     EVLOG(debug) << fmt::format("Registering mqtt var handler for '{}'...", topic.str());
 
     // TODO(kai): multiple subscription should be perfectly fine here!
-    Token token = this->mqtt_abstraction.register_handler(topic.str(), handler, true);
+    Token token = this->mqtt_abstraction.register_handler(topic.str(), handler, true, QOS::QOS0);
 }
 
 void Everest::subscribe_var(const Requirement& req, const std::string& var_name, const ValueCallback& callback) {
@@ -371,7 +371,7 @@ void Everest::provide_external_mqtt_handler(const std::string& topic, const Stri
         handler(data.get<std::string>());
     };
 
-    Token token = this->mqtt_abstraction.register_handler(topic, external_handler, true);
+    Token token = this->mqtt_abstraction.register_handler(topic, external_handler, true, QOS::QOS0);
 }
 
 void Everest::signal_ready() {
@@ -505,7 +505,7 @@ void Everest::provide_cmd(const std::string impl_id, const std::string cmd_name,
     cmd_topic << this->config.mqtt_prefix(this->module_id, impl_id) << "/cmd/" << cmd_name;
     std::string topic_name = cmd_topic.str();
     EVLOG(debug) << fmt::format("Registering mqtt cmd handler for '{}'...", topic_name);
-    registered_handlers.push_back(this->mqtt_abstraction.register_handler(topic_name, wrapper));
+    registered_handlers.push_back(this->mqtt_abstraction.register_handler(topic_name, wrapper, false, QOS::QOS2));
 
     // this list of registered cmds will be used later on to check if all cmds
     // defined in manifest are provided by code

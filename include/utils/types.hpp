@@ -33,6 +33,14 @@ using Handler = std::function<void(json)>;
 using StringHandler = std::function<void(std::string)>;
 using Token = std::shared_ptr<Handler>;
 
+/// \brief MQTT Quality of service
+enum class QOS
+{
+    QOS0, ///< At most once delivery
+    QOS1, ///< At least once delivery
+    QOS2  ///< Exactly once delivery
+};
+
 struct ModuleInfo {
     std::string name;
     std::vector<std::string> authors;

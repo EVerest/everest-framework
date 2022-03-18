@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-// Copyright 2020 - 2021 Pionix GmbH and Contributors to EVerest
+// Copyright 2020 - 2022 Pionix GmbH and Contributors to EVerest
 #ifndef UTILS_MQTT_ABSTRACTION_IMPL_HPP
 #define UTILS_MQTT_ABSTRACTION_IMPL_HPP
 
@@ -59,16 +59,28 @@ public:
     void disconnect();
 
     ///
-    /// \brief publishes the given \p json on the given \p topic
+    /// \brief publishes the given \p json on the given \p topic with QOS level 0
     void publish(const std::string& topic, const json& json);
 
     ///
-    /// \brief publishes the given \p data on the given \p topic
+    /// \brief publishes the given \p json on the given \p topic with the given \p qos
+    void publish(const std::string& topic, const json& json, QOS qos);
+
+    ///
+    /// \brief publishes the given \p data on the given \p topic with QOS level 0
     void publish(const std::string& topic, const std::string& data);
 
     ///
-    /// \brief subscribes to the given \p topic
+    /// \brief publishes the given \p data on the given \p topic with the given \p qos
+    void publish(const std::string& topic, const std::string& data, QOS qos);
+
+    ///
+    /// \brief subscribes to the given \p topic with QOS level 0
     void subscribe(const std::string& topic);
+
+    ///
+    /// \brief subscribes to the given \p topic with the given \p qos
+    void subscribe(const std::string& topic, QOS qos);
 
     ///
     /// \brief unsubscribes from the given \p topic
@@ -92,6 +104,14 @@ public:
     ///
     /// \returns a Token with which the handler can be unregistered later
     Token register_handler(const std::string& topic, const Handler& handler, bool allow_multiple_handlers);
+
+    ///
+    /// \brief subscribes to the given \p topic and registers a callback \p handler that is called when a message
+    /// arrives on the topic. If \p allow_multiple_handlers is set to true, multiple handlers can be registered for the
+    /// same topic. With \p qos a MQTT Quality of Servicee level can be set.
+    ///
+    /// \returns a Token with which the handler can be unregistered later
+    Token register_handler(const std::string& topic, const Handler& handler, bool allow_multiple_handlers, QOS qos);
 
     ///
     /// \brief unsubscribes a handler identified by its \p token from the given \p topic

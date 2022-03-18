@@ -58,14 +58,42 @@ void MQTTAbstractionImpl::disconnect() {
 void MQTTAbstractionImpl::publish(const std::string& topic, const json& json) {
     BOOST_LOG_FUNCTION();
 
+    publish(topic, json, QOS::QOS0);
+}
+
+void MQTTAbstractionImpl::publish(const std::string& topic, const json& json, QOS qos) {
+    BOOST_LOG_FUNCTION();
+
     std::string data = json.dump();
-    publish(topic, data);
+    publish(topic, data, qos);
 }
 
 void MQTTAbstractionImpl::publish(const std::string& topic, const std::string& data) {
     BOOST_LOG_FUNCTION();
 
-    MQTTErrors error = mqtt_publish(&this->mqtt_client, topic.c_str(), data.c_str(), data.size(), MQTT_PUBLISH_QOS_0);
+    publish(topic, data, QOS::QOS0);
+}
+
+void MQTTAbstractionImpl::publish(const std::string& topic, const std::string& data, QOS qos) {
+    BOOST_LOG_FUNCTION();
+
+    auto publish_flags = 0;
+    switch (qos) {
+    case QOS::QOS0:
+        publish_flags = MQTT_PUBLISH_QOS_0;
+        break;
+    case QOS::QOS1:
+        publish_flags = MQTT_PUBLISH_QOS_1;
+        break;
+    case QOS::QOS2:
+        publish_flags = MQTT_PUBLISH_QOS_2;
+        break;
+
+    default:
+        break;
+    }
+
+    MQTTErrors error = mqtt_publish(&this->mqtt_client, topic.c_str(), data.c_str(), data.size(), publish_flags);
     if (error != MQTT_OK) {
         EVLOG(error) << fmt::format("MQTT Error {}", mqtt_error_str(error));
     }
@@ -76,7 +104,28 @@ void MQTTAbstractionImpl::publish(const std::string& topic, const std::string& d
 void MQTTAbstractionImpl::subscribe(const std::string& topic) {
     BOOST_LOG_FUNCTION();
 
-    mqtt_subscribe(&this->mqtt_client, topic.c_str(), 0);
+    subscribe(topic, QOS::QOS0);
+}
+
+void MQTTAbstractionImpl::subscribe(const std::string& topic, QOS qos) {
+    BOOST_LOG_FUNCTION();
+
+    auto max_qos_level = 0;
+    switch (qos) {
+    case QOS::QOS0:
+        max_qos_level = 0;
+        break;
+    case QOS::QOS1:
+        max_qos_level = 1;
+        break;
+    case QOS::QOS2:
+        max_qos_level = 2;
+        break;
+    default:
+        break;
+    }
+
+    mqtt_subscribe(&this->mqtt_client, topic.c_str(), max_qos_level);
 }
 
 void MQTTAbstractionImpl::unsubscribe(const std::string& topic) {
@@ -206,8 +255,21 @@ void MQTTAbstractionImpl::on_mqtt_disconnect() {
     EVLOG_AND_THROW(EverestInternalError("Lost connection to mqtt broker"));
 }
 
+Token MQTTAbstractionImpl::register_handler(const std::string& topic, const Handler& handler) {
+    BOOST_LOG_FUNCTION();
+
+    return register_handler(topic, handler, false);
+}
+
 Token MQTTAbstractionImpl::register_handler(const std::string& topic, const Handler& handler,
                                             bool allow_multiple_handlers) {
+    BOOST_LOG_FUNCTION();
+
+    return register_handler(topic, handler, allow_multiple_handlers, QOS::QOS0);
+}
+
+Token MQTTAbstractionImpl::register_handler(const std::string& topic, const Handler& handler,
+                                            bool allow_multiple_handlers, QOS qos) {
     BOOST_LOG_FUNCTION();
 
     EVLOG(debug) << fmt::format("Registering handler {} for {}", fmt::ptr(&handler), topic);
@@ -230,12 +292,6 @@ Token MQTTAbstractionImpl::register_handler(const std::string& topic, const Hand
     EVLOG(debug) << fmt::format("#handler[{}] = {}", topic, this->handlers[topic].size());
 
     return shared_handler;
-}
-
-Token MQTTAbstractionImpl::register_handler(const std::string& topic, const Handler& handler) {
-    BOOST_LOG_FUNCTION();
-
-    return register_handler(topic, handler, false);
 }
 
 void MQTTAbstractionImpl::unregister_handler(const std::string& topic, const Token& token) {
