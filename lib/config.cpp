@@ -704,7 +704,7 @@ json Config::extract_implementation_info(const std::string& module_id, const std
         }
 
         if (!this->manifests[info["module_name"].get<std::string>()]["provides"].contains(impl_id)) {
-            EVTHROW(EverestApiError(fmt::format("Implementaiton id '{}' not defined in manifest of module '{}'!",
+            EVTHROW(EverestApiError(fmt::format("Implementation id '{}' not defined in manifest of module '{}'!",
                                                 impl_id, info["module_name"])));
         }
 
