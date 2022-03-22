@@ -58,7 +58,7 @@ void MQTTAbstractionImpl::disconnect() {
 void MQTTAbstractionImpl::publish(const std::string& topic, const json& json) {
     BOOST_LOG_FUNCTION();
 
-    publish(topic, json, QOS::QOS0);
+    publish(topic, json, QOS::QOS2);
 }
 
 void MQTTAbstractionImpl::publish(const std::string& topic, const json& json, QOS qos) {
@@ -104,7 +104,7 @@ void MQTTAbstractionImpl::publish(const std::string& topic, const std::string& d
 void MQTTAbstractionImpl::subscribe(const std::string& topic) {
     BOOST_LOG_FUNCTION();
 
-    subscribe(topic, QOS::QOS0);
+    subscribe(topic, QOS::QOS2);
 }
 
 void MQTTAbstractionImpl::subscribe(const std::string& topic, QOS qos) {
