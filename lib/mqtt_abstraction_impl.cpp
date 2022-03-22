@@ -45,7 +45,7 @@ MQTTAbstractionImpl::MQTTAbstractionImpl(std::string mqtt_server_address, std::s
 bool MQTTAbstractionImpl::connect() {
     BOOST_LOG_FUNCTION();
 
-    EVLOG(info) << "Connecting to mqtt broker...";
+    EVLOG(info) << fmt::format("Connecting to MQTT broker: {}:{}", this->mqtt_server_address, this->mqtt_server_port);
 
     return connectBroker(this->mqtt_server_address.c_str(), this->mqtt_server_port.c_str());
 }
