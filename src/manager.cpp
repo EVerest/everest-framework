@@ -246,9 +246,7 @@ int main(int argc, char* argv[]) {
             lock.unlock();
         };
 
-        std::string module_id = config->printable_identifier(module_name);
-
-        std::string topic = fmt::format("everest/{}/ready", module_id);
+        std::string topic = fmt::format("{}/ready", config->mqtt_module_prefix(module_name));
 
         Token token = mqtt_abstraction.register_handler(topic, module_ready_handler);
         tokens.push_back(token);
