@@ -5,6 +5,7 @@
 
 #include <functional>
 #include <map>
+#include <memory>
 #include <mutex>
 #include <thread>
 #include <vector>
@@ -14,6 +15,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include <utils/message_queue.hpp>
 #include <utils/types.hpp>
 
 #define MQTT_BUF_SIZE 150 * 1024
@@ -28,8 +30,9 @@ class MQTTAbstractionImpl {
 
 private:
     bool mqtt_is_connected;
-    std::map<std::string, std::vector<Token>> handlers;
+    std::map<std::string, std::shared_ptr<MessageHandler>> message_handlers;
     std::mutex handlers_mutex;
+    std::shared_ptr<MessageQueue> message_queue;
 
     std::thread mqtt_mainloop_thread;
 
@@ -44,8 +47,7 @@ private:
     static int open_nb_socket(const char* addr, const char* port);
     bool connectBroker(const char* host, const char* port);
     void _mainloop();
-    void on_mqtt_message(std::string topic, std::string payload);
-    void on_mqtt_message_(std::string topic, std::string payload);
+    void on_mqtt_message(std::shared_ptr<Message> message);
     void on_mqtt_connect();
     static void on_mqtt_disconnect();
 

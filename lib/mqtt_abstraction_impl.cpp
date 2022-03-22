@@ -20,7 +20,7 @@
 #include <utils/mqtt_abstraction_impl.hpp>
 
 namespace Everest {
-sigslot::signal<std::string, std::string> signalReceived;
+sigslot::signal<std::shared_ptr<Message>> signalReceived;
 const auto mqtt_sync_sleep_milliseconds = 10;
 const auto mqtt_keep_alive = 400;
 
@@ -34,9 +34,12 @@ MQTTAbstractionImpl::MQTTAbstractionImpl(std::string mqtt_server_address, std::s
 
     EVLOG(debug) << "Initializing mqtt abstraction layer...";
 
+    this->message_queue =
+        std::make_shared<MessageQueue>([this](std::shared_ptr<Message> message) { this->on_mqtt_message(message); });
+
     this->mqtt_is_connected = false;
 
-    signalReceived.connect(&MQTTAbstractionImpl::on_mqtt_message, this);
+    signalReceived.connect(&MessageQueue::add, this->message_queue);
 }
 
 bool MQTTAbstractionImpl::connect() {
@@ -167,22 +170,18 @@ void MQTTAbstractionImpl::_mainloop() {
     }
 }
 
-void MQTTAbstractionImpl::on_mqtt_message(std::string topic, std::string payload) {
+void MQTTAbstractionImpl::on_mqtt_message(std::shared_ptr<Message> message) {
     BOOST_LOG_FUNCTION();
 
-    std::thread t(&MQTTAbstractionImpl::on_mqtt_message_, this, topic, payload);
-    t.detach(); // FIXME(kai): is this desireable?
-}
-
-void MQTTAbstractionImpl::on_mqtt_message_(std::string topic, std::string payload) {
-    BOOST_LOG_FUNCTION();
+    std::string topic = message->topic;
+    std::string payload = message->payload;
 
     try {
-        json data;
+        std::shared_ptr<json> data;
         if (topic.find("everest/") == 0) {
             EVLOG(debug) << fmt::format("topic {} starts with everest/", topic);
             try {
-                data = json::parse(payload);
+                data = std::make_shared<json>(json::parse(payload));
             } catch (nlohmann::detail::parse_error& e) {
                 EVLOG(warning) << fmt::format("Could not decode json for incoming topic '{}': {}", topic, payload);
                 return;
@@ -190,31 +189,21 @@ void MQTTAbstractionImpl::on_mqtt_message_(std::string topic, std::string payloa
         } else {
             EVLOG(debug) << fmt::format("Message parsing for topic '{}' not implemented. Wrapping in json object.",
                                         topic);
-            data = json(payload);
+            data = std::make_shared<json>(json(payload));
         }
 
         bool found = false;
 
         std::unique_lock<std::mutex> lock(handlers_mutex);
         std::vector<Handler> local_handlers;
-        for (auto const& ha : this->handlers) {
+        for (auto const& ha : this->message_handlers) {
             std::string handler_topic = ha.first;
             if (MQTTAbstractionImpl::check_topic_matches(topic, handler_topic)) {
                 found = true;
-                EVLOG(debug) << fmt::format("there is a handler! {}", ha.first);
-                for (const auto& handler : ha.second) {
-                    auto f = *handler;
-                    local_handlers.push_back(f);
-                }
+                ha.second->add(data);
             }
         }
         lock.unlock();
-
-        for (auto const& handler : local_handlers) {
-            EVLOG(debug) << fmt::format("calling handler: {}", fmt::ptr(&handler));
-            handler(data);
-            EVLOG(debug) << fmt::format("handler '{}' called", fmt::ptr(&handler));
-        }
 
         if (!found) {
             EVLOG_AND_THROW(
@@ -239,10 +228,10 @@ void MQTTAbstractionImpl::on_mqtt_connect() {
     // subscribe to all topics needed by currently registered handlers
     EVLOG(info) << "Subscribing to needed mqtt topics...";
     const std::lock_guard<std::mutex> lock(handlers_mutex);
-    for (auto const& ha : this->handlers) {
+    for (auto const& ha : this->message_handlers) {
         std::string topic = ha.first;
         EVLOG(info) << fmt::format("Subscribing to {}", topic);
-        subscribe(topic);
+        subscribe(topic); // FIXME(kai): get QOS from handler
     }
 
     // this will allow new handlers to subscribe directly, if needed
@@ -275,21 +264,26 @@ Token MQTTAbstractionImpl::register_handler(const std::string& topic, const Hand
     EVLOG(debug) << fmt::format("Registering handler {} for {}", fmt::ptr(&handler), topic);
 
     const std::lock_guard<std::mutex> lock(handlers_mutex);
-    if (!this->handlers[topic].empty() && !allow_multiple_handlers) {
+    if (this->message_handlers.count(topic) > 0 && this->message_handlers[topic]->count_handlers() != 0 &&
+        !allow_multiple_handlers) {
         EVLOG_AND_THROW(EverestInternalError(fmt::format("Can not register handlers for topic {} twice, if optional "
                                                          "argument 'allow_multiple_handlers' it not 'true'!",
                                                          topic)));
     }
     Token shared_handler = std::make_shared<Handler>(handler);
-    this->handlers[topic].push_back(shared_handler);
+
+    if (this->message_handlers.count(topic) == 0) {
+        this->message_handlers[topic] = std::make_shared<MessageHandler>();
+    }
+    this->message_handlers[topic]->add_handler(shared_handler);
 
     // only subscribe for this topic if we aren't already and the mqtt client is connected
     // if we are not connected the on_mqtt_connect() callback will subscribe to the topic
-    if (this->mqtt_is_connected && this->handlers[topic].size() == 1) {
+    if (this->mqtt_is_connected && this->message_handlers[topic]->count_handlers() == 1) {
         EVLOG(debug) << fmt::format("Subscribing to {}", topic);
-        this->subscribe(topic);
+        this->subscribe(topic, qos);
     }
-    EVLOG(debug) << fmt::format("#handler[{}] = {}", topic, this->handlers[topic].size());
+    EVLOG(debug) << fmt::format("#handler[{}] = {}", topic, this->message_handlers[topic]->count_handlers());
 
     return shared_handler;
 }
@@ -300,14 +294,14 @@ void MQTTAbstractionImpl::unregister_handler(const std::string& topic, const Tok
     EVLOG(debug) << fmt::format("Unregistering handler {} for {}", fmt::ptr(&token), topic);
 
     const std::lock_guard<std::mutex> lock(handlers_mutex);
-    if (this->handlers.count(topic) != 0) {
-        auto it = std::find(this->handlers[topic].begin(), this->handlers[topic].end(), token);
-        this->handlers[topic].erase(it);
+    auto number_of_handlers = 0;
+    if (this->message_handlers.count(topic) > 0 && this->message_handlers[topic]->count_handlers() != 0) {
+        this->message_handlers[topic]->remove_handler(token);
+        number_of_handlers = this->message_handlers[topic]->count_handlers();
     }
 
     // unsubscribe if this was the last handler for this topic
-    if (this->handlers[topic].empty()) {
-        this->handlers.erase(topic);
+    if (number_of_handlers == 0) {
         // TODO(kai): should we throw/log an error if we are not connected?
         if (this->mqtt_is_connected) {
             EVLOG(debug) << fmt::format("Unsubscribing from {}", topic);
@@ -315,8 +309,7 @@ void MQTTAbstractionImpl::unregister_handler(const std::string& topic, const Tok
         }
     }
 
-    const std::string handler_count =
-        (this->handlers.count(topic) == 0) ? "None" : std::to_string(this->handlers[topic].size());
+    const std::string handler_count = (number_of_handlers == 0) ? "None" : std::to_string(number_of_handlers);
     EVLOG(debug) << fmt::format("#handler[{}] = {}", topic, handler_count);
 }
 
@@ -450,13 +443,12 @@ void MQTTAbstractionImpl::publish_callback(void** /*unused*/, struct mqtt_respon
     // note that message.topic_name is NOT null-terminated
     // (here we'll change it to a std::string which will take care of this particular conversion)
 
-    std::string topic = std::string(static_cast<const char*>(message.topic_name), message.topic_name_size);
-
-    std::string payload =
-        std::string(static_cast<const char*>(message.application_message), message.application_message_size);
+    Message msg;
+    msg.topic = std::string(static_cast<const char*>(message.topic_name), message.topic_name_size);
+    msg.payload = std::string(static_cast<const char*>(message.application_message), message.application_message_size);
 
     // emit a copy of published results
-    signalReceived(topic, payload);
+    signalReceived(std::make_shared<Message>(msg));
 }
 
 } // namespace Everest
