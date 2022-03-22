@@ -32,7 +32,7 @@ MQTTAbstractionImpl::MQTTAbstractionImpl(std::string mqtt_server_address, std::s
     recvbuf{} {
     BOOST_LOG_FUNCTION();
 
-    EVLOG(debug) << "Initializing mqtt abstraction layer...";
+    EVLOG(debug) << "Initializing MQTT abstraction layer...";
 
     this->message_queue =
         std::make_shared<MessageQueue>([this](std::shared_ptr<Message> message) { this->on_mqtt_message(message); });
@@ -151,7 +151,7 @@ void MQTTAbstractionImpl::_mainloop() {
         while (this->mqtt_is_connected) {
             MQTTErrors error = mqtt_sync(&this->mqtt_client);
             if (error != MQTT_OK) {
-                EVLOG(error) << fmt::format("Error during mqtt sync: {}", mqtt_error_str(error));
+                EVLOG(error) << fmt::format("Error during MQTT sync: {}", mqtt_error_str(error));
 
                 on_mqtt_disconnect();
 
@@ -160,11 +160,11 @@ void MQTTAbstractionImpl::_mainloop() {
             std::this_thread::sleep_for(std::chrono::milliseconds(mqtt_sync_sleep_milliseconds));
         }
     } catch (boost::exception& e) {
-        EVLOG(critical) << fmt::format("Caught mqtt mainloop boost::exception:\n{}",
+        EVLOG(critical) << fmt::format("Caught MQTT mainloop boost::exception:\n{}",
                                        boost::diagnostic_information(e, true));
         exit(1);
     } catch (std::exception& e) {
-        EVLOG(critical) << fmt::format("Caught mqtt mainloop std::exception:\n{}",
+        EVLOG(critical) << fmt::format("Caught MQTT mainloop std::exception:\n{}",
                                        boost::diagnostic_information(e, true));
         exit(1);
     }
@@ -210,11 +210,11 @@ void MQTTAbstractionImpl::on_mqtt_message(std::shared_ptr<Message> message) {
                 EverestInternalError(fmt::format("Internal error: topic '{}' should have a matching handler!", topic)));
         }
     } catch (boost::exception& e) {
-        EVLOG(critical) << fmt::format("Caught mqtt on_message boost::exception:\n{}",
+        EVLOG(critical) << fmt::format("Caught MQTT on_message boost::exception:\n{}",
                                        boost::diagnostic_information(e, true));
         exit(1);
     } catch (std::exception& e) {
-        EVLOG(critical) << fmt::format("Caught mqtt on_message std::exception:\n{}",
+        EVLOG(critical) << fmt::format("Caught MQTT on_message std::exception:\n{}",
                                        boost::diagnostic_information(e, true));
         exit(1);
     }
@@ -223,10 +223,10 @@ void MQTTAbstractionImpl::on_mqtt_message(std::shared_ptr<Message> message) {
 void MQTTAbstractionImpl::on_mqtt_connect() {
     BOOST_LOG_FUNCTION();
 
-    EVLOG(info) << "Connected to mqtt broker";
+    EVLOG(info) << "Connected to MQTT broker";
 
     // subscribe to all topics needed by currently registered handlers
-    EVLOG(info) << "Subscribing to needed mqtt topics...";
+    EVLOG(info) << "Subscribing to needed MQTT topics...";
     const std::lock_guard<std::mutex> lock(handlers_mutex);
     for (auto const& ha : this->message_handlers) {
         std::string topic = ha.first;
@@ -241,7 +241,7 @@ void MQTTAbstractionImpl::on_mqtt_connect() {
 void MQTTAbstractionImpl::on_mqtt_disconnect() {
     BOOST_LOG_FUNCTION();
 
-    EVLOG_AND_THROW(EverestInternalError("Lost connection to mqtt broker"));
+    EVLOG_AND_THROW(EverestInternalError("Lost connection to MQTT broker"));
 }
 
 Token MQTTAbstractionImpl::register_handler(const std::string& topic, const Handler& handler) {
