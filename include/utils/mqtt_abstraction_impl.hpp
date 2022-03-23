@@ -94,30 +94,14 @@ public:
 
     ///
     /// \brief subscribes to the given \p topic and registers a callback \p handler that is called when a message
-    /// arrives on the topic. This function only allows one handler per topic.
-    ///
-    /// \returns a Token with which the handler can be unregistered later
-    Token register_handler(const std::string& topic, const Handler& handler);
-
-    ///
-    /// \brief subscribes to the given \p topic and registers a callback \p handler that is called when a message
     /// arrives on the topic. If \p allow_multiple_handlers is set to true, multiple handlers can be registered for the
-    /// same topic.
-    ///
-    /// \returns a Token with which the handler can be unregistered later
-    Token register_handler(const std::string& topic, const Handler& handler, bool allow_multiple_handlers);
-
-    ///
-    /// \brief subscribes to the given \p topic and registers a callback \p handler that is called when a message
-    /// arrives on the topic. If \p allow_multiple_handlers is set to true, multiple handlers can be registered for the
-    /// same topic. With \p qos a MQTT Quality of Servicee level can be set.
-    ///
-    /// \returns a Token with which the handler can be unregistered later
-    Token register_handler(const std::string& topic, const Handler& handler, bool allow_multiple_handlers, QOS qos);
+    /// same topic. With \p qos a MQTT Quality of Service level can be set.
+    void register_handler(const std::string& topic, std::shared_ptr<TypedHandler> handler, bool allow_multiple_handlers,
+                          QOS qos);
 
     ///
     /// \brief unsubscribes a handler identified by its \p token from the given \p topic
-    void unregister_handler(const std::string& topic, const Token& token);
+    void unregister_handler(const std::string& topic, const TypedToken& token);
 
     ///
     /// \brief checks if the given \p full_topic matches the given \p wildcard_topic that can contain "+" and "#"

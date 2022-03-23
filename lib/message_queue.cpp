@@ -54,7 +54,7 @@ MessageHandler::MessageHandler() : running(true) {
             auto data = *message.get();
 
             // get the registered handlers
-            std::vector<std::shared_ptr<Handler>> local_handlers;
+            std::vector<std::shared_ptr<TypedHandler>> local_handlers;
             {
                 const std::lock_guard<std::mutex> handlers_lock(handlers_mutex);
                 for (auto handler : this->handlers) {
@@ -64,10 +64,36 @@ MessageHandler::MessageHandler() : running(true) {
 
             // distribute this message to the registered handlers
             for (auto handler_ : local_handlers) {
-                auto handler = *handler_.get();
-                EVLOG(debug) << fmt::format("calling handler: {}", fmt::ptr(&handler));
-                handler(data);
-                EVLOG(debug) << fmt::format("handler '{}' called", fmt::ptr(&handler));
+                auto handler = *handler_.get()->handler;
+
+                if (handler_->type == HandlerType::Call) {
+                    // unpack call
+                    if (handler_->name != data.at("name")) {
+                        continue;
+                    } else if (data.at("type") == "call") {
+                        handler(data.at("data"));
+                    }
+                } else if (handler_->type == HandlerType::Result) {
+                    // unpack result
+                    if (handler_->name != data.at("name")) {
+                        continue;
+                    } else if (data.at("type") == "result") {
+                        // only deliver result to handler with matching id
+                        if (handler_->id == data.at("data").at("id")) {
+                            handler(data.at("data"));
+                        }
+                    }
+                } else if (handler_->type == HandlerType::SubscribeVar) {
+                    // unpack var
+                    if (handler_->name != data.at("name")) {
+                        continue;
+                    } else {
+                        handler(data.at("data"));
+                    }
+                } else {
+                    // external or unknown, no preprocessing
+                    handler(data);
+                }
             }
         }
     });
@@ -85,14 +111,14 @@ void MessageHandler::stop() {
     this->running = false;
 }
 
-void MessageHandler::add_handler(std::shared_ptr<Handler> handler) {
+void MessageHandler::add_handler(std::shared_ptr<TypedHandler> handler) {
     {
         std::lock_guard<std::mutex> lock(this->handlers_mutex);
         this->handlers.push_back(handler);
     }
 }
 
-void MessageHandler::remove_handler(std::shared_ptr<Handler> handler) {
+void MessageHandler::remove_handler(std::shared_ptr<TypedHandler> handler) {
     {
         std::lock_guard<std::mutex> lock(this->handlers_mutex);
         auto it = std::find(this->handlers.begin(), this->handlers.end(), handler);

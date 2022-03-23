@@ -33,6 +33,35 @@ using Handler = std::function<void(json)>;
 using StringHandler = std::function<void(std::string)>;
 using Token = std::shared_ptr<Handler>;
 
+enum class HandlerType
+{
+    Call,
+    Result,
+    SubscribeVar,
+    ExternalMQTT,
+    Unknown
+};
+
+struct TypedHandler {
+    std::string name;
+    std::string id;
+    HandlerType type;
+    std::shared_ptr<Handler> handler;
+
+    TypedHandler(std::string name, std::string id, HandlerType type, std::shared_ptr<Handler> handler) :
+        name(name), id(id), type(type), handler(handler) {
+    }
+
+    TypedHandler(std::string name, HandlerType type, std::shared_ptr<Handler> handler) :
+        TypedHandler(name, "", type, handler) {
+    }
+
+    TypedHandler(HandlerType type, std::shared_ptr<Handler> handler) : TypedHandler("", "", type, handler) {
+    }
+};
+
+using TypedToken = std::shared_ptr<TypedHandler>;
+
 /// \brief MQTT Quality of service
 enum class QOS
 {

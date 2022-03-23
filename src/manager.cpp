@@ -210,7 +210,7 @@ int main(int argc, char* argv[]) {
     std::vector<ModuleInfo> modules_to_start;
     std::map<std::string, bool> modules_ready;
     std::mutex modules_ready_mutex;
-    std::vector<Token> tokens;
+    std::vector<TypedToken> tokens;
 
     auto main_config = config->get_main_config();
     modules_to_start.reserve(main_config.size());
@@ -248,7 +248,9 @@ int main(int argc, char* argv[]) {
 
         std::string topic = fmt::format("{}/ready", config->mqtt_module_prefix(module_name));
 
-        Token token = mqtt_abstraction.register_handler(topic, module_ready_handler);
+        auto token = std::make_shared<TypedHandler>(HandlerType::ExternalMQTT, std::make_shared<Handler>(module_ready_handler));
+
+        mqtt_abstraction.register_handler(topic, token, false, QOS::QOS2);
         tokens.push_back(token);
 
         if (std::any_of(standalone_modules.begin(), standalone_modules.end(),

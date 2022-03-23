@@ -49,7 +49,7 @@ public:
 /// \brief Contains a message queue driven list of handler callbacks
 class MessageHandler {
 private:
-    std::vector<std::shared_ptr<Handler>> handlers;
+    std::vector<std::shared_ptr<TypedHandler>> handlers;
     std::thread handler_thread;
     std::queue<std::shared_ptr<json>> message_queue;
     std::mutex message_mutex;
@@ -67,12 +67,11 @@ public:
     /// \brief Stops the message handler
     void stop();
 
-    /// \brief Adds a \p handler that will receive messages from the queue. This function can be called multiple times
-    /// to add multiple handlers
-    void add_handler(std::shared_ptr<Handler> handler);
+    /// \brief Adds a \p handler that will receive messages from the queue.
+    void add_handler(std::shared_ptr<TypedHandler> handler);
 
     /// \brief Removes a specific \p handler
-    void remove_handler(std::shared_ptr<Handler> handler);
+    void remove_handler(std::shared_ptr<TypedHandler> handler);
 
     /// \brief \returns the number of registered handlers
     size_t count_handlers();

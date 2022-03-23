@@ -244,38 +244,38 @@ void MQTTAbstractionImpl::on_mqtt_disconnect() {
     EVLOG_AND_THROW(EverestInternalError("Lost connection to MQTT broker"));
 }
 
-Token MQTTAbstractionImpl::register_handler(const std::string& topic, const Handler& handler) {
+void MQTTAbstractionImpl::register_handler(const std::string& topic, std::shared_ptr<TypedHandler> handler,
+                                           bool allow_multiple_handlers, QOS qos) {
     BOOST_LOG_FUNCTION();
 
-    return register_handler(topic, handler, false);
-}
-
-Token MQTTAbstractionImpl::register_handler(const std::string& topic, const Handler& handler,
-                                            bool allow_multiple_handlers) {
-    BOOST_LOG_FUNCTION();
-
-    return register_handler(topic, handler, allow_multiple_handlers, QOS::QOS0);
-}
-
-Token MQTTAbstractionImpl::register_handler(const std::string& topic, const Handler& handler,
-                                            bool allow_multiple_handlers, QOS qos) {
-    BOOST_LOG_FUNCTION();
-
-    EVLOG(debug) << fmt::format("Registering handler {} for {}", fmt::ptr(&handler), topic);
+    switch (handler->type) {
+    case HandlerType::Call:
+        EVLOG(debug) << fmt::format("Registering call handler {} for command {} on topic {}",
+                                    fmt::ptr(&handler->handler), handler->name, topic);
+        break;
+    case HandlerType::Result:
+        EVLOG(debug) << fmt::format("Registering result handler {} for command {} on topic {}",
+                                    fmt::ptr(&handler->handler), handler->name, topic);
+        break;
+    case HandlerType::SubscribeVar:
+        EVLOG(debug) << fmt::format("Registering subscribe handler {} for variable {} on topic {}",
+                                    fmt::ptr(&handler->handler), handler->name, topic);
+        break;
+    case HandlerType::ExternalMQTT:
+        EVLOG(debug) << fmt::format("Registering external MQTT handler {} on topic {}", fmt::ptr(&handler->handler),
+                                    topic);
+        break;
+    default:
+        EVLOG(warning) << fmt::format("Registering unknown handler {} on topic {}", fmt::ptr(&handler->handler), topic);
+        break;
+    }
 
     const std::lock_guard<std::mutex> lock(handlers_mutex);
-    if (this->message_handlers.count(topic) > 0 && this->message_handlers[topic]->count_handlers() != 0 &&
-        !allow_multiple_handlers) {
-        EVLOG_AND_THROW(EverestInternalError(fmt::format("Can not register handlers for topic {} twice, if optional "
-                                                         "argument 'allow_multiple_handlers' it not 'true'!",
-                                                         topic)));
-    }
-    Token shared_handler = std::make_shared<Handler>(handler);
 
     if (this->message_handlers.count(topic) == 0) {
         this->message_handlers[topic] = std::make_shared<MessageHandler>();
     }
-    this->message_handlers[topic]->add_handler(shared_handler);
+    this->message_handlers[topic]->add_handler(handler);
 
     // only subscribe for this topic if we aren't already and the mqtt client is connected
     // if we are not connected the on_mqtt_connect() callback will subscribe to the topic
@@ -284,11 +284,9 @@ Token MQTTAbstractionImpl::register_handler(const std::string& topic, const Hand
         this->subscribe(topic, qos);
     }
     EVLOG(debug) << fmt::format("#handler[{}] = {}", topic, this->message_handlers[topic]->count_handlers());
-
-    return shared_handler;
 }
 
-void MQTTAbstractionImpl::unregister_handler(const std::string& topic, const Token& token) {
+void MQTTAbstractionImpl::unregister_handler(const std::string& topic, const TypedToken& token) {
     BOOST_LOG_FUNCTION();
 
     EVLOG(debug) << fmt::format("Unregistering handler {} for {}", fmt::ptr(&token), topic);
