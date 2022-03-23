@@ -173,11 +173,6 @@ json Everest::call_cmd(const Requirement& req, const std::string& cmd_name, json
     std::promise<json> res_promise;
     std::future<json> res_future = res_promise.get_future();
 
-    std::ostringstream res_topic_str;
-    res_topic_str << this->config.mqtt_prefix(connection["module_id"], connection["implementation_id"]) << "/res/"
-                  << cmd_name;
-    std::string res_topic = res_topic_str.str();
-
     Handler res_handler = [this, &res_promise, call_id, connection, cmd_name](json data) {
         if (data["id"] != call_id) {
             EVLOG(debug) << fmt::format("RES: data_id != call_id ({} != {})", data["id"], call_id);
@@ -230,7 +225,7 @@ json Everest::call_cmd(const Requirement& req, const std::string& cmd_name, json
         EVLOG(debug) << "res future ready";
         result = res_future.get();
     }
-    this->mqtt_abstraction.unregister_handler(res_topic, res_token);
+    this->mqtt_abstraction.unregister_handler(cmd_topic, res_token);
 
     return result;
 }
