@@ -43,6 +43,7 @@ Everest::Everest(std::string module_id, Config config, bool validate_data_with_s
         std::make_shared<TypedHandler>(HandlerType::ExternalMQTT, std::make_shared<Handler>(handle_ready_wrapper));
     this->mqtt_abstraction.register_handler("everest/ready", everest_ready, false, QOS::QOS2);
 
+    this->publish_metadata();
 }
 
 void Everest::mainloop() {
@@ -63,6 +64,28 @@ void Everest::heartbeat() {
         this->mqtt_abstraction.publish(heartbeat_topic, json(now.str()));
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }
+}
+
+void Everest::publish_metadata() {
+    BOOST_LOG_FUNCTION();
+
+    auto module_info = this->config.get_module_info(this->module_id);
+    auto manifest = this->config.get_manifests()[module_info.name];
+
+    json metadata = json({});
+    metadata["module"] = module_info.name;
+    if (manifest.contains("provides")) {
+        metadata["provides"] = json({});
+
+        for (auto& provides : manifest.at("provides").items()) {
+            metadata["provides"][provides.key()] = json({});
+            metadata["provides"][provides.key()]["interface"] = provides.value().at("interface");
+        }
+    }
+
+    std::string metadata_topic = fmt::format("{}/metadata", this->config.mqtt_module_prefix(this->module_id));
+
+    this->mqtt_abstraction.publish(metadata_topic, metadata);
 }
 
 void Everest::register_on_ready_handler(const std::function<void()>& handler) {

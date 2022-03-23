@@ -54,6 +54,8 @@ private:
 
     void heartbeat();
 
+    void publish_metadata();
+
     static std::string check_args(const Arguments& func_args, json manifest_args);
     static bool check_arg(ArgumentType arg_types, json manifest_arg);
 
