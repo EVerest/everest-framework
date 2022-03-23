@@ -10,6 +10,9 @@
 
 namespace Everest {
 
+Message::Message(std::string topic, std::string payload) : topic(topic), payload(payload) {
+}
+
 MessageQueue::MessageQueue(const std::function<void(std::shared_ptr<Message> message)>& message_callback) :
     message_callback(message_callback), running(true) {
     this->worker_thread = std::thread([this]() {

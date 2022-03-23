@@ -24,6 +24,9 @@ sigslot::signal<std::shared_ptr<Message>> signalReceived;
 const auto mqtt_sync_sleep_milliseconds = 10;
 const auto mqtt_keep_alive = 400;
 
+MessageWithQOS::MessageWithQOS(std::string topic, std::string payload, QOS qos) : Message(topic, payload), qos(qos) {
+}
+
 MQTTAbstractionImpl::MQTTAbstractionImpl(std::string mqtt_server_address, std::string mqtt_server_port) :
     mqtt_server_address(std::move(mqtt_server_address)),
     mqtt_server_port(std::move(mqtt_server_port)),
@@ -94,6 +97,13 @@ void MQTTAbstractionImpl::publish(const std::string& topic, const std::string& d
 
     default:
         break;
+    }
+
+    if (!this->mqtt_is_connected) {
+        EVLOG(critical) << "trying to publish before connected...";
+        const std::lock_guard<std::mutex> lock(messages_before_connected_mutex);
+        this->messages_before_connected.push_back(std::make_shared<MessageWithQOS>(topic, data, qos));
+        return;
     }
 
     MQTTErrors error = mqtt_publish(&this->mqtt_client, topic.c_str(), data.c_str(), data.size(), publish_flags);
@@ -235,7 +245,14 @@ void MQTTAbstractionImpl::on_mqtt_connect() {
     }
 
     // this will allow new handlers to subscribe directly, if needed
-    this->mqtt_is_connected = true;
+    {
+        const std::lock_guard<std::mutex> lock(messages_before_connected_mutex);
+        this->mqtt_is_connected = true;
+        for (auto& message : this->messages_before_connected) {
+            this->publish(message->topic, message->payload, message->qos);
+        }
+        this->messages_before_connected.clear();
+    }
 }
 
 void MQTTAbstractionImpl::on_mqtt_disconnect() {
@@ -441,9 +458,9 @@ void MQTTAbstractionImpl::publish_callback(void** /*unused*/, struct mqtt_respon
     // note that message.topic_name is NOT null-terminated
     // (here we'll change it to a std::string which will take care of this particular conversion)
 
-    Message msg;
-    msg.topic = std::string(static_cast<const char*>(message.topic_name), message.topic_name_size);
-    msg.payload = std::string(static_cast<const char*>(message.application_message), message.application_message_size);
+    Message msg =
+        Message(std::string(static_cast<const char*>(message.topic_name), message.topic_name_size),
+                std::string(static_cast<const char*>(message.application_message), message.application_message_size));
 
     // emit a copy of published results
     signalReceived(std::make_shared<Message>(msg));

@@ -23,6 +23,13 @@
 namespace Everest {
 using json = nlohmann::json;
 
+/// \brief Contains a payload and the topic it was received on with additional QOS
+struct MessageWithQOS : Message {
+    QOS qos; ///< The Quality of Service level
+
+    MessageWithQOS(std::string topic, std::string payload, QOS qos);
+};
+
 ///
 /// \brief Contains a C++ abstraction of MQTT-C and some convenience functionality for using MQTT in EVerest modules
 ///
@@ -33,6 +40,8 @@ private:
     std::map<std::string, std::shared_ptr<MessageHandler>> message_handlers;
     std::mutex handlers_mutex;
     std::shared_ptr<MessageQueue> message_queue;
+    std::vector<std::shared_ptr<MessageWithQOS>> messages_before_connected;
+    std::mutex messages_before_connected_mutex;
 
     std::thread mqtt_mainloop_thread;
 
