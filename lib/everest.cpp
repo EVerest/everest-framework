@@ -17,7 +17,6 @@
 #include <utils/conversions.hpp>
 
 namespace Everest {
-sigslot::signal<std::string, json> signalPublish;
 const auto remote_cmd_res_timeout_seconds = 300;
 
 Everest::Everest(std::string module_id, Config config, bool validate_data_with_schema,
@@ -44,7 +43,6 @@ Everest::Everest(std::string module_id, Config config, bool validate_data_with_s
         std::make_shared<TypedHandler>(HandlerType::ExternalMQTT, std::make_shared<Handler>(handle_ready_wrapper));
     this->mqtt_abstraction.register_handler("everest/ready", everest_ready, false, QOS::QOS2);
 
-    signalPublish.connect(&Everest::internal_publish, this);
 }
 
 void Everest::mainloop() {
@@ -64,7 +62,7 @@ void Everest::heartbeat() {
     while (this->ready_received) {
         std::ostringstream now;
         now << std::chrono::system_clock::now();
-        this->internal_publish(heartbeat_topic, json(now.str()));
+        this->mqtt_abstraction.publish(heartbeat_topic, json(now.str()));
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }
 }
@@ -595,12 +593,6 @@ void Everest::provide_cmd(const cmd& cmd) {
         // methods or functions)
         return convertTo<json>(handler(convertTo<Parameters>(data)));
     });
-}
-
-void Everest::internal_publish(const std::string& topic, const json& json) {
-    BOOST_LOG_FUNCTION();
-
-    this->mqtt_abstraction.publish(topic, json);
 }
 
 json Everest::get_cmd_definition(const std::string& module_id, const std::string& impl_id, const std::string& cmd_name,

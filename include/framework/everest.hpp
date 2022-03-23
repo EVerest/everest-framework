@@ -50,8 +50,6 @@ private:
             const std::string& mqtt_server_address, const std::string& mqtt_server_port);
     MQTTAbstraction& mqtt_abstraction;
 
-    void internal_publish(const std::string& topic, const json& json);
-
     void handle_ready(json data);
 
     void heartbeat();
