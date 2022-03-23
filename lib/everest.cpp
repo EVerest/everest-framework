@@ -53,9 +53,7 @@ void Everest::mainloop() {
 
 void Everest::heartbeat() {
     BOOST_LOG_FUNCTION();
-    std::ostringstream heartbeat_topic_stream;
-    heartbeat_topic_stream << this->config.mqtt_module_prefix(this->module_id) << "/heartbeat";
-    std::string heartbeat_topic = heartbeat_topic_stream.str();
+    std::string heartbeat_topic = fmt::format("{}/heartbeat", this->config.mqtt_module_prefix(this->module_id));
 
     using namespace date;
 
@@ -387,10 +385,9 @@ void Everest::signal_ready() {
     BOOST_LOG_FUNCTION();
 
     EVLOG(info) << "Sending out module ready signal...";
-    std::ostringstream oss;
-    oss << this->config.mqtt_module_prefix(this->module_id) << "/ready";
+    std::string ready_topic = fmt::format("{}/ready", this->config.mqtt_module_prefix(this->module_id));
 
-    this->mqtt_abstraction.publish(oss.str(), json(true));
+    this->mqtt_abstraction.publish(ready_topic, json(true));
 }
 
 ///
@@ -638,7 +635,6 @@ std::string Everest::check_args(const Arguments& func_args, json manifest_args) 
     for (auto const& func_arg : func_args) {
         auto arg_name = func_arg.first;
         auto arg_types = func_arg.second;
-        std::ostringstream oss;
 
         if (!check_arg(arg_types, manifest_args[arg_name])) {
             return arg_name;
