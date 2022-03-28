@@ -73,14 +73,16 @@ MessageHandler::MessageHandler() : running(true) {
                     // unpack call
                     if (handler_->name != data.at("name")) {
                         continue;
-                    } else if (data.at("type") == "call") {
+                    }
+                    if (data.at("type") == "call") {
                         handler(data.at("data"));
                     }
                 } else if (handler_->type == HandlerType::Result) {
                     // unpack result
                     if (handler_->name != data.at("name")) {
                         continue;
-                    } else if (data.at("type") == "result") {
+                    }
+                    if (data.at("type") == "result") {
                         // only deliver result to handler with matching id
                         if (handler_->id == data.at("data").at("id")) {
                             handler(data.at("data"));
@@ -90,9 +92,8 @@ MessageHandler::MessageHandler() : running(true) {
                     // unpack var
                     if (handler_->name != data.at("name")) {
                         continue;
-                    } else {
-                        handler(data.at("data"));
                     }
+                    handler(data.at("data"));
                 } else {
                     // external or unknown, no preprocessing
                     handler(data);
