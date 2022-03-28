@@ -100,7 +100,6 @@ void MQTTAbstractionImpl::publish(const std::string& topic, const std::string& d
     }
 
     if (!this->mqtt_is_connected) {
-        EVLOG(critical) << "trying to publish before connected...";
         const std::lock_guard<std::mutex> lock(messages_before_connected_mutex);
         this->messages_before_connected.push_back(std::make_shared<MessageWithQOS>(topic, data, qos));
         return;
