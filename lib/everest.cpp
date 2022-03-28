@@ -216,17 +216,10 @@ json Everest::call_cmd(const Requirement& req, const std::string& cmd_name, json
         std::make_shared<TypedHandler>(cmd_name, call_id, HandlerType::Result, std::make_shared<Handler>(res_handler));
     this->mqtt_abstraction.register_handler(cmd_topic, res_token, true, QOS::QOS2);
 
-    json cmd_publish_data = json({});
-    cmd_publish_data["name"] = cmd_name;
-    cmd_publish_data["type"] = "call";
-
-    // call cmd (e.g. publish cmd via mqtt on the cmd-topic)
-    json cmd_data = json({});
-    cmd_data["id"] = call_id;
-    cmd_data["args"] = json_args;
-    cmd_data["origin"] = this->module_id;
-
-    cmd_publish_data["data"] = cmd_data;
+    json cmd_publish_data =
+        json::object({{"name", cmd_name},
+                      {"type", "call"},
+                      {"data", json::object({{"id", call_id}, {"args", json_args}, {"origin", this->module_id}})}});
 
     this->mqtt_abstraction.publish(cmd_topic, cmd_publish_data);
 
@@ -290,9 +283,7 @@ void Everest::publish_var(const std::string& impl_id, const std::string& var_nam
 
     std::string var_topic = fmt::format("{}/var", this->config.mqtt_prefix(this->module_id, impl_id));
 
-    json var_publish_data = json({});
-    var_publish_data["name"] = var_name;
-    var_publish_data["data"] = json_value;
+    json var_publish_data = {{"name", var_name}, {"data", json_value}};
 
     this->mqtt_abstraction.publish(var_topic, var_publish_data);
 }
@@ -504,10 +495,6 @@ void Everest::provide_cmd(const std::string impl_id, const std::string cmd_name,
         json res_data = json({});
         res_data["id"] = data["id"];
 
-        json res_publish_data = json({});
-        res_publish_data["name"] = cmd_name;
-        res_publish_data["type"] = "result";
-
         // call real cmd handler
         res_data["retval"] = handler(data["args"]);
 
@@ -532,7 +519,9 @@ void Everest::provide_cmd(const std::string impl_id, const std::string cmd_name,
 
         EVLOG(debug) << fmt::format("RETVAL: {}", res_data["retval"].dump());
         res_data["origin"] = this->module_id;
-        res_publish_data["data"] = res_data;
+
+        json res_publish_data = json::object({{"name", cmd_name}, {"type", "result"}, {"data", res_data}});
+
         this->mqtt_abstraction.publish(cmd_topic, res_publish_data);
     };
 
