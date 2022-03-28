@@ -117,7 +117,7 @@ void MessageHandler::stop() {
 void MessageHandler::add_handler(std::shared_ptr<TypedHandler> handler) {
     {
         std::lock_guard<std::mutex> lock(this->handlers_mutex);
-        this->handlers.push_back(handler);
+        this->handlers.insert(handler);
     }
 }
 

@@ -10,7 +10,7 @@
 #include <mutex>
 #include <queue>
 #include <thread>
-#include <vector>
+#include <unordered_set>
 
 #include <nlohmann/json.hpp>
 
@@ -51,7 +51,7 @@ public:
 /// \brief Contains a message queue driven list of handler callbacks
 class MessageHandler {
 private:
-    std::vector<std::shared_ptr<TypedHandler>> handlers;
+    std::unordered_set<std::shared_ptr<TypedHandler>> handlers;
     std::thread handler_thread;
     std::queue<std::shared_ptr<json>> message_queue;
     std::mutex message_mutex;
