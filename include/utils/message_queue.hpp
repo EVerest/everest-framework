@@ -39,7 +39,7 @@ private:
 
 public:
     /// \brief Creates a message queue with the provided \p message_callback
-    MessageQueue(const std::function<void(std::shared_ptr<Message> message)>& message_callback);
+    explicit MessageQueue(const std::function<void(std::shared_ptr<Message> message)>& message_callback);
 
     /// \brief Adds a \p message to the message queue which will then be delivered to the message callback
     void add(std::shared_ptr<Message> message);

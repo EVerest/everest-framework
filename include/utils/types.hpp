@@ -47,11 +47,11 @@ struct TypedHandler {
     HandlerType type;
     std::shared_ptr<Handler> handler;
 
-    TypedHandler(std::string name, std::string id, HandlerType type, std::shared_ptr<Handler> handler) :
+    TypedHandler(const std::string& name, const std::string& id, HandlerType type, std::shared_ptr<Handler> handler) :
         name(name), id(id), type(type), handler(handler) {
     }
 
-    TypedHandler(std::string name, HandlerType type, std::shared_ptr<Handler> handler) :
+    TypedHandler(const std::string& name, HandlerType type, std::shared_ptr<Handler> handler) :
         TypedHandler(name, "", type, handler) {
     }
 
