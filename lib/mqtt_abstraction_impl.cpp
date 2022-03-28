@@ -24,7 +24,8 @@ sigslot::signal<std::shared_ptr<Message>> signalReceived;
 const auto mqtt_sync_sleep_milliseconds = 10;
 const auto mqtt_keep_alive = 400;
 
-MessageWithQOS::MessageWithQOS(const std::string& topic, const std::string& payload, QOS qos) : Message(topic, payload), qos(qos) {
+MessageWithQOS::MessageWithQOS(const std::string& topic, const std::string& payload, QOS qos) :
+    Message(topic, payload), qos(qos) {
 }
 
 MQTTAbstractionImpl::MQTTAbstractionImpl(std::string mqtt_server_address, std::string mqtt_server_port) :

@@ -32,10 +32,10 @@ struct cmd {
 class Everest {
 
 private:
-    std::string module_id;
+    MQTTAbstraction& mqtt_abstraction;
     Config config;
+    std::string module_id;
     std::map<std::string, std::set<std::string>> registered_cmds;
-    std::map<std::string, Handler> registered_external_mqtt_handlers;
     bool ready_received;
     std::chrono::seconds remote_cmd_res_timeout;
     bool validate_data_with_schema;
@@ -47,7 +47,6 @@ private:
 
     Everest(std::string module_id, Config config, bool validate_data_with_schema,
             const std::string& mqtt_server_address, const std::string& mqtt_server_port);
-    MQTTAbstraction& mqtt_abstraction;
 
     void handle_ready(json data);
 

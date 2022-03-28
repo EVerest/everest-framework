@@ -367,13 +367,6 @@ void Everest::external_mqtt_publish(const std::string& topic, const std::string&
 void Everest::provide_external_mqtt_handler(const std::string& topic, const StringHandler& handler) {
     BOOST_LOG_FUNCTION();
 
-    if (this->registered_external_mqtt_handlers.count(topic) != 0) {
-        EVLOG_AND_THROW(
-            EverestApiError(fmt::format("{}->external_mqtt_handler<{}>: External MQTT Handler for this topic already "
-                                        "registered (you can not register an external MQTT handler twice)!",
-                                        this->config.printable_identifier(this->module_id), topic)));
-    }
-
     // check if external mqtt is enabled
     if (!this->module_manifest.contains("enable_external_mqtt") &&
         this->module_manifest["enable_external_mqtt"] == false) {

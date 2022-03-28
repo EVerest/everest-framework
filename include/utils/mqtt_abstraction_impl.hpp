@@ -45,11 +45,11 @@ private:
 
     std::thread mqtt_mainloop_thread;
 
+    std::string mqtt_server_address;
+    std::string mqtt_server_port;
     struct mqtt_client mqtt_client;
     uint8_t sendbuf[MQTT_BUF_SIZE];
     uint8_t recvbuf[MQTT_BUF_SIZE];
-    std::string mqtt_server_address;
-    std::string mqtt_server_port;
 
     MQTTAbstractionImpl(std::string mqtt_server_address, std::string mqtt_server_port);
 
