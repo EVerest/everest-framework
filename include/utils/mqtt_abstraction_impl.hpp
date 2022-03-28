@@ -27,7 +27,7 @@ using json = nlohmann::json;
 struct MessageWithQOS : Message {
     QOS qos; ///< The Quality of Service level
 
-    MessageWithQOS(std::string topic, std::string payload, QOS qos);
+    MessageWithQOS(const std::string& topic, const std::string& payload, QOS qos);
 };
 
 ///

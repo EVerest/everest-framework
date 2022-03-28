@@ -10,7 +10,7 @@
 
 namespace Everest {
 
-Message::Message(std::string topic, std::string payload) : topic(topic), payload(payload) {
+Message::Message(const std::string& topic, const std::string& payload) : topic(topic), payload(payload) {
 }
 
 MessageQueue::MessageQueue(const std::function<void(std::shared_ptr<Message> message)>& message_callback) :

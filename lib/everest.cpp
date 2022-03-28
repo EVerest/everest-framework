@@ -54,7 +54,7 @@ void Everest::mainloop() {
 
 void Everest::heartbeat() {
     BOOST_LOG_FUNCTION();
-    std::string heartbeat_topic = fmt::format("{}/heartbeat", this->config.mqtt_module_prefix(this->module_id));
+    const auto heartbeat_topic = fmt::format("{}/heartbeat", this->config.mqtt_module_prefix(this->module_id));
 
     using namespace date;
 
@@ -83,7 +83,7 @@ void Everest::publish_metadata() {
         }
     }
 
-    std::string metadata_topic = fmt::format("{}/metadata", this->config.mqtt_module_prefix(this->module_id));
+    const auto metadata_topic = fmt::format("{}/metadata", this->config.mqtt_module_prefix(this->module_id));
 
     this->mqtt_abstraction.publish(metadata_topic, metadata);
 }
@@ -209,7 +209,7 @@ json Everest::call_cmd(const Requirement& req, const std::string& cmd_name, json
             json::object({{"retval", data["retval"]}, {"origin", data["origin"]}, {"id", data["id"]}}));
     };
 
-    std::string cmd_topic =
+    const auto cmd_topic =
         fmt::format("{}/cmd", this->config.mqtt_prefix(connection["module_id"], connection["implementation_id"]));
 
     std::shared_ptr<TypedHandler> res_token =
@@ -281,7 +281,7 @@ void Everest::publish_var(const std::string& impl_id, const std::string& var_nam
         }
     }
 
-    std::string var_topic = fmt::format("{}/var", this->config.mqtt_prefix(this->module_id, impl_id));
+    const auto var_topic = fmt::format("{}/var", this->config.mqtt_prefix(this->module_id, impl_id));
 
     json var_publish_data = {{"name", var_name}, {"data", json_value}};
 
@@ -337,7 +337,7 @@ void Everest::subscribe_var(const Requirement& req, const std::string& var_name,
         callback(data);
     };
 
-    std::string var_topic = fmt::format("{}/var", this->config.mqtt_prefix(requirement_module_id, requirement_impl_id));
+    const auto var_topic = fmt::format("{}/var", this->config.mqtt_prefix(requirement_module_id, requirement_impl_id));
 
     // TODO(kai): multiple subscription should be perfectly fine here!
     std::shared_ptr<TypedHandler> token =
@@ -399,7 +399,7 @@ void Everest::signal_ready() {
     BOOST_LOG_FUNCTION();
 
     EVLOG(info) << "Sending out module ready signal...";
-    std::string ready_topic = fmt::format("{}/ready", this->config.mqtt_module_prefix(this->module_id));
+    const auto ready_topic = fmt::format("{}/ready", this->config.mqtt_module_prefix(this->module_id));
 
     this->mqtt_abstraction.publish(ready_topic, json(true));
 }
@@ -454,7 +454,7 @@ void Everest::provide_cmd(const std::string impl_id, const std::string cmd_name,
             this->config.printable_identifier(this->module_id, impl_id), cmd_name)));
     }
 
-    std::string cmd_topic = fmt::format("{}/cmd", this->config.mqtt_prefix(this->module_id, impl_id));
+    const auto cmd_topic = fmt::format("{}/cmd", this->config.mqtt_prefix(this->module_id, impl_id));
 
     // define command wrapper
     Handler wrapper = [this, cmd_topic, impl_id, cmd_name, handler, cmd_definition](json data) {

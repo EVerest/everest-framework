@@ -24,7 +24,7 @@ struct Message {
     std::string topic;   ///< The MQTT topic where this message originated from
     std::string payload; ///< The message payload
 
-    Message(std::string topic, std::string payload);
+    Message(const std::string& topic, const std::string& payload);
 };
 
 /// \brief Simple message queue that takes std::string messages, parsed them and dispatches them to handlers
