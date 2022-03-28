@@ -39,7 +39,7 @@ private:
     bool mqtt_is_connected;
     std::map<std::string, std::shared_ptr<MessageHandler>> message_handlers;
     std::mutex handlers_mutex;
-    std::shared_ptr<MessageQueue> message_queue;
+    MessageQueue message_queue;
     std::vector<std::shared_ptr<MessageWithQOS>> messages_before_connected;
     std::mutex messages_before_connected_mutex;
 

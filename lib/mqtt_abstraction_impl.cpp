@@ -28,6 +28,7 @@ MessageWithQOS::MessageWithQOS(std::string topic, std::string payload, QOS qos) 
 }
 
 MQTTAbstractionImpl::MQTTAbstractionImpl(std::string mqtt_server_address, std::string mqtt_server_port) :
+    message_queue(([this](std::shared_ptr<Message> message) { this->on_mqtt_message(message); })),
     mqtt_server_address(std::move(mqtt_server_address)),
     mqtt_server_port(std::move(mqtt_server_port)),
     mqtt_client{},
@@ -37,12 +38,9 @@ MQTTAbstractionImpl::MQTTAbstractionImpl(std::string mqtt_server_address, std::s
 
     EVLOG(debug) << "Initializing MQTT abstraction layer...";
 
-    this->message_queue =
-        std::make_shared<MessageQueue>([this](std::shared_ptr<Message> message) { this->on_mqtt_message(message); });
-
     this->mqtt_is_connected = false;
 
-    signalReceived.connect(&MessageQueue::add, this->message_queue);
+    signalReceived.connect(&MessageQueue::add, &this->message_queue);
 }
 
 bool MQTTAbstractionImpl::connect() {
