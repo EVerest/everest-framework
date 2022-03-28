@@ -110,7 +110,7 @@ public:
 
     ///
     /// \brief unsubscribes a handler identified by its \p token from the given \p topic
-    void unregister_handler(const std::string& topic, const TypedToken& token);
+    void unregister_handler(const std::string& topic, const Token& token);
 
     ///
     /// \brief checks if the given \p full_topic matches the given \p wildcard_topic that can contain "+" and "#"

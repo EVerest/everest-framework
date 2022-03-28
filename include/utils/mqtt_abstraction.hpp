@@ -67,8 +67,8 @@ public:
     void register_handler(const std::string& topic, std::shared_ptr<TypedHandler> handler, bool allow_multiple_handlers, QOS qos);
 
     ///
-    /// \copydoc MQTTAbstractionImpl::unregister_handler(const std::string&, const TypedToken&)
-    void unregister_handler(const std::string& topic, const TypedToken& token);
+    /// \copydoc MQTTAbstractionImpl::unregister_handler(const std::string&, const Token&)
+    void unregister_handler(const std::string& topic, const Token& token);
 
     ///
     /// \returns the instance of the MQTTAbstraction singleton taking a \p mqtt_server_address and \p mqtt_server_port

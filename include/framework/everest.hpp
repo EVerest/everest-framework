@@ -36,7 +36,6 @@ private:
     Config config;
     std::map<std::string, std::set<std::string>> registered_cmds;
     std::map<std::string, Handler> registered_external_mqtt_handlers;
-    std::vector<Token> registered_handlers;
     bool ready_received;
     std::chrono::seconds remote_cmd_res_timeout;
     bool validate_data_with_schema;

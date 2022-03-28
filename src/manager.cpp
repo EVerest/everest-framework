@@ -210,7 +210,7 @@ int main(int argc, char* argv[]) {
     std::vector<ModuleInfo> modules_to_start;
     std::map<std::string, bool> modules_ready;
     std::mutex modules_ready_mutex;
-    std::vector<TypedToken> tokens;
+    std::vector<Token> tokens;
 
     auto main_config = config->get_main_config();
     modules_to_start.reserve(main_config.size());

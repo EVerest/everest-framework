@@ -302,7 +302,7 @@ void MQTTAbstractionImpl::register_handler(const std::string& topic, std::shared
     EVLOG(debug) << fmt::format("#handler[{}] = {}", topic, this->message_handlers[topic]->count_handlers());
 }
 
-void MQTTAbstractionImpl::unregister_handler(const std::string& topic, const TypedToken& token) {
+void MQTTAbstractionImpl::unregister_handler(const std::string& topic, const Token& token) {
     BOOST_LOG_FUNCTION();
 
     EVLOG(debug) << fmt::format("Unregistering handler {} for {}", fmt::ptr(&token), topic);

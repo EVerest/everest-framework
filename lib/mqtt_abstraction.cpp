@@ -66,7 +66,7 @@ void MQTTAbstraction::register_handler(const std::string& topic, std::shared_ptr
     mqtt_abstraction.register_handler(topic, handler, allow_multiple_handlers, qos);
 }
 
-void MQTTAbstraction::unregister_handler(const std::string& topic, const TypedToken& token) {
+void MQTTAbstraction::unregister_handler(const std::string& topic, const Token& token) {
     BOOST_LOG_FUNCTION();
     mqtt_abstraction.unregister_handler(topic, token);
 }

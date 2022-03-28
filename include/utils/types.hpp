@@ -31,7 +31,6 @@ using Object = json::object_t;
 // TODO (aw): can we pass the handler arguments by const ref?
 using Handler = std::function<void(json)>;
 using StringHandler = std::function<void(std::string)>;
-using Token = std::shared_ptr<Handler>;
 
 enum class HandlerType
 {
@@ -60,7 +59,7 @@ struct TypedHandler {
     }
 };
 
-using TypedToken = std::shared_ptr<TypedHandler>;
+using Token = std::shared_ptr<TypedHandler>;
 
 /// \brief MQTT Quality of service
 enum class QOS
