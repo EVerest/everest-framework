@@ -37,7 +37,7 @@ class MQTTAbstractionImpl {
 
 private:
     bool mqtt_is_connected;
-    std::map<std::string, std::shared_ptr<MessageHandler>> message_handlers;
+    std::map<std::string, MessageHandler> message_handlers;
     std::mutex handlers_mutex;
     MessageQueue message_queue;
     std::vector<std::shared_ptr<MessageWithQOS>> messages_before_connected;

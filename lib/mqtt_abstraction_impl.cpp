@@ -204,11 +204,11 @@ void MQTTAbstractionImpl::on_mqtt_message(std::shared_ptr<Message> message) {
 
         std::unique_lock<std::mutex> lock(handlers_mutex);
         std::vector<Handler> local_handlers;
-        for (auto const& ha : this->message_handlers) {
+        for (auto& ha : this->message_handlers) {
             std::string handler_topic = ha.first;
             if (MQTTAbstractionImpl::check_topic_matches(topic, handler_topic)) {
                 found = true;
-                ha.second->add(data);
+                ha.second.add(data);
             }
         }
         lock.unlock();
@@ -288,17 +288,17 @@ void MQTTAbstractionImpl::register_handler(const std::string& topic, std::shared
     const std::lock_guard<std::mutex> lock(handlers_mutex);
 
     if (this->message_handlers.count(topic) == 0) {
-        this->message_handlers[topic] = std::make_shared<MessageHandler>();
+        this->message_handlers.emplace(std::piecewise_construct, std::forward_as_tuple(topic), std::forward_as_tuple());
     }
-    this->message_handlers[topic]->add_handler(handler);
+    this->message_handlers[topic].add_handler(handler);
 
     // only subscribe for this topic if we aren't already and the mqtt client is connected
     // if we are not connected the on_mqtt_connect() callback will subscribe to the topic
-    if (this->mqtt_is_connected && this->message_handlers[topic]->count_handlers() == 1) {
+    if (this->mqtt_is_connected && this->message_handlers[topic].count_handlers() == 1) {
         EVLOG(debug) << fmt::format("Subscribing to {}", topic);
         this->subscribe(topic, qos);
     }
-    EVLOG(debug) << fmt::format("#handler[{}] = {}", topic, this->message_handlers[topic]->count_handlers());
+    EVLOG(debug) << fmt::format("#handler[{}] = {}", topic, this->message_handlers[topic].count_handlers());
 }
 
 void MQTTAbstractionImpl::unregister_handler(const std::string& topic, const Token& token) {
@@ -308,9 +308,9 @@ void MQTTAbstractionImpl::unregister_handler(const std::string& topic, const Tok
 
     const std::lock_guard<std::mutex> lock(handlers_mutex);
     auto number_of_handlers = 0;
-    if (this->message_handlers.count(topic) > 0 && this->message_handlers[topic]->count_handlers() != 0) {
-        this->message_handlers[topic]->remove_handler(token);
-        number_of_handlers = this->message_handlers[topic]->count_handlers();
+    if (this->message_handlers.count(topic) > 0 && this->message_handlers[topic].count_handlers() != 0) {
+        this->message_handlers[topic].remove_handler(token);
+        number_of_handlers = this->message_handlers[topic].count_handlers();
     }
 
     // unsubscribe if this was the last handler for this topic
