@@ -457,12 +457,10 @@ void MQTTAbstractionImpl::publish_callback(void** /*unused*/, struct mqtt_respon
     // note that message.topic_name is NOT null-terminated
     // (here we'll change it to a std::string which will take care of this particular conversion)
 
-    Message msg =
-        Message(std::string(static_cast<const char*>(message.topic_name), message.topic_name_size),
-                std::string(static_cast<const char*>(message.application_message), message.application_message_size));
-
     // emit a copy of published results
-    signalReceived(std::make_shared<Message>(msg));
+    signalReceived(std::make_shared<Message>(
+        std::string(static_cast<const char*>(message.topic_name), message.topic_name_size),
+        std::string(static_cast<const char*>(message.application_message), message.application_message_size)));
 }
 
 } // namespace Everest
