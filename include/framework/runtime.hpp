@@ -38,22 +38,12 @@ struct RuntimeSettings {
 };
 
 struct ModuleCallbacks {
-    std::function<void(ModuleAdapter::CallFunc call)> register_call_handler;
-    std::function<void(ModuleAdapter::PublishFunc publish)> register_publish_handler;
-    std::function<void(ModuleAdapter::SubscribeFunc subscribe)> register_subscribe_handler;
-    std::function<void(ModuleAdapter::ExtMqttPublishFunc ext_mqtt_publish)> register_ext_mqtt_publish_handler;
-    std::function<void(ModuleAdapter::ExtMqttSubscribeFunc ext_mqtt_subscribe)> register_ext_mqtt_subscribe_handler;
+    std::function<void(ModuleAdapter module_adapter)> register_module_adapter;
     std::function<std::vector<cmd>(const json& connections)> everest_register;
     std::function<void(ModuleConfigs module_configs, const ModuleInfo& info)> init;
     std::function<void()> ready;
 
-    ModuleCallbacks(const std::function<void(ModuleAdapter::CallFunc call)>& register_call_handler,
-                    const std::function<void(ModuleAdapter::PublishFunc publish)>& register_publish_handler,
-                    const std::function<void(ModuleAdapter::SubscribeFunc subscribe)>& register_subscribe_handler,
-                    const std::function<void(ModuleAdapter::ExtMqttPublishFunc ext_mqtt_publish)>&
-                        register_ext_mqtt_publish_handler,
-                    const std::function<void(ModuleAdapter::ExtMqttSubscribeFunc ext_mqtt_subscribe)>&
-                        register_ext_mqtt_subscribe_handler,
+    ModuleCallbacks(const std::function<void(ModuleAdapter module_adapter)>& register_module_adapter,
                     const std::function<std::vector<cmd>(const json& connections)>& everest_register,
                     const std::function<void(ModuleConfigs module_configs, const ModuleInfo& info)>& init,
                     const std::function<void()>& ready);

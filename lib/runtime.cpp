@@ -48,24 +48,11 @@ RuntimeSettings::RuntimeSettings(const po::variables_map& vm) : main_dir(vm["mai
     }
 }
 
-ModuleCallbacks::ModuleCallbacks(
-    const std::function<void(ModuleAdapter::CallFunc call)>& register_call_handler,
-    const std::function<void(ModuleAdapter::PublishFunc publish)>& register_publish_handler,
-    const std::function<void(ModuleAdapter::SubscribeFunc subscribe)>& register_subscribe_handler,
-    const std::function<void(ModuleAdapter::ExtMqttPublishFunc ext_mqtt_publish)>& register_ext_mqtt_publish_handler,
-    const std::function<void(ModuleAdapter::ExtMqttSubscribeFunc ext_mqtt_subscribe)>&
-        register_ext_mqtt_subscribe_handler,
-    const std::function<std::vector<cmd>(const json& connections)>& everest_register,
-    const std::function<void(ModuleConfigs module_configs, const ModuleInfo& info)>& init,
-    const std::function<void()>& ready) :
-    register_call_handler(register_call_handler),
-    register_publish_handler(register_publish_handler),
-    register_subscribe_handler(register_subscribe_handler),
-    register_ext_mqtt_publish_handler(register_ext_mqtt_publish_handler),
-    register_ext_mqtt_subscribe_handler(register_ext_mqtt_subscribe_handler),
-    everest_register(everest_register),
-    init(init),
-    ready(ready) {
+ModuleCallbacks::ModuleCallbacks(const std::function<void(ModuleAdapter module_adapter)>& register_module_adapter,
+                                 const std::function<std::vector<cmd>(const json& connections)>& everest_register,
+                                 const std::function<void(ModuleConfigs module_configs, const ModuleInfo& info)>& init,
+                                 const std::function<void()>& ready) :
+    register_module_adapter(register_module_adapter), everest_register(everest_register), init(init), ready(ready) {
 }
 
 ModuleLoader::ModuleLoader(int argc, char* argv[], ModuleCallbacks callbacks) :
@@ -127,31 +114,30 @@ int ModuleLoader::initialize() {
             return 1;
         }
 
-        auto call_cmd = [&everest](const Requirement& req, const std::string& cmd_name, Parameters args) {
+        ModuleAdapter module_adapter;
+
+        module_adapter.call = [&everest](const Requirement& req, const std::string& cmd_name, Parameters args) {
             return everest.call_cmd(req, cmd_name, args);
         };
-        this->callbacks.register_call_handler(call_cmd);
 
-        auto publish_var = [&everest](const std::string& param1, const std::string& param2, Value param3) {
+        module_adapter.publish = [&everest](const std::string& param1, const std::string& param2, Value param3) {
             return everest.publish_var(param1, param2, param3);
         };
-        this->callbacks.register_publish_handler(publish_var);
 
-        auto subscribe_var = [&everest](const Requirement& req, const std::string& var_name,
-                                        const ValueCallback& callback) {
+        module_adapter.subscribe = [&everest](const Requirement& req, const std::string& var_name,
+                                              const ValueCallback& callback) {
             return everest.subscribe_var(req, var_name, callback);
         };
-        this->callbacks.register_subscribe_handler(subscribe_var);
 
         // NOLINTNEXTLINE(modernize-avoid-bind): prefer bind here for readability
-        auto external_mqtt_publish =
+        module_adapter.ext_mqtt_publish =
             std::bind(&Everest::Everest::external_mqtt_publish, &everest, std::placeholders::_1, std::placeholders::_2);
-        this->callbacks.register_ext_mqtt_publish_handler(external_mqtt_publish);
 
         // NOLINTNEXTLINE(modernize-avoid-bind): prefer bind here for readability
-        auto external_mqtt_handler = std::bind(&Everest::Everest::provide_external_mqtt_handler, &everest,
-                                               std::placeholders::_1, std::placeholders::_2);
-        this->callbacks.register_ext_mqtt_subscribe_handler(external_mqtt_handler);
+        module_adapter.ext_mqtt_subscribe = std::bind(&Everest::Everest::provide_external_mqtt_handler, &everest,
+                                                      std::placeholders::_1, std::placeholders::_2);
+
+        this->callbacks.register_module_adapter(module_adapter);
 
         // FIXME (aw): would be nice to move this config related thing toward the module_init function
         std::vector<cmd> cmds =
