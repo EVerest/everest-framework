@@ -19,7 +19,6 @@ const int DUMP_INDENT = 4;
 
 // FIXME (aw): we should also define all other config keys and default
 //             values here as string literals
-const std::string MAIN_BIN_PATH = "bin/main";
 
 const auto TERMINAL_STYLE_ERROR = fmt::emphasis::bold | fg(fmt::terminal_color::red);
 const auto TERMINAL_STYLE_OK = fmt::emphasis::bold | fg(fmt::terminal_color::green);

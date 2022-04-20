@@ -5,8 +5,6 @@
 
 namespace Everest {
 RuntimeSettings::RuntimeSettings(const po::variables_map& vm) : main_dir(vm["main_dir"].as<std::string>()) {
-    main_binary = main_dir / MAIN_BIN_PATH;
-
     if (vm.count("schemas_dir")) {
         schemas_dir = vm["schemas_dir"].as<std::string>();
     } else {
@@ -41,7 +39,7 @@ RuntimeSettings::RuntimeSettings(const po::variables_map& vm) : main_dir(vm["mai
 
     // make all paths canonical
     std::reference_wrapper<fs::path> list[] = {
-        main_dir, main_binary, configs_dir, schemas_dir, modules_dir, interfaces_dir, logging_config, config_file,
+        main_dir, configs_dir, schemas_dir, modules_dir, interfaces_dir, logging_config, config_file,
     };
 
     for (auto ref_wrapped_item : list) {

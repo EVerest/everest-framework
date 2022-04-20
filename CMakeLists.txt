@@ -37,10 +37,6 @@ endif()
 
 option(CREATE_SYMLINKS "Create symlinks to javascript modules and auxillary files - for development purposes" OFF)
 
-option(BUILD_MODULE_SHARED_LIBRARIES "Build modules as shared libraries" OFF)
-
-option(BUILD_MODULE_BINARIES "Build modules as binaries" ON)
-
 option(BUILD_TESTING "Run unit tests" OFF)
 
 # configure clang-tidy if requested
