@@ -209,6 +209,29 @@ RuntimeSettings::RuntimeSettings(const std::string& prefix_, const std::string& 
     }
 }
 
+RuntimeSettings::RuntimeSettings(fs::path main_dir, fs::path configs_dir, fs::path schemas_dir, fs::path modules_dir,
+                                 fs::path interfaces_dir, fs::path logging_config, fs::path config_file,
+                                 bool validate_schema) {
+    this->main_dir = main_dir;
+    this->configs_dir = configs_dir;
+    this->schemas_dir = schemas_dir;
+    this->modules_dir = modules_dir;
+    this->interfaces_dir = interfaces_dir;
+    this->logging_config = logging_config;
+    this->config_file = config_file;
+    this->validate_schema = validate_schema;
+
+    // make all paths canonical
+    std::reference_wrapper<fs::path> list[] = {
+        main_dir, configs_dir, schemas_dir, modules_dir, interfaces_dir, logging_config, config_file,
+    };
+
+    for (auto ref_wrapped_item : list) {
+        auto& item = ref_wrapped_item.get();
+        item = fs::canonical(item);
+    }
+}
+
 ModuleCallbacks::ModuleCallbacks(const std::function<void(ModuleAdapter module_adapter)>& register_module_adapter,
                                  const std::function<std::vector<cmd>(const json& connections)>& everest_register,
                                  const std::function<void(ModuleConfigs module_configs, const ModuleInfo& info)>& init,
@@ -221,6 +244,10 @@ ModuleLoader::ModuleLoader(int argc, char* argv[], ModuleCallbacks callbacks) :
     if (!this->parse_command_line(argc, argv)) {
         return;
     }
+}
+
+ModuleLoader::ModuleLoader(RuntimeSettings runtime_settings, ModuleCallbacks callbacks, std::string module_id) :
+    runtime_settings(std::make_unique<RuntimeSettings>(runtime_settings)), callbacks(callbacks), module_id(module_id) {
 }
 
 int ModuleLoader::initialize() {
@@ -298,7 +325,6 @@ int ModuleLoader::initialize() {
                                                       std::placeholders::_1, std::placeholders::_2);
 
         this->callbacks.register_module_adapter(module_adapter);
-
         // FIXME (aw): would be nice to move this config related thing toward the module_init function
         std::vector<cmd> cmds =
             this->callbacks.everest_register(config.get_main_config()[this->module_id]["connections"]);

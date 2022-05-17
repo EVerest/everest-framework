@@ -101,6 +101,9 @@ struct ModuleCallbacks {
     std::function<void(ModuleConfigs module_configs, const ModuleInfo& info)> init;
     std::function<void()> ready;
 
+    ModuleCallbacks() {
+    }
+
     ModuleCallbacks(const std::function<void(ModuleAdapter module_adapter)>& register_module_adapter,
                     const std::function<std::vector<cmd>(const json& connections)>& everest_register,
                     const std::function<void(ModuleConfigs module_configs, const ModuleInfo& info)>& init,
@@ -110,14 +113,15 @@ struct ModuleCallbacks {
 class ModuleLoader {
 private:
     std::unique_ptr<RuntimeSettings> runtime_settings;
-    std::string module_id;
-    std::string original_process_name;
     ModuleCallbacks callbacks;
+    std::string original_process_name;
+    std::string module_id;
 
     bool parse_command_line(int argc, char* argv[]);
 
 public:
     explicit ModuleLoader(int argc, char* argv[], ModuleCallbacks callbacks);
+    explicit ModuleLoader(RuntimeSettings runtime_settings, ModuleCallbacks callbacks, std::string module_id);
 
     int initialize();
 };
