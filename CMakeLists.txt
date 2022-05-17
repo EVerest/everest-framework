@@ -152,3 +152,5 @@ if(DOXYGEN_FOUND)
 else()
     message("Doxygen is needed to generate documentation")
 endif()
+# everest python wrapper
+add_subdirectory(everestpy)
