@@ -25,7 +25,6 @@ const auto TERMINAL_STYLE_OK = fmt::emphasis::bold | fg(fmt::terminal_color::gre
 
 struct RuntimeSettings {
     fs::path main_dir;
-    fs::path main_binary;
     fs::path configs_dir;
     fs::path schemas_dir;
     fs::path modules_dir;
@@ -35,6 +34,8 @@ struct RuntimeSettings {
     bool validate_schema;
 
     explicit RuntimeSettings(const po::variables_map& vm);
+    RuntimeSettings(fs::path main_dir, fs::path configs_dir, fs::path schemas_dir, fs::path modules_dir,
+                    fs::path interfaces_dir, fs::path logging_config, fs::path config_file, bool validate_schema);
 };
 
 struct ModuleCallbacks {
@@ -42,6 +43,9 @@ struct ModuleCallbacks {
     std::function<std::vector<cmd>(const json& connections)> everest_register;
     std::function<void(ModuleConfigs module_configs, const ModuleInfo& info)> init;
     std::function<void()> ready;
+
+    ModuleCallbacks() {
+    }
 
     ModuleCallbacks(const std::function<void(ModuleAdapter module_adapter)>& register_module_adapter,
                     const std::function<std::vector<cmd>(const json& connections)>& everest_register,
@@ -52,14 +56,15 @@ struct ModuleCallbacks {
 class ModuleLoader {
 private:
     std::unique_ptr<RuntimeSettings> runtime_settings;
-    std::string module_id;
-    std::string original_process_name;
     ModuleCallbacks callbacks;
+    std::string original_process_name;
+    std::string module_id;
 
     bool parse_command_line(int argc, char* argv[]);
 
 public:
     explicit ModuleLoader(int argc, char* argv[], ModuleCallbacks callbacks);
+    explicit ModuleLoader(RuntimeSettings runtime_settings, ModuleCallbacks callbacks, std::string module_id);
 
     int initialize();
 };
