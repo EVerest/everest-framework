@@ -38,8 +38,7 @@ def register_everest_register(connections):
         return vec
 
     for impl_id, cmds in pub_cmds.items():
-        log.error(f"IMPL: {impl_id}, CMDS: {cmds}")
-        for cmd_name, info in cmds.items():
+        for cmd_name, _info in cmds.items():
             handler_function = getattr(module, f"{impl_id}_{cmd_name}")
 
             def unpack_json_arguments(json_args):
@@ -61,7 +60,7 @@ def wrapped_function(cmd_with_args):
         for arg in cmd_with_args.arguments:
             json_args[arg] = None
 
-    def kwarg_cmd(first_arg, *args, **kwargs):
+    def kwarg_cmd(_first_arg, *args, **kwargs):
         json_args_it = iter(json_args)
         for arg in args:
             key = next(json_args_it)
@@ -76,34 +75,34 @@ def wrapped_function(cmd_with_args):
 def register_pre_init(reqs):
     global pub_cmds
     pub_cmds = reqs.pub_cmds
-    requirements = {}
-    requirements2 = {}  # TODO: better name...
+    module_setup = {}
+    module_interface = {}
     for k, v in reqs.vars.items():
         vars = {}
         for kk, vv in v.items():
             vars[f"subscribe_{kk}"] = vv
         InternalType = type(f"r_{k}", (object, ), vars)
-        requirements2[f"r_{k}"] = vars
+        module_interface[f"r_{k}"] = vars
 
     for k, v in reqs.call_cmds.items():
         cmds = {}
         for kk, vv in v.items():
             cmds[f"call_{kk}"] = wrapped_function(vv)
-        if f"r_{k}" in requirements2:
-            requirements2[f"r_{k}"] = {**requirements2[f"r_{k}"], **cmds}
+        if f"r_{k}" in module_interface:
+            module_interface[f"r_{k}"] = {**module_interface[f"r_{k}"], **cmds}
         else:
-            requirements2[f"r_{k}"] = cmds
+            module_interface[f"r_{k}"] = cmds
 
-    for k, v in requirements2.items():
+    for k, v in module_interface.items():
         InternalType = type(f"{k}", (object, ), v)
-        requirements[f"{k}"] = InternalType()
+        module_setup[f"{k}"] = InternalType()
 
     for k, v in reqs.pub_vars.items():
         vars = {}
         for kk, vv in v.items():
             vars[f"publish_{kk}"] = vv
         InternalType = type(f"r_{k}", (object, ), vars)
-        requirements[f"p_{k}"] = InternalType()
+        module_setup[f"p_{k}"] = InternalType()
 
     global module_adapter_
     if reqs.enable_external_mqtt:
@@ -112,11 +111,9 @@ def register_pre_init(reqs):
             "subscribe": module_adapter_.ext_mqtt_subscribe
         }
         MQTT = type(f"mqtt", (object, ), mqtt_functions)
-        requirements["mqtt"] = MQTT()
-    requirements["__init__"] = lambda x: log.error(
-        "constructor of Setup() called")
+        module_setup["mqtt"] = MQTT()
 
-    Setup = type("Setup", (object, ), requirements)
+    Setup = type("Setup", (object, ), module_setup)
     global setup
     setup = Setup()
 
