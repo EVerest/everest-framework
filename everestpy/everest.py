@@ -123,7 +123,6 @@ def register_init(_module_configs, _module_info):
 
 
 def register_ready():
-    global module_adapter_
     module.ready()
 
 
