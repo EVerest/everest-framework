@@ -20,7 +20,7 @@ pub_cmds = None
 wait_for_exit = Event()
 
 
-def sigint_handler(signum, frame):
+def sigint_handler(_signum, _frame):
     wait_for_exit.set()
 
 
@@ -32,9 +32,7 @@ def register_module_adapter(module_adapter):
     module_adapter_ = module_adapter
 
 
-def register_everest_register(connections):
-    global pub_cmds
-
+def register_everest_register(_connections):
     vec = []
     if not pub_cmds:
         return vec
@@ -80,11 +78,11 @@ def register_pre_init(reqs):
     module_setup = {}
     module_interface = {}
     for k, v in reqs.vars.items():
-        vars = {}
+        variables = {}
         for kk, vv in v.items():
-            vars[f"subscribe_{kk}"] = vv
-        InternalType = type(f"r_{k}", (object, ), vars)
-        module_interface[f"r_{k}"] = vars
+            variables[f"subscribe_{kk}"] = vv
+        InternalType = type(f"r_{k}", (object, ), variables)
+        module_interface[f"r_{k}"] = variables
 
     for k, v in reqs.call_cmds.items():
         cmds = {}
@@ -100,19 +98,18 @@ def register_pre_init(reqs):
         module_setup[f"{k}"] = InternalType()
 
     for k, v in reqs.pub_vars.items():
-        vars = {}
+        variables = {}
         for kk, vv in v.items():
-            vars[f"publish_{kk}"] = vv
-        InternalType = type(f"r_{k}", (object, ), vars)
+            variables[f"publish_{kk}"] = vv
+        InternalType = type(f"r_{k}", (object, ), variables)
         module_setup[f"p_{k}"] = InternalType()
 
-    global module_adapter_
     if reqs.enable_external_mqtt:
         mqtt_functions = {
             "publish": module_adapter_.ext_mqtt_publish,
             "subscribe": module_adapter_.ext_mqtt_subscribe
         }
-        MQTT = type(f"mqtt", (object, ), mqtt_functions)
+        MQTT = type("mqtt", (object, ), mqtt_functions)
         module_setup["mqtt"] = MQTT()
 
     Setup = type("Setup", (object, ), module_setup)
@@ -120,8 +117,7 @@ def register_pre_init(reqs):
     setup = Setup()
 
 
-def register_init(module_configs, module_info):
-    global setup
+def register_init(_module_configs, _module_info):
     module.pre_init(setup)
     module.init()
 
