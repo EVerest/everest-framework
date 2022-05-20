@@ -192,7 +192,6 @@ int initialize(fs::path main_dir, fs::path configs_dir, fs::path schemas_dir, fs
                         },
                         requirement_impl_intf.at("cmds").at(cmd_name).at("arguments")};
                 }
-
             }
         }
 
