@@ -257,7 +257,7 @@ static SubprocessHandle exec_python_module(const ModuleStartInfo& module_info, c
 
     const auto python_binary = "python3";
 
-    std::vector<std::string> arguments = {"python3", python_loader_path.string()};
+    std::vector<std::string> arguments = {python_binary, python_loader_path.string()};
 
     auto handle = create_subprocess();
     if (handle.is_child()) {
