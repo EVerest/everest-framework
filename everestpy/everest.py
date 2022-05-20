@@ -1,16 +1,18 @@
-import importlib.util
+import importlib
+from pathlib import Path
 from signal import SIGINT, signal
+import sys
 from threading import Event
 from os import environ
 import everestpy
 
 log = everestpy.log
 
-
-spec = importlib.util.spec_from_file_location(
-    'everest.module', f'{environ.get("EV_PYTHON_MODULE")}')
-module = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(module)
+# make sure module path is available and import module
+module_path = Path(environ.get("EV_PYTHON_MODULE"))
+sys.path.append(module_path.parent.resolve().as_posix())
+sys.path.append(module_path.parent.parent.resolve().as_posix())
+module = importlib.import_module(f"{module_path.parent.name}.module")
 
 module_adapter_ = None
 setup = None
