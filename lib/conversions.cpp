@@ -36,22 +36,30 @@ template <> json convertTo<json>(Result retval) {
     }
 }
 
-template <> Result convertTo<Result>(json data, const std::string& type_hint) {
+template <> Result convertTo<Result>(json data, json type_hints) {
     BOOST_LOG_FUNCTION();
     Result retval;
     if (data.is_string()) {
         retval = data.get<std::string>();
     } else if (data.is_number_float()) {
-        // consult type hints if it's really an integer:
-        if (type_hint == "number") {
-            // parameter is actually a double, not an integer
-            retval = data.get<double>();
-        } else {
-            retval = data.get<int>();
-        }
+        // result must always be double
+        retval = data.get<double>();
     } else if (data.is_number_integer()) {
-        // consult type hints if it's really an integer:
-        if (type_hint == "number") {
+        bool is_double = false;
+        if (type_hints.is_array()) {
+            // consult type hints if it's really an integer or double:
+            for (auto type_hint : type_hints) {
+                if (type_hint == "number") {
+                    is_double = true;
+                }
+            }
+        } else {
+            if (type_hints.get<std::string>() == "number") {
+                is_double = true;
+            }
+        }
+
+        if (is_double) {
             // parameter is actually a double, not an integer
             retval = data.get<double>();
         } else {

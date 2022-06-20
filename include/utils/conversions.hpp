@@ -15,7 +15,7 @@ template <class R, class V> R convertTo(V, json);
 template <class R, class V> R convertTo(V, const std::string&);
 
 template <> json convertTo<json>(Result retval);
-template <> Result convertTo<Result>(json data, const std::string& type_hint);
+template <> Result convertTo<Result>(json data, json type_hints);
 template <> json convertTo<json>(Parameters params);
 template <> Parameters convertTo<Parameters>(json data, json type_hints);
 template <> json convertTo<json>(Value value);

@@ -157,7 +157,7 @@ json Everest::call_cmd(const Requirement& req, const std::string& cmd_name, json
     // extract manifest definition of this command
     json cmd_definition = get_cmd_definition(connection["module_id"], connection["implementation_id"], cmd_name, true);
 
-    std::string return_type = cmd_definition.at("result").at("type");
+    json return_type = cmd_definition.at("result").at("type");
 
     std::set<std::string> arg_names = Config::keys(json_args);
 
@@ -264,8 +264,7 @@ Result Everest::call_cmd(const Requirement& req, const std::string& cmd_name, Pa
     json result = this->call_cmd(req, cmd_name, convertTo<json>(args));
     return convertTo<Result>(
         result["retval"],
-        result["return_type"].get<std::string>()); // FIXME: other datatype so we can return the data["origin"] as well
-    // return convertTo<Result>(result["retval"]); // FIXME: other datatype so we can return the data["origin"] as well
+        result["return_type"]); // FIXME: other datatype so we can return the data["origin"] as well
 }
 
 void Everest::publish_var(const std::string& impl_id, const std::string& var_name, json json_value) {
@@ -626,7 +625,6 @@ void Everest::provide_cmd(const cmd& cmd) {
         // call cmd handlers (handle async or normal handlers being both:
         // methods or functions)
         return convertTo<json>(handler(convertTo<Parameters>(data, cmd_definition["arguments"])));
-        // return convertTo<json>(handler(convertTo<Parameters>(data)));
     });
 }
 
