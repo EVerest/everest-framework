@@ -23,6 +23,7 @@ target_sources(everest
         conversions.cpp
         thread.cpp
         serial.cpp
+        date.cpp
         runtime.cpp
 )
 target_include_directories(everest PUBLIC ${INCLUDE_DIR})
