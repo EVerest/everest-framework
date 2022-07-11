@@ -9,9 +9,9 @@
 namespace Everest {
 namespace Date {
 
-std::string to_rfc3339(std::chrono::time_point<date::utc_clock> t);
+std::string to_rfc3339(const std::chrono::time_point<date::utc_clock>& t);
 
-std::chrono::time_point<date::utc_clock> from_rfc3339(std::string t);
+std::chrono::time_point<date::utc_clock> from_rfc3339(const std::string& t);
 
 } // namespace Date
 } // namespace Everest
