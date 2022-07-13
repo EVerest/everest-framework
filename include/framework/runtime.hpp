@@ -25,6 +25,7 @@ const auto TERMINAL_STYLE_OK = fmt::emphasis::bold | fg(fmt::terminal_color::gre
 
 struct RuntimeSettings {
     fs::path main_dir;
+    fs::path main_binary;
     fs::path configs_dir;
     fs::path schemas_dir;
     fs::path modules_dir;
