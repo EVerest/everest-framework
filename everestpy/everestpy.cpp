@@ -16,20 +16,23 @@ namespace po = boost::program_options;
 namespace py = pybind11;
 
 struct Log {
+    static void verbose(const std::string& message) {
+        EVLOG_verbose << message;
+    }
     static void debug(const std::string& message) {
-        EVLOG(debug) << message;
+        EVLOG_debug << message;
     }
     static void info(const std::string& message) {
-        EVLOG(info) << message;
+        EVLOG_info << message;
     }
     static void warning(const std::string& message) {
-        EVLOG(warning) << message;
+        EVLOG_warning << message;
     }
     static void error(const std::string& message) {
-        EVLOG(error) << message;
+        EVLOG_error << message;
     }
     static void critical(const std::string& message) {
-        EVLOG(critical) << message;
+        EVLOG_critical << message;
     }
 };
 
@@ -94,16 +97,16 @@ int initialize(fs::path main_dir, fs::path configs_dir, fs::path schemas_dir, fs
                                                  rs.modules_dir.string(), rs.interfaces_dir.string());
 
         if (!config.contains(module_id)) {
-            EVLOG(error) << fmt::format("Module id '{}' not found in config!", module_id);
+            EVLOG_error << fmt::format("Module id '{}' not found in config!", module_id);
             return 2;
         }
 
         const std::string module_identifier = config.printable_identifier(module_id);
-        EVLOG(info) << fmt::format("Initializing framework for module {}...", module_identifier);
-        EVLOG(debug) << fmt::format("Setting process name to: '{}'...", module_identifier);
+        EVLOG_info << fmt::format("Initializing framework for module {}...", module_identifier);
+        EVLOG_debug << fmt::format("Setting process name to: '{}'...", module_identifier);
         int prctl_return = prctl(PR_SET_NAME, module_identifier.c_str());
         if (prctl_return == 1) {
-            EVLOG(warning) << fmt::format("Could not set process name to '{}'.", module_identifier);
+            EVLOG_warning << fmt::format("Could not set process name to '{}'.", module_identifier);
         }
         Everest::Logging::update_process_name(module_identifier);
 
@@ -122,7 +125,7 @@ int initialize(fs::path main_dir, fs::path configs_dir, fs::path schemas_dir, fs
         Everest::Everest& everest = Everest::Everest::get_instance(module_id, config, rs.validate_schema,
                                                                    mqtt_server_address, mqtt_server_port);
 
-        EVLOG(info) << fmt::format("Initializing module {}...", module_identifier);
+        EVLOG_info << fmt::format("Initializing module {}...", module_identifier);
 
         const std::string& module_name = config.get_main_config()[module_id]["module"].get<std::string>();
         auto module_manifest = config.get_manifests()[module_name];
@@ -196,7 +199,7 @@ int initialize(fs::path main_dir, fs::path configs_dir, fs::path schemas_dir, fs
         }
 
         if (!everest.connect()) {
-            EVLOG(critical) << fmt::format("Cannot connect to MQTT broker at {}:{}", mqtt_server_address,
+            EVLOG_critical << fmt::format("Cannot connect to MQTT broker at {}:{}", mqtt_server_address,
                                            mqtt_server_port);
             return 1;
         }
@@ -250,10 +253,10 @@ int initialize(fs::path main_dir, fs::path configs_dir, fs::path schemas_dir, fs
         // the module should now be ready
         everest.signal_ready();
     } catch (boost::exception& e) {
-        EVLOG(critical) << fmt::format("Caught top level boost::exception:\n{}",
+        EVLOG_critical << fmt::format("Caught top level boost::exception:\n{}",
                                        boost::diagnostic_information(e, true));
     } catch (std::exception& e) {
-        EVLOG(critical) << fmt::format("Caught top level std::exception:\n{}", boost::diagnostic_information(e, true));
+        EVLOG_critical << fmt::format("Caught top level std::exception:\n{}", boost::diagnostic_information(e, true));
     }
 
     return 0;
@@ -279,6 +282,7 @@ PYBIND11_MODULE(everestpy, m) {
 
     py::class_<Log>(m, "log")
         .def(py::init<>())
+        .def_static("verbose", &Log::verbose)
         .def_static("debug", &Log::debug)
         .def_static("info", &Log::info)
         .def_static("warning", &Log::warning)
