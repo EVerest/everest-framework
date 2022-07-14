@@ -59,6 +59,8 @@ def wrapped_function(cmd_with_args):
             json_args[arg] = None
 
     def kwarg_cmd(_first_arg, *args, **kwargs):
+        if len(args) + len(kwargs) != len(json_args):
+            raise ValueError("Incorrect number of arguments provided")
         json_args_it = iter(json_args)
         for arg in args:
             key = next(json_args_it)
