@@ -96,11 +96,16 @@ def register_pre_init(reqs):
                 module_interface[f"r_{k}"][req_mod_id] = cmds
 
     for k, v in module_interface.items():
-        InternalType = type(f"{k}", (dict, ), v)
-        module_setup[f"{k}"] = InternalType()
-        for kk, vv in v.items():
-            InternalType = type(f"{kk}", (object, ), vv)
-            module_setup[f"{k}"][f"{kk}"] = InternalType()
+        if len(v) == 1:
+            InternalType = type(f"{k}", (object, ), v[list(v.keys())[0]])
+            module_setup[f"{k}"] = InternalType()
+        else:
+            InternalType = type(f"{k}", (dict, ), v)
+            module_setup[f"{k}"] = InternalType()
+            for kk, vv in v.items():
+                print(f"KK: {kk}, vv_ {vv}")
+                InternalType = type(f"{kk}", (object, ), vv)
+                module_setup[f"{k}"][f"{kk}"] = InternalType()
 
     for k, v in reqs.pub_vars.items():
         variables = {}
