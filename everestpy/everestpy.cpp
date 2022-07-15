@@ -160,6 +160,8 @@ int initialize(fs::path main_dir, fs::path configs_dir, fs::path schemas_dir, fs
         }
 
         // module requires (uses)
+        reqs.vars = {};
+        reqs.call_cmds = {};
         for (auto& requirement : module_manifest["requires"].items()) {
             auto const& requirement_id = requirement.key();
             json req_route_list = config.resolve_requirement(module_id, requirement_id);
@@ -171,10 +173,9 @@ int initialize(fs::path main_dir, fs::path configs_dir, fs::path schemas_dir, fs
                 req_route_list = json::array({req_route_list});
             }
 
-            reqs.vars = {};
+
             reqs.vars[requirement_id] = {};
 
-            reqs.call_cmds = {};
             reqs.call_cmds[requirement_id] = {};
 
             for (size_t i = 0; i < req_route_list.size(); i++) {
