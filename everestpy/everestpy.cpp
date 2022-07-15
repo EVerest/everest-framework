@@ -42,9 +42,11 @@ struct CmdWithArguments {
 };
 
 struct Reqs {
-    std::map<std::string, std::map<std::string, std::function<void(std::function<void(json json_value)>)>>> vars;
+    std::map<std::string,
+             std::map<std::string, std::map<std::string, std::function<void(std::function<void(json json_value)>)>>>>
+        vars;
     std::map<std::string, std::map<std::string, std::function<void(json json_value)>>> pub_vars;
-    std::map<std::string, std::map<std::string, CmdWithArguments>> call_cmds;
+    std::map<std::string, std::map<std::string, std::map<std::string, CmdWithArguments>>> call_cmds;
     std::map<std::string, std::map<std::string, json>> pub_cmds;
     bool enable_external_mqtt = false;
 };
@@ -172,9 +174,14 @@ int initialize(fs::path main_dir, fs::path configs_dir, fs::path schemas_dir, fs
             reqs.vars = {};
             reqs.vars[requirement_id] = {};
 
+            reqs.call_cmds = {};
+            reqs.call_cmds[requirement_id] = {};
+
             for (size_t i = 0; i < req_route_list.size(); i++) {
                 auto req_route = req_route_list[i];
                 const std::string& requirement_module_id = req_route["module_id"];
+                reqs.vars[requirement_id][requirement_module_id] = {};
+                reqs.call_cmds[requirement_id][requirement_module_id] = {};
                 const std::string& requirement_impl_id = req_route["implementation_id"];
                 std::string interface_name = req_route["required_interface"].get<std::string>();
                 auto requirement_impl_intf = config.get_interface_definition(interface_name);
@@ -182,14 +189,14 @@ int initialize(fs::path main_dir, fs::path configs_dir, fs::path schemas_dir, fs
                 auto requirement_cmds = Everest::Config::keys(requirement_impl_intf["cmds"]);
 
                 for (auto var_name : requirement_vars) {
-                    reqs.vars[requirement_id][var_name] = [&everest, requirement_id, i,
-                                                           var_name](std::function<void(json json_value)> callback) {
-                        everest.subscribe_var({requirement_id, i}, var_name, callback);
-                    };
+                    reqs.vars[requirement_id][requirement_module_id][var_name] =
+                        [&everest, requirement_id, i, var_name](std::function<void(json json_value)> callback) {
+                            everest.subscribe_var({requirement_id, i}, var_name, callback);
+                        };
                 }
 
                 for (auto const& cmd_name : requirement_cmds) {
-                    reqs.call_cmds[requirement_id][cmd_name] = {
+                    reqs.call_cmds[requirement_id][requirement_module_id][cmd_name] = {
                         [&everest, requirement_id, i, cmd_name](json parameters) {
                             return everest.call_cmd({requirement_id, i}, cmd_name, parameters);
                         },
@@ -200,7 +207,7 @@ int initialize(fs::path main_dir, fs::path configs_dir, fs::path schemas_dir, fs
 
         if (!everest.connect()) {
             EVLOG_critical << fmt::format("Cannot connect to MQTT broker at {}:{}", mqtt_server_address,
-                                           mqtt_server_port);
+                                          mqtt_server_port);
             return 1;
         }
 
@@ -253,8 +260,7 @@ int initialize(fs::path main_dir, fs::path configs_dir, fs::path schemas_dir, fs
         // the module should now be ready
         everest.signal_ready();
     } catch (boost::exception& e) {
-        EVLOG_critical << fmt::format("Caught top level boost::exception:\n{}",
-                                       boost::diagnostic_information(e, true));
+        EVLOG_critical << fmt::format("Caught top level boost::exception:\n{}", boost::diagnostic_information(e, true));
     } catch (std::exception& e) {
         EVLOG_critical << fmt::format("Caught top level std::exception:\n{}", boost::diagnostic_information(e, true));
     }
