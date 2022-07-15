@@ -39,13 +39,10 @@ def register_everest_register(_connections):
 
     for impl_id, cmds in pub_cmds.items():
         for cmd_name, _info in cmds.items():
-            def unpack_json_arguments(json_args):
-                # TODO: check if return values need to be packed into json first
-                return getattr(module, f"{impl_id}_{cmd_name}")(**json_args)
             cmd = everestpy.EverestPyCmd()
             cmd.impl_id = impl_id
             cmd.cmd_name = cmd_name
-            cmd.handler = unpack_json_arguments
+            cmd.handler = lambda json_args, i=impl_id, c=cmd_name: getattr(module, f"{i}_{c}")(**json_args)
 
             vec.append(cmd)
 
