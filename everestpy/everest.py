@@ -103,7 +103,6 @@ def register_pre_init(reqs):
             InternalType = type(f"{k}", (dict, ), v)
             module_setup[f"{k}"] = InternalType()
             for kk, vv in v.items():
-                print(f"KK: {kk}, vv_ {vv}")
                 InternalType = type(f"{kk}", (object, ), vv)
                 module_setup[f"{k}"][f"{kk}"] = InternalType()
 
