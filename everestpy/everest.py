@@ -79,23 +79,28 @@ def register_pre_init(reqs):
     module_interface = {}
     for k, v in reqs.vars.items():
         variables = {}
-        for kk, vv in v.items():
-            variables[f"subscribe_{kk}"] = vv
-        InternalType = type(f"r_{k}", (object, ), variables)
+        for req_mod_id, rvv in v.items():
+            variables[req_mod_id] = {}
+            for kk, vv in rvv.items():
+                variables[req_mod_id][f"subscribe_{kk}"] = vv
         module_interface[f"r_{k}"] = variables
 
     for k, v in reqs.call_cmds.items():
         cmds = {}
-        for kk, vv in v.items():
-            cmds[f"call_{kk}"] = wrapped_function(vv)
-        if f"r_{k}" in module_interface:
-            module_interface[f"r_{k}"] = {**module_interface[f"r_{k}"], **cmds}
-        else:
-            module_interface[f"r_{k}"] = cmds
+        for req_mod_id, rvv in v.items():
+            for kk, vv in rvv.items():
+                cmds[f"call_{kk}"] = wrapped_function(vv)
+            if f"r_{k}" in module_interface:
+                module_interface[f"r_{k}"][req_mod_id] = {**module_interface[f"r_{k}"][req_mod_id], **cmds}
+            else:
+                module_interface[f"r_{k}"][req_mod_id] = cmds
 
     for k, v in module_interface.items():
-        InternalType = type(f"{k}", (object, ), v)
+        InternalType = type(f"{k}", (dict, ), v)
         module_setup[f"{k}"] = InternalType()
+        for kk, vv in v.items():
+            InternalType = type(f"{kk}", (object, ), vv)
+            module_setup[f"{k}"][f"{kk}"] = InternalType()
 
     for k, v in reqs.pub_vars.items():
         variables = {}
