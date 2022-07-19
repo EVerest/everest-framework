@@ -41,6 +41,11 @@ struct CmdWithArguments {
     json arguments;
 };
 
+struct RequirementMinMax {
+    size_t min_connections;
+    size_t max_connections;
+};
+
 struct Reqs {
     std::map<std::string,
              std::map<std::string, std::map<std::string, std::function<void(std::function<void(json json_value)>)>>>>
@@ -49,6 +54,7 @@ struct Reqs {
     std::map<std::string, std::map<std::string, std::map<std::string, CmdWithArguments>>> call_cmds;
     std::map<std::string, std::map<std::string, json>> pub_cmds;
     bool enable_external_mqtt = false;
+    std::map<std::string, RequirementMinMax> requirements;
 };
 
 struct EverestPyCmd {
@@ -173,6 +179,11 @@ int initialize(fs::path main_dir, fs::path configs_dir, fs::path schemas_dir, fs
                 req_route_list = json::array({req_route_list});
             }
 
+            auto value = requirement.value();
+            RequirementMinMax r;
+            r.min_connections = value.at("min_connections");
+            r.max_connections = value.at("max_connections");
+            reqs.requirements[requirement_id] = r;
 
             reqs.vars[requirement_id] = {};
 
@@ -307,13 +318,18 @@ PYBIND11_MODULE(everestpy, m) {
         .def(py::init<>())
         .def_readwrite("cmd", &CmdWithArguments::cmd)
         .def_readwrite("arguments", &CmdWithArguments::arguments);
+    py::class_<RequirementMinMax>(m, "RequirementMinMax")
+        .def(py::init<>())
+        .def_readwrite("min_connections", &RequirementMinMax::min_connections)
+        .def_readwrite("max_connections", &RequirementMinMax::max_connections);
     py::class_<Reqs>(m, "Reqs")
         .def(py::init<>())
         .def_readwrite("vars", &Reqs::vars)
         .def_readwrite("pub_vars", &Reqs::pub_vars)
         .def_readwrite("call_cmds", &Reqs::call_cmds)
         .def_readwrite("pub_cmds", &Reqs::pub_cmds)
-        .def_readwrite("enable_external_mqtt", &Reqs::enable_external_mqtt);
+        .def_readwrite("enable_external_mqtt", &Reqs::enable_external_mqtt)
+        .def_readwrite("requirements", &Reqs::requirements);
 
     m.def("init",
           [](const std::string& main_dir, const std::string& configs_dir, const std::string& schemas_dir,
