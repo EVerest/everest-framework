@@ -188,7 +188,8 @@ json Everest::call_cmd(const Requirement& req, const std::string& cmd_name, json
     }
 
     if (this->validate_data_with_schema) {
-        json_validator validator(Config::loader, Config::format_checker);
+        json_validator validator([this](const json_uri& uri, json& schema) { this->config.ref_loader(uri, schema); },
+                                 Config::format_checker);
         for (auto const& arg_name : arg_names) {
             try {
                 validator.set_root_schema(cmd_definition["arguments"][arg_name]);
@@ -505,7 +506,8 @@ void Everest::provide_cmd(const std::string impl_id, const std::string cmd_name,
         // been prohibited already)
         if (this->validate_data_with_schema) {
             try {
-                json_validator validator(Config::loader, Config::format_checker);
+                json_validator validator([this](const json_uri& uri, json& schema) { this->config.ref_loader(uri, schema); },
+                                 Config::format_checker);
 
                 for (auto const& arg_name : arg_names) {
                     if (!data["args"].contains(arg_name)) {
