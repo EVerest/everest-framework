@@ -168,7 +168,7 @@ Config::Config(std::string schemas_dir, std::string config_file, std::string mod
             auto type_path = std::string("/") + fs::relative(type_file_path, types_path).stem().string();
             try {
                 // load and validate type file, store validated result in this->types
-                EVLOG(info) << fmt::format("Loading type file at: {}", fs::canonical(type_file_path).c_str());
+                EVLOG_verbose << fmt::format("Loading type file at: {}", fs::canonical(type_file_path).c_str());
 
                 std::ifstream ifs(type_file_path.c_str());
                 std::string type_file((std::istreambuf_iterator<char>(ifs)), (std::istreambuf_iterator<char>()));
@@ -592,10 +592,10 @@ void Config::ref_loader(const json_uri& uri, json& schema) {
         auto path = uri.path();
         if (this->types.contains(path)) {
             schema = this->types[path];
-            EVLOG(debug) << fmt::format("ref path \"{}\" schema has been found.", path);
+            EVLOG_verbose << fmt::format("ref path \"{}\" schema has been found.", path);
             return;
         } else {
-            EVLOG(debug) << fmt::format("ref path \"{}\" schema has not been found.", path);
+            EVLOG_verbose << fmt::format("ref path \"{}\" schema has not been found.", path);
         }
     }
 
