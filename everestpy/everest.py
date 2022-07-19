@@ -42,7 +42,8 @@ def register_everest_register(_connections):
             cmd = everestpy.EverestPyCmd()
             cmd.impl_id = impl_id
             cmd.cmd_name = cmd_name
-            cmd.handler = lambda json_args, i=impl_id, c=cmd_name: getattr(module, f"{i}_{c}")(**json_args)
+            cmd.handler = lambda json_args, i=impl_id, c=cmd_name: getattr(
+                module, f"{i}_{c}")(**json_args)
 
             vec.append(cmd)
 
@@ -88,7 +89,8 @@ def register_pre_init(reqs):
             for kk, vv in rvv.items():
                 cmds[f"call_{kk}"] = wrapped_function(vv)
             if f"r_{k}" in module_interface:
-                module_interface[f"r_{k}"][req_mod_id] = {**module_interface[f"r_{k}"][req_mod_id], **cmds}
+                module_interface[f"r_{k}"][req_mod_id] = {
+                    **module_interface[f"r_{k}"][req_mod_id], **cmds}
             else:
                 module_interface[f"r_{k}"][req_mod_id] = cmds
 
