@@ -95,7 +95,16 @@ def register_pre_init(reqs):
                 module_interface[f"r_{k}"][req_mod_id] = cmds
 
     for k, v in module_interface.items():
-        if len(v) == 1:
+        prefix = "r_"
+        is_list = True
+        if k.startswith(prefix):
+            requirement_key = k[len(prefix):]
+            print(f"requirement key: {k} {v}")
+            min_connections = reqs.requirements[requirement_key].min_connections
+            max_connections = reqs.requirements[requirement_key].max_connections
+            if min_connections == 1 and min_connections == max_connections:
+                is_list = False
+        if not is_list:
             InternalType = type(f"{k}", (object, ), v[list(v.keys())[0]])
             module_setup[f"{k}"] = InternalType()
         else:
