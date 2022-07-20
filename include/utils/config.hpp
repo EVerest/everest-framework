@@ -28,7 +28,7 @@ struct schemas {
     json type;      ///< The type schema
 };
 
-const static std::regex type_uri_regex{R"(^((?:\/[a-zA-Z0-9]+)+#\/[a-zA-Z0-9]+)$)"};
+const static std::regex type_uri_regex{R"(^((?:\/[a-zA-Z0-9\-\_]+)+#\/[a-zA-Z0-9\-\_]+)$)"};
 
 ///
 /// \brief Contains config and manifest parsing
