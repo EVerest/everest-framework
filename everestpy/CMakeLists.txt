@@ -19,7 +19,7 @@ CPMAddPackage(
 pybind11_add_module(everestpy everestpy.cpp)
 
 target_link_libraries(everestpy
-        PRIVATE everest everest::log pybind11_json
+        PRIVATE everest everest::log pybind11_json fmt::fmt
 )
 
 install(TARGETS everestpy
