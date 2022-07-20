@@ -95,3 +95,5 @@ add_subdirectory(schemas)
 # everest javascript wrapper
 add_subdirectory(everestjs)
 
+# everest python wrapper
+add_subdirectory(everestpy)
