@@ -506,8 +506,9 @@ void Everest::provide_cmd(const std::string impl_id, const std::string cmd_name,
         // been prohibited already)
         if (this->validate_data_with_schema) {
             try {
-                json_validator validator([this](const json_uri& uri, json& schema) { this->config.ref_loader(uri, schema); },
-                                 Config::format_checker);
+                json_validator validator(
+                    [this](const json_uri& uri, json& schema) { this->config.ref_loader(uri, schema); },
+                    Config::format_checker);
 
                 for (auto const& arg_name : arg_names) {
                     if (!data["args"].contains(arg_name)) {
@@ -538,7 +539,9 @@ void Everest::provide_cmd(const std::string impl_id, const std::string cmd_name,
                 // only use validator on non-null return types
                 if (!(res_data["retval"].is_null() &&
                       (!cmd_definition.contains("result") || cmd_definition["result"].is_null()))) {
-                    json_validator validator(Config::loader, Config::format_checker);
+                    json_validator validator(
+                        [this](const json_uri& uri, json& schema) { this->config.ref_loader(uri, schema); },
+                        Config::format_checker);
                     validator.set_root_schema(cmd_definition["result"]);
                     validator.validate(res_data["retval"]);
                 }
