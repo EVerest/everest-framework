@@ -98,7 +98,8 @@ template <> json convertTo<json>(Parameters params) {
         } else if (param.second.type() == typeid(Object)) {
             j[param.first] = boost::any_cast<Object>(param.second);
         } else {
-            EVLOG_AND_THROW(EverestApiError(fmt::format("WRONG C++ TYPE: {}", param.second.type().name()))); // FIXME
+            EVLOG_AND_THROW(EverestApiError(
+                fmt::format("WRONG C++ TYPE: {} FOR ENTRY: {}", param.second.type().name(), param.first))); // FIXME
         }
     }
     return j;
