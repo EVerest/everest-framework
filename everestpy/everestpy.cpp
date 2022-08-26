@@ -101,8 +101,9 @@ int initialize(fs::path main_dir, fs::path configs_dir, fs::path schemas_dir, fs
     Everest::Logging::init(rs.logging_config.string(), module_id);
 
     try {
-        Everest::Config config = Everest::Config(rs.schemas_dir.string(), rs.config_file.string(),
-                                                 rs.modules_dir.string(), rs.interfaces_dir.string());
+        Everest::Config config =
+            Everest::Config(rs.schemas_dir.string(), rs.config_file.string(), rs.modules_dir.string(),
+                            rs.interfaces_dir.string(), rs.types_dir.string());
 
         if (!config.contains(module_id)) {
             EVLOG_error << fmt::format("Module id '{}' not found in config!", module_id);
