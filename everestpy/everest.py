@@ -70,12 +70,8 @@ def wrapped_function(cmd_with_args):
     return cmd
 
 
-def register_pre_init(reqs):
-    global pub_cmds
-    pub_cmds = reqs.pub_cmds
-    module_setup = {}
-    module_interface = {}
-    for k, v in reqs.vars.items():
+def populate_vars(vars):
+    for k, v in vars.items():
         variables = {}
         for req_mod_id, rvv in v.items():
             variables[req_mod_id] = {}
@@ -83,7 +79,11 @@ def register_pre_init(reqs):
                 variables[req_mod_id][f"subscribe_{kk}"] = vv
         module_interface[f"r_{k}"] = variables
 
-    for k, v in reqs.call_cmds.items():
+    return module_interface
+
+
+def populate_cmds(call_cmds, module_interface):
+    for k, v in call_cmds.items():
         cmds = {}
         for req_mod_id, rvv in v.items():
             for kk, vv in rvv.items():
@@ -93,6 +93,15 @@ def register_pre_init(reqs):
                     **module_interface[f"r_{k}"][req_mod_id], **cmds}
             else:
                 module_interface[f"r_{k}"][req_mod_id] = cmds
+    return module_interface
+
+
+def register_pre_init(reqs):
+    global pub_cmds
+    pub_cmds = reqs.pub_cmds
+    module_setup = {}
+    module_interface = populate_vars(reqs.vars)
+    module_interface = populate_cmds(reqs.call_cmds, module_interface)
 
     for k, v in module_interface.items():
         prefix = "r_"
