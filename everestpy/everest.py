@@ -70,9 +70,9 @@ def wrapped_function(cmd_with_args):
     return cmd
 
 
-def populate_vars(vars):
+def populate_vars(module_vars):
     module_interface = {}
-    for k, v in vars.items():
+    for k, v in module_vars.items():
         variables = {}
         for req_mod_id, rvv in v.items():
             variables[req_mod_id] = {}
