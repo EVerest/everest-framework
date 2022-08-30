@@ -94,9 +94,9 @@ void register_ready_callback(const std::function<void()>& ready) {
 }
 
 int initialize(fs::path main_dir, fs::path configs_dir, fs::path schemas_dir, fs::path modules_dir,
-               fs::path interfaces_dir, fs::path logging_config, fs::path config_file, bool dontvalidateschema,
+               fs::path interfaces_dir, fs::path types_dir, fs::path logging_config, fs::path config_file, bool dontvalidateschema,
                std::string module_id) {
-    auto rs = Everest::RuntimeSettings(main_dir, configs_dir, schemas_dir, modules_dir, interfaces_dir, logging_config,
+    auto rs = Everest::RuntimeSettings(main_dir, configs_dir, schemas_dir, modules_dir, interfaces_dir, types_dir, logging_config,
                                        config_file, dontvalidateschema);
     Everest::Logging::init(rs.logging_config.string(), module_id);
 
@@ -335,9 +335,9 @@ PYBIND11_MODULE(everestpy, m) {
     m.def("init",
           [](const std::string& main_dir, const std::string& configs_dir, const std::string& schemas_dir,
              const std::string& modules_dir, const std::string& interfaces_dir, const std::string& logging_config,
-             const std::string& config_file, bool dontvalidateschema, const std::string& module_id) {
+             const std::string& config_file, bool dontvalidateschema, const std::string& module_id, const std::string& types_dir) {
               initialize(fs::path(main_dir), fs::path(configs_dir), fs::path(schemas_dir), fs::path(modules_dir),
-                         fs::path(interfaces_dir), fs::path(logging_config), fs::path(config_file), dontvalidateschema,
+                         fs::path(interfaces_dir), fs::path(types_dir), fs::path(logging_config), fs::path(config_file), dontvalidateschema,
                          module_id);
           });
 

@@ -71,6 +71,7 @@ def wrapped_function(cmd_with_args):
 
 
 def populate_vars(vars):
+    module_interface = {}
     for k, v in vars.items():
         variables = {}
         for req_mod_id, rvv in v.items():
@@ -161,6 +162,7 @@ if __name__ == '__main__':
     EV_INTERFACES_DIR = environ.get('EV_INTERFACES_DIR')
     EV_LOG_CONF_FILE = environ.get('EV_LOG_CONF_FILE')
     EV_CONF_FILE = environ.get('EV_CONF_FILE')
+    EV_TYPES_DIR = environ.get('EV_TYPES_DIR')
 
     everestpy.register_module_adapter_callback(register_module_adapter)
     everestpy.register_everest_register_callback(register_everest_register)
@@ -169,6 +171,6 @@ if __name__ == '__main__':
     everestpy.register_ready_callback(register_ready)
 
     everestpy.init(EV_MAIN_DIR, EV_CONFIGS_DIR, EV_SCHEMAS_DIR, EV_MODULES_DIR,
-                   EV_INTERFACES_DIR, EV_LOG_CONF_FILE, EV_CONF_FILE, False, EV_MODULE)
+                   EV_INTERFACES_DIR, EV_LOG_CONF_FILE, EV_CONF_FILE, False, EV_MODULE, EV_TYPES_DIR)
 
     wait_for_exit.wait()

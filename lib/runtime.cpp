@@ -210,13 +210,14 @@ RuntimeSettings::RuntimeSettings(const std::string& prefix_, const std::string& 
 }
 
 RuntimeSettings::RuntimeSettings(fs::path main_dir, fs::path configs_dir, fs::path schemas_dir, fs::path modules_dir,
-                                 fs::path interfaces_dir, fs::path logging_config, fs::path config_file,
+                                 fs::path interfaces_dir, fs::path types_dir, fs::path logging_config, fs::path config_file,
                                  bool validate_schema) {
     this->main_dir = main_dir;
     this->configs_dir = configs_dir;
     this->schemas_dir = schemas_dir;
     this->modules_dir = modules_dir;
     this->interfaces_dir = interfaces_dir;
+    this->types_dir = types_dir;
     this->logging_config = logging_config;
     this->config_file = config_file;
     this->validate_schema = validate_schema;

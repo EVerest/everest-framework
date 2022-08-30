@@ -248,6 +248,7 @@ static SubprocessHandle exec_python_module(const ModuleStartInfo& module_info, c
     setenv("EV_CONF_FILE", rs.config_file.c_str(), 0);
     setenv("EV_LOG_CONF_FILE", rs.logging_config.c_str(), 0);
     setenv("PYTHONPATH", pythonpath.c_str(), 0);
+    setenv("EV_TYPES_DIR", rs.types_dir.c_str(), 0);
 
     if (!rs.validate_schema) {
         setenv("EV_DONT_VALIDATE_SCHEMA", "", 0);
