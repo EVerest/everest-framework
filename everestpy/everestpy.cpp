@@ -15,6 +15,21 @@ namespace fs = std::filesystem;
 namespace po = boost::program_options;
 namespace py = pybind11;
 
+// support for boost::variant from
+// https://pybind11.readthedocs.io/en/stable/advanced/cast/stl.html#c-17-library-containers
+namespace pybind11 {
+namespace detail {
+template <typename... Ts> struct type_caster<boost::variant<Ts...>> : variant_caster<boost::variant<Ts...>> {};
+
+// Specifies the function used to visit the variant -- `apply_visitor` instead of `visit`
+template <> struct visit_helper<boost::variant> {
+    template <typename... Args> static auto call(Args&&... args) -> decltype(boost::apply_visitor(args...)) {
+        return boost::apply_visitor(args...);
+    }
+};
+} // namespace detail
+} // namespace pybind11
+
 struct Log {
     static void verbose(const std::string& message) {
         EVLOG_verbose << message;
@@ -94,10 +109,10 @@ void register_ready_callback(const std::function<void()>& ready) {
 }
 
 int initialize(fs::path main_dir, fs::path configs_dir, fs::path schemas_dir, fs::path modules_dir,
-               fs::path interfaces_dir, fs::path types_dir, fs::path logging_config, fs::path config_file, bool dontvalidateschema,
-               std::string module_id) {
-    auto rs = Everest::RuntimeSettings(main_dir, configs_dir, schemas_dir, modules_dir, interfaces_dir, types_dir, logging_config,
-                                       config_file, dontvalidateschema);
+               fs::path interfaces_dir, fs::path types_dir, fs::path logging_config, fs::path config_file,
+               bool dontvalidateschema, std::string module_id) {
+    auto rs = Everest::RuntimeSettings(main_dir, configs_dir, schemas_dir, modules_dir, interfaces_dir, types_dir,
+                                       logging_config, config_file, dontvalidateschema);
     Everest::Logging::init(rs.logging_config.string(), module_id);
 
     try {
@@ -313,6 +328,8 @@ PYBIND11_MODULE(everestpy, m) {
         .def_readwrite("ext_mqtt_publish", &::Everest::ModuleAdapter::ext_mqtt_publish)
         .def_readwrite("ext_mqtt_subscribe", &::Everest::ModuleAdapter::ext_mqtt_subscribe);
 
+    py::class_<ConfigEntry>(m, "ConfigEntry").def(py::init<>());
+    py::class_<ConfigMap>(m, "ConfigMap").def(py::init<>());
     py::class_<ModuleConfigs>(m, "ModuleConfigs").def(py::init<>());
     py::class_<ModuleInfo>(m, "ModuleInfo").def(py::init<>());
     py::class_<CmdWithArguments>(m, "CmdWithArguments")
@@ -332,14 +349,14 @@ PYBIND11_MODULE(everestpy, m) {
         .def_readwrite("enable_external_mqtt", &Reqs::enable_external_mqtt)
         .def_readwrite("requirements", &Reqs::requirements);
 
-    m.def("init",
-          [](const std::string& main_dir, const std::string& configs_dir, const std::string& schemas_dir,
-             const std::string& modules_dir, const std::string& interfaces_dir, const std::string& logging_config,
-             const std::string& config_file, bool dontvalidateschema, const std::string& module_id, const std::string& types_dir) {
-              initialize(fs::path(main_dir), fs::path(configs_dir), fs::path(schemas_dir), fs::path(modules_dir),
-                         fs::path(interfaces_dir), fs::path(types_dir), fs::path(logging_config), fs::path(config_file), dontvalidateschema,
-                         module_id);
-          });
+    m.def("init", [](const std::string& main_dir, const std::string& configs_dir, const std::string& schemas_dir,
+                     const std::string& modules_dir, const std::string& interfaces_dir,
+                     const std::string& logging_config, const std::string& config_file, bool dontvalidateschema,
+                     const std::string& module_id, const std::string& types_dir) {
+        initialize(fs::path(main_dir), fs::path(configs_dir), fs::path(schemas_dir), fs::path(modules_dir),
+                   fs::path(interfaces_dir), fs::path(types_dir), fs::path(logging_config), fs::path(config_file),
+                   dontvalidateschema, module_id);
+    });
 
     m.def("register_module_adapter_callback", &register_module_adapter_callback);
     m.def("register_everest_register_callback", &register_everest_register_callback);

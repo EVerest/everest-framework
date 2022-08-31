@@ -144,8 +144,14 @@ def register_pre_init(reqs):
     setup = Setup()
 
 
-def register_init(_module_configs, _module_info):
-    module.pre_init(setup)
+def register_init(module_configs, _module_info):
+    module_config = None
+    impl_configs = module_configs
+    if "!module" in module_configs:
+        module_config = module_configs["!module"]
+        del impl_configs["!module"]
+
+    module.pre_init(setup, module_config, impl_configs)
     module.init()
 
 
