@@ -97,21 +97,15 @@ def populate_cmds(call_cmds, module_interface):
     return module_interface
 
 
-def register_pre_init(reqs):
-    global pub_cmds
-    pub_cmds = reqs.pub_cmds
+def populate_module_setup(requirements, module_interface):
     module_setup = {}
-    module_interface = populate_vars(reqs.vars)
-    module_interface = populate_cmds(reqs.call_cmds, module_interface)
-
     for k, v in module_interface.items():
         prefix = "r_"
         is_list = True
         if k.startswith(prefix):
             requirement_key = k[len(prefix):]
-            print(f"requirement key: {k} {v}")
-            min_connections = reqs.requirements[requirement_key].min_connections
-            max_connections = reqs.requirements[requirement_key].max_connections
+            min_connections = requirements[requirement_key].min_connections
+            max_connections = requirements[requirement_key].max_connections
             if min_connections == 1 and min_connections == max_connections:
                 is_list = False
         if not is_list:
@@ -123,6 +117,15 @@ def register_pre_init(reqs):
             for kk, vv in v.items():
                 InternalType = type(f"{kk}", (object, ), vv)
                 module_setup[f"{k}"][f"{kk}"] = InternalType()
+    return module_setup
+
+
+def register_pre_init(reqs):
+    global pub_cmds
+    pub_cmds = reqs.pub_cmds
+    module_interface = populate_vars(reqs.vars)
+    module_interface = populate_cmds(reqs.call_cmds, module_interface)
+    module_setup = populate_module_setup(reqs.requirements, module_interface)
 
     for k, v in reqs.pub_vars.items():
         variables = {}
