@@ -236,7 +236,7 @@ static SubprocessHandle exec_javascript_module(const ModuleStartInfo& module_inf
 static SubprocessHandle exec_python_module(const ModuleStartInfo& module_info, const RuntimeSettings& rs) {
     // instead of using setenv, using execvpe might be a better way for a controlled environment!
 
-    auto pythonpath = rs.main_dir / "everestpy";
+    const auto pythonpath = boost::filesystem::canonical(rs.main_dir / "lib/everest/everestpy");
     auto python_loader_path = pythonpath / "everest.py";
 
     setenv("EV_MODULE", module_info.name.c_str(), 1);
