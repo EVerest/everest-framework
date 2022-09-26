@@ -179,15 +179,10 @@ static std::vector<char*> arguments_to_exec_argv(std::vector<std::string>& argum
 static SubprocessHandle exec_cpp_module(const ModuleStartInfo& module_info, const RuntimeSettings& rs) {
 
     const auto exec_binary = module_info.path.string().c_str();
-    std::vector<std::string> arguments = {module_info.printable_name,
-                                          "--main_dir",
-                                          rs.main_dir.string(),
-                                          "--log_conf",
-                                          rs.logging_config.string(),
-                                          "--conf",
-                                          rs.config_file.string(),
-                                          "--module",
-                                          module_info.name};
+    std::vector<std::string> arguments = {
+        module_info.printable_name,   "--main_dir", rs.main_dir.string(),    "--log_conf",
+        rs.logging_config.string(),   "--conf",     rs.config_file.string(), "--user_conf",
+        rs.user_config_file.string(), "--module",   module_info.name};
 
     auto handle = create_subprocess();
     if (handle.is_child()) {
@@ -216,6 +211,7 @@ static SubprocessHandle exec_javascript_module(const ModuleStartInfo& module_inf
     setenv("EV_MODULES_DIR", rs.modules_dir.c_str(), 0);
     setenv("EV_INTERFACES_DIR", rs.interfaces_dir.c_str(), 0);
     setenv("EV_CONF_FILE", rs.config_file.c_str(), 0);
+    setenv("EV_USER_CONF_FILE", rs.user_config_file.c_str(), 0);
     setenv("EV_LOG_CONF_FILE", rs.logging_config.c_str(), 0);
 
     if (!rs.validate_schema) {
@@ -477,9 +473,13 @@ int boot(const po::variables_map& vm) {
 
     std::unique_ptr<Config> config;
     try {
+        if (fs::exists(rs.user_config_file)) {
+            EVLOG_info << "Augmenting config with user-config: " << rs.user_config_file.string();
+        }
         // FIXME (aw): we should also use boost::filesystem::path here as argument types
-        config = std::make_unique<Config>(rs.schemas_dir.string(), rs.config_file.string(), rs.modules_dir.string(),
-                                          rs.interfaces_dir.string(), rs.types_dir.string());
+        config =
+            std::make_unique<Config>(rs.schemas_dir.string(), rs.config_file.string(), rs.modules_dir.string(),
+                                     rs.interfaces_dir.string(), rs.types_dir.string(), rs.user_config_file.string());
     } catch (EverestInternalError& e) {
         EVLOG_error << fmt::format("Failed to load and validate config!\n{}", boost::diagnostic_information(e, true));
         return EXIT_FAILURE;
@@ -587,7 +587,7 @@ int boot(const po::variables_map& vm) {
                 shutdown_modules(module_handles, *config, mqtt_abstraction);
                 modules_started = false;
 
-		// Exit if a module died, this gives systemd a change to restart manager
+                // Exit if a module died, this gives systemd a chance to restart manager
                 EVLOG_critical << "Exiting manager.";
                 return EXIT_FAILURE;
             } else {
@@ -609,7 +609,8 @@ int boot(const po::variables_map& vm) {
             if (payload.at("method") == "restart_modules") {
                 shutdown_modules(module_handles, *config, mqtt_abstraction);
                 config = std::make_unique<Config>(rs.schemas_dir.string(), rs.config_file.string(),
-                                                  rs.modules_dir.string(), rs.interfaces_dir.string(), rs.types_dir.string());
+                                                  rs.modules_dir.string(), rs.interfaces_dir.string(),
+                                                  rs.types_dir.string(), rs.user_config_file.string());
                 modules_started = false;
                 restart_modules = true;
             } else if (payload.at("method") == "check_config") {
@@ -618,7 +619,7 @@ int boot(const po::variables_map& vm) {
                 try {
                     // check the config
                     Config(rs.schemas_dir.string(), check_config_file_path, rs.modules_dir.string(),
-                           rs.interfaces_dir.string(), rs.types_dir.string());
+                           rs.interfaces_dir.string(), rs.types_dir.string(), rs.user_config_file.string());
                     controller_handle.send_message({{"id", payload.at("id")}});
                 } catch (const std::exception& e) {
                     controller_handle.send_message({{"result", e.what()}, {"id", payload.at("id")}});
@@ -662,6 +663,8 @@ int main(int argc, char* argv[]) {
     desc.add_options()("dontvalidateschema", "Don't validate json schema on every message");
     desc.add_options()("log_conf", po::value<std::string>(), "The path to a custom logging.ini");
     desc.add_options()("conf", po::value<std::string>(), "The path to a custom config.json");
+    desc.add_options()("user_conf", po::value<std::string>(),
+                       "The path to a user config, which is able to augment the loaded config");
 
     po::variables_map vm;
 

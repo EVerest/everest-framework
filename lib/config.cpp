@@ -103,7 +103,7 @@ static json parse_config_map(const json& config_map_schema, const json& config_m
 }
 
 Config::Config(std::string schemas_dir, std::string config_file, std::string modules_dir, std::string interfaces_dir,
-               std::string types_dir) {
+               std::string types_dir, std::string user_config_file) {
     BOOST_LOG_FUNCTION();
 
     this->schemas_dir = schemas_dir;
@@ -133,7 +133,7 @@ Config::Config(std::string schemas_dir, std::string config_file, std::string mod
         // config_file. The config is supposed to have the same name as the parent config.
         // TODO(kai): introduce a parameter that can overwrite the location of the user config?
         // TODO(kai): or should we introduce a "meta-config" that references all configs that should be merged here?
-        auto user_config_path = config_path.parent_path() / "user-config" / config_path.filename();
+        auto user_config_path = fs::path(user_config_file);
         if (fs::exists(user_config_path)) {
             EVLOG_debug << fmt::format("Loading user-config file at: {}", fs::canonical(user_config_path).string());
 

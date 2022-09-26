@@ -272,6 +272,7 @@ static Napi::Value boot_module(const Napi::CallbackInfo& info) {
         const auto& interfaces_dir = settings.Get("interfaces_dir").ToString().Utf8Value();
         const auto& types_dir = settings.Get("types_dir").ToString().Utf8Value();
         const auto& config_file = settings.Get("config_file").ToString().Utf8Value();
+        const auto& user_config_file = settings.Get("user_config_file").ToString().Utf8Value();
         const auto& log_config_file = settings.Get("log_config_file").ToString().Utf8Value();
         const bool validate_schema = settings.Get("validate_schema").ToBoolean().Value();
 
@@ -281,7 +282,8 @@ static Napi::Value boot_module(const Napi::CallbackInfo& info) {
         // initialize logging as early as possible
         Everest::Logging::init(log_config_file, module_id);
 
-        auto config = std::make_unique<Everest::Config>(schemas_dir, config_file, modules_dir, interfaces_dir, types_dir);
+        auto config = std::make_unique<Everest::Config>(schemas_dir, config_file, modules_dir, interfaces_dir,
+                                                        types_dir, user_config_file);
         if (!config->contains(module_id)) {
             EVTHROW(EVEXCEPTION(Everest::EverestConfigError,
                                 "Module with identifier '" << module_id << "' not found in config!"));
@@ -547,8 +549,7 @@ static Napi::Object Init(Napi::Env env, Napi::Object exports) {
         napi_enumerable));
 
     log.DefineProperty(Napi::PropertyDescriptor::Value(
-        "info",
-        Napi::Function::New(env, [](const Napi::CallbackInfo& info) { EVLOG_info << extract_logstring(info); }),
+        "info", Napi::Function::New(env, [](const Napi::CallbackInfo& info) { EVLOG_info << extract_logstring(info); }),
         napi_enumerable));
 
     log.DefineProperty(Napi::PropertyDescriptor::Value(

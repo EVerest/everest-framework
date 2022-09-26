@@ -33,6 +33,7 @@ const EverestModule = function EverestModule(handler_setup, user_settings) {
     interfaces_dir: process.env.EV_INTERFACES_DIR,
     types_dir: process.env.EV_TYPES_DIR,
     config_file: process.env.EV_CONF_FILE,
+    user_config_file: process.env.EV_USER_CONF_FILE,
     log_config_file: process.env.EV_LOG_CONF_FILE,
     mqtt_server_address: process.env.MQTT_SERVER_ADDRESS,
     mqtt_server_port: process.env.MQTT_SERVER_PORT,

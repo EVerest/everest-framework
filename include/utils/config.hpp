@@ -85,7 +85,7 @@ public:
     /// \brief creates a new Config object, looking for the config.json and schemes folder relative to the provided \p
     /// main_dir
     explicit Config(std::string schemas_dir, std::string config_file, std::string modules_dir,
-                    std::string interfaces_dir, std::string types_dir);
+                    std::string interfaces_dir, std::string types_dir, std::string user_config_file);
 
     ///
     /// \brief checks if the given \p module_id provides the requirement given in \p requirement_id

@@ -42,12 +42,20 @@ RuntimeSettings::RuntimeSettings(const po::variables_map& vm) : main_dir(vm["mai
         config_file = main_dir / "conf/config.json";
     }
 
+    if (vm.count("user_conf")) {
+        user_config_file = vm["user_conf"].as<std::string>();
+    } else {
+        user_config_file = config_file.parent_path() / "user-config" / config_file.filename();
+    }
+
     validate_schema = (vm.count("dontvalidateschema") != 0);
 
     // make all paths canonical
     std::reference_wrapper<fs::path> list[] = {
         main_dir, schemas_dir, modules_dir, interfaces_dir, logging_config, config_file,
     };
+
+    user_config_file = fs::weakly_canonical(user_config_file);
 
     for (auto ref_wrapped_item : list) {
         auto& item = ref_wrapped_item.get();
@@ -84,7 +92,7 @@ int ModuleLoader::initialize() {
 
     try {
         Config config = Config(rs->schemas_dir.string(), rs->config_file.string(), rs->modules_dir.string(),
-                               rs->interfaces_dir.string(), rs->types_dir.string());
+                               rs->interfaces_dir.string(), rs->types_dir.string(), rs->user_config_file.string());
 
         if (!config.contains(this->module_id)) {
             EVLOG_error << fmt::format("Module id '{}' not found in config!", this->module_id);
@@ -97,7 +105,7 @@ int ModuleLoader::initialize() {
         int prctl_return = prctl(PR_SET_NAME, module_identifier.c_str());
         if (prctl_return == 1) {
             EVLOG_warning << fmt::format("Could not set process name to '{}', it remains '{}'", module_identifier,
-                                          this->original_process_name);
+                                         this->original_process_name);
         }
         Logging::update_process_name(module_identifier);
 
@@ -120,8 +128,7 @@ int ModuleLoader::initialize() {
         EVLOG_debug << fmt::format("Initializing module {}...", module_identifier);
 
         if (!everest.connect()) {
-            EVLOG_error << fmt::format("Cannot connect to MQTT broker at {}:{}", mqtt_server_address,
-                                           mqtt_server_port);
+            EVLOG_error << fmt::format("Cannot connect to MQTT broker at {}:{}", mqtt_server_address, mqtt_server_port);
             return 1;
         }
 
@@ -176,8 +183,7 @@ int ModuleLoader::initialize() {
 
         EVLOG_info << "Exiting...";
     } catch (boost::exception& e) {
-        EVLOG_critical << fmt::format("Caught top level boost::exception:\n{}",
-                                       boost::diagnostic_information(e, true));
+        EVLOG_critical << fmt::format("Caught top level boost::exception:\n{}", boost::diagnostic_information(e, true));
     } catch (std::exception& e) {
         EVLOG_critical << fmt::format("Caught top level std::exception:\n{}", boost::diagnostic_information(e, true));
     }
@@ -195,6 +201,8 @@ bool ModuleLoader::parse_command_line(int argc, char* argv[]) {
     desc.add_options()("log_conf", po::value<std::string>(), "The path to a custom logging.ini");
     desc.add_options()("dontvalidateschema", "Don't validate json schema on every message");
     desc.add_options()("conf", po::value<std::string>(), "The path to a custom config.json");
+    desc.add_options()("user_conf", po::value<std::string>(),
+                       "The path to a user config, which is able to augment the loaded config");
 
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);

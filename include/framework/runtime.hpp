@@ -33,6 +33,7 @@ struct RuntimeSettings {
     fs::path types_dir;
     fs::path logging_config;
     fs::path config_file;
+    fs::path user_config_file;
     bool validate_schema;
 
     explicit RuntimeSettings(const po::variables_map& vm);
