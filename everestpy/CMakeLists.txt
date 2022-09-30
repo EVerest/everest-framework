@@ -1,3 +1,14 @@
+if (EVEREST_CROSS)
+    set(EVEREST_CROSS_PYTHON_INCLUDE_DIRS "${CMAKE_SYSROOT}/usr/include/python3.9")
+    set(EVEREST_CROSS_PYTHON_LIBRARIES "${CMAKE_SYSROOT}/usr/lib/arm-linux-gnueabihf/libpython3.9.so")
+
+    set(PYTHON_INCLUDE_DIRS ${EVEREST_CROSS_PYTHON_INCLUDE_DIRS} CACHE INTERNAL "")
+    set(PYTHON_LIBRARIES ${EVEREST_CROSS_PYTHON_LIBRARIES} CACHE INTERNAL "")
+    set(PYTHON_MODULE_EXTENSION ".so" CACHE INTERNAL "")
+
+    set(PYTHONLIBS_FOUND TRUE CACHE INTERNAL "")
+endif()
+
 find_program(
     PYTHON_EXECUTABLE
     python3
@@ -19,11 +30,11 @@ CPMAddPackage(
 pybind11_add_module(everestpy everestpy.cpp)
 
 target_link_libraries(everestpy
-        PRIVATE
-            everest::framework
-            everest::log
-            pybind11_json
-            fmt::fmt
+    PRIVATE
+    everest::framework
+    everest::log
+    pybind11_json
+    fmt::fmt
 )
 
 install(
@@ -34,6 +45,6 @@ install(
 
 install(
     FILES
-        everest.py
+    everest.py
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/everest/everestpy
 )
