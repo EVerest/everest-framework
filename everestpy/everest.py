@@ -165,7 +165,7 @@ def register_ready():
 if __name__ == '__main__':
     EV_MODULE = environ.get('EV_MODULE')
     EV_MAIN_DIR = environ.get('EV_MAIN_DIR')
-    EV_CONFIGS_DIR = ""
+    EV_CONFIGS_DIR = environ.get('EV_CONFIGS_DIR')
     EV_SCHEMAS_DIR = environ.get('EV_SCHEMAS_DIR')
     EV_MODULES_DIR = environ.get('EV_MODULES_DIR')
     EV_INTERFACES_DIR = environ.get('EV_INTERFACES_DIR')
