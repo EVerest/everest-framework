@@ -29,18 +29,19 @@ find_package(Boost
     REQUIRED
 )
 
+# FIXME (aw): pybind won't find the proper target libraries when cross-compiling, so we need to help
+if (CMAKE_CROSSCOMPILING)
+    find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
+
+    set(PYTHON_EXECUTABLE ${Python3_EXECUTABLE})
+    set(PYTHON_INCLUDE_DIRS ${Python3_INCLUDE_DIRS})
+    set(PYTHON_LIBRARIES ${Python3_LIBRARIES})
+
+    set(PYTHON_MODULE_EXTENSION ".so")
+    set(PYTHONLIBS_FOUND TRUE)
+endif()
+
 if(NOT DISABLE_EDM)
-    # FIXME (aw): pybind won't find the proper target libraries when cross-compiling, so we need to help
-    if (CMAKE_CROSSCOMPILING)
-        find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
-
-        set(PYTHON_EXECUTABLE ${Python3_EXECUTABLE})
-        set(PYTHON_INCLUDE_DIRS ${Python3_INCLUDE_DIRS})
-        set(PYTHON_LIBRARIES ${Python3_LIBRARIES})
-
-        set(PYTHON_MODULE_EXTENSION ".so")
-        set(PYTHONLIBS_FOUND TRUE)
-    endif()
     evc_setup_edm()
 
     # In EDM mode, we can't install exports (because the dependencies usually do not install their exports)
