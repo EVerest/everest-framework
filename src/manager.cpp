@@ -332,10 +332,14 @@ static std::map<pid_t, std::string> start_modules(Config& config, MQTTAbstractio
             std::unique_lock<std::mutex> lock(modules_ready_mutex);
             // FIXME (aw): here are race conditions, if the ready handler gets called while modules are shut down!
             modules_ready.at(module_name).ready = json.get<bool>();
+            auto modules_spawned = 0;
             for (const auto& mod : modules_ready) {
                 std::string text_ready =
                     fmt::format((mod.second.ready) ? TERMINAL_STYLE_OK : TERMINAL_STYLE_ERROR, "ready");
                 EVLOG_debug << fmt::format("  {}: {}", mod.first, text_ready);
+                if (mod.second.ready) {
+                    modules_spawned += 1;
+                }
             }
             if (!standalone_modules.empty() && std::find(standalone_modules.begin(), standalone_modules.end(),
                                                          module_name) != standalone_modules.end()) {
@@ -347,8 +351,6 @@ static std::map<pid_t, std::string> start_modules(Config& config, MQTTAbstractio
                                           ">>> All modules are initialized. EVerest up and running <<<");
                 mqtt_abstraction.publish("everest/ready", nlohmann::json(true));
             } else if (!standalone_modules.empty()) {
-                auto modules_spawned = std::count_if(modules_ready.begin(), modules_ready.end(),
-                                                     [](const auto& element) { return element.second.ready; });
                 if (modules_spawned == modules_ready.size() - standalone_modules.size()) {
                     EVLOG_info << fmt::format(fg(fmt::terminal_color::green),
                                               "Modules started by manager are ready, waiting for standalone modules.");
