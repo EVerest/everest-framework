@@ -355,17 +355,19 @@ void Everest::subscribe_var(const Requirement& req, const std::string& var_name,
         EVLOG_debug << fmt::format(
             "Incoming {}->{}", this->config.printable_identifier(requirement_module_id, requirement_impl_id), var_name);
 
-        // check data and ignore it if not matching (publishing it should have been prohibited already)
-        try {
-            json_validator validator(
-                [this](const json_uri& uri, json& schema) { this->config.ref_loader(uri, schema); },
-                Config::format_checker);
-            validator.set_root_schema(requirement_manifest_vardef);
-            validator.validate(data);
-        } catch (const std::exception& e) {
-            EVLOG_warning << fmt::format("Ignoring incoming var '{}' because not matching manifest schema: {}",
-                                         var_name, e.what());
-            return;
+        if (this->validate_data_with_schema) {
+            // check data and ignore it if not matching (publishing it should have been prohibited already)
+            try {
+                json_validator validator(
+                    [this](const json_uri& uri, json& schema) { this->config.ref_loader(uri, schema); },
+                    Config::format_checker);
+                validator.set_root_schema(requirement_manifest_vardef);
+                validator.validate(data);
+            } catch (const std::exception& e) {
+                EVLOG_warning << fmt::format("Ignoring incoming var '{}' because not matching manifest schema: {}",
+                                            var_name, e.what());
+                return;
+            }
         }
 
         callback(data);
