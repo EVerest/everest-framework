@@ -689,12 +689,10 @@ json Everest::get_cmd_definition(const std::string& module_id, const std::string
                                  bool is_call) {
     BOOST_LOG_FUNCTION();
 
-    std::string module_name = this->config.get_main_config()[module_id]["module"].get<std::string>();
-    auto module_manifest = this->config.get_manifests()[module_name];
-    auto module = this->config.get_interfaces()[module_name];
-    auto impl_intf = module[impl_id];
+    std::string module_name = this->config.get_module_name(module_id);
+    auto cmds = this->config.get_module_cmds(module_name, impl_id);
 
-    if (!module_manifest["provides"].contains(impl_id)) {
+    if (!this->config.module_provides(module_name, impl_id)) {
         if (!is_call) {
             EVLOG_AND_THROW(EverestApiError(fmt::format(
                 "Module {} tries to provide implementation '{}' not declared in manifest!", module_name, impl_id)));
@@ -705,7 +703,7 @@ json Everest::get_cmd_definition(const std::string& module_id, const std::string
         }
     }
 
-    if (!impl_intf["cmds"].contains(cmd_name)) {
+    if (!cmds.contains(cmd_name)) {
         if (!is_call) {
             EVLOG_AND_THROW(
                 EverestApiError(fmt::format("{} tries to provide cmd '{}' not declared in manifest!",
@@ -717,7 +715,7 @@ json Everest::get_cmd_definition(const std::string& module_id, const std::string
         }
     }
 
-    return impl_intf["cmds"][cmd_name];
+    return cmds.at(cmd_name);
 }
 
 json Everest::get_cmd_definition(const std::string& module_id, const std::string& impl_id,

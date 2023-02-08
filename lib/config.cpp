@@ -187,6 +187,8 @@ Config::Config(std::string schemas_dir, std::string config_file, std::string mod
         auto& module_config = element.value();
         std::string module_name = module_config["module"];
 
+        this->module_config_cache[module_id] = ConfigCache();
+        this->module_names[module_id] = module_name;
         EVLOG_debug << fmt::format("Found module {}, loading and verifying manifest...",
                                    printable_identifier(module_id));
 
@@ -232,12 +234,15 @@ Config::Config(std::string schemas_dir, std::string config_file, std::string mod
         std::set<std::string> provided_impls = Config::keys(this->manifests[module_name]["provides"]);
 
         this->interfaces[module_name] = json({});
+        this->module_config_cache[module_name].provides_impl = provided_impls;
 
         for (const auto& impl_id : provided_impls) {
             EVLOG_debug << fmt::format("Loading interface for implementation: {}", impl_id);
             auto intf_name = this->manifests[module_name]["provides"][impl_id]["interface"].get<std::string>();
             auto seen_interfaces = std::set<std::string>();
             this->interfaces[module_name][impl_id] = resolve_interface(intf_name);
+            this->module_config_cache[module_name].cmds[impl_id] =
+                this->interfaces.at(module_name).at(impl_id).at("cmds");
         }
 
         // check if config only contains impl_ids listed in manifest file
@@ -325,6 +330,19 @@ Config::Config(std::string schemas_dir, std::string config_file, std::string mod
     resolve_all_requirements();
 }
 
+std::string Config::get_module_name(const std::string& module_id) {
+    return this->module_names.at(module_id);
+}
+
+bool Config::module_provides(const std::string& module_name, const std::string& impl_id) {
+    auto& provides = this->module_config_cache.at(module_name).provides_impl;
+    return (provides.find(impl_id) != provides.end());
+}
+
+json Config::get_module_cmds(const std::string& module_name, const std::string& impl_id) {
+    return this->module_config_cache.at(module_name).cmds.at(impl_id);
+}
+
 json Config::resolve_interface(const std::string& intf_name) {
     // load and validate interface.json and mark interface as seen
     auto intf_definition = load_interface_file(intf_name);
@@ -385,7 +403,7 @@ json Config::resolve_requirement(const std::string& module_id, const std::string
 
     // check for connections for this requirement
     json module_config = this->main[module_id];
-    std::string module_name = module_config["module"].get<std::string>();
+    std::string module_name = get_module_name(module_id);
     auto& requirement = this->manifests[module_name]["requires"][requirement_id];
     if (!module_config["connections"].contains(requirement_id)) {
         return json::array(); // return an empty array if our config does not contain any connections for this
@@ -687,7 +705,7 @@ json Config::extract_implementation_info(const std::string& module_id, const std
 
     json info;
     info["module_id"] = module_id;
-    info["module_name"] = this->main[module_id]["module"];
+    info["module_name"] = get_module_name(module_id);
     info["impl_id"] = impl_id;
     info["impl_intf"] = "";
     if (!impl_id.empty()) {
