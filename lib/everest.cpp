@@ -220,20 +220,21 @@ json Everest::call_cmd(const Requirement& req, const std::string& cmd_name, json
     std::future<json> res_future = res_promise.get_future();
 
     Handler res_handler = [this, &res_promise, call_id, connection, cmd_name, return_type](json data) {
-        if (data["id"] != call_id) {
-            EVLOG_debug << fmt::format("RES: data_id != call_id ({} != {})", data["id"], call_id);
+        auto& data_id = data.at("id");
+        if (data_id != call_id) {
+            EVLOG_debug << fmt::format("RES: data_id != call_id ({} != {})", data_id, call_id);
             return;
         }
 
         EVLOG_debug << fmt::format(
-            "Incoming res {} for {}->{}()", data["id"],
+            "Incoming res {} for {}->{}()", data_id,
             this->config.printable_identifier(connection["module_id"], connection["implementation_id"]), cmd_name);
 
         // make sure to only return the intended parts of the incoming result to not open up the api to internals
         res_promise.set_value(json::object({{"retval", data["retval"]},
                                             {"return_type", return_type},
                                             {"origin", data["origin"]},
-                                            {"id", data["id"]}}));
+                                            {"id", data_id}}));
     };
 
     const auto cmd_topic =
@@ -338,7 +339,7 @@ void Everest::subscribe_var(const Requirement& req, const std::string& var_name,
     }
 
     auto requirement_module_id = connection["module_id"].get<std::string>();
-    auto module_name = this->config.get_main_config()[requirement_module_id]["module"].get<std::string>();
+    auto module_name = this->config.get_module_name(requirement_module_id);
     auto requirement_impl_id = connection["implementation_id"].get<std::string>();
     auto requirement_impl_manifest = this->config.get_interfaces()[module_name][requirement_impl_id];
 
@@ -391,7 +392,7 @@ void Everest::subscribe_var(const Requirement& req, const std::string& var_name,
     }
 
     auto requirement_module_id = connection["module_id"].get<std::string>();
-    auto module_name = this->config.get_main_config()[requirement_module_id]["module"].get<std::string>();
+    auto module_name = this->config.get_module_name(requirement_module_id);
     auto requirement_impl_id = connection["implementation_id"].get<std::string>();
     auto requirement_impl_manifest = this->config.get_interfaces()[module_name][requirement_impl_id];
 
@@ -751,8 +752,10 @@ bool Everest::check_arg(ArgumentType arg_types, json manifest_arg) {
     // FIXME (aw): the error messages here need to be taken into the
     //             correct context!
 
-    if (manifest_arg["type"].is_string()) {
-        if (manifest_arg["type"] == "null") {
+    auto& manifest_arg_type = manifest_arg.at("type");
+
+    if (manifest_arg_type.is_string()) {
+        if (manifest_arg_type == "null") {
             // arg_types should be empty if the type is null (void)
             if (arg_types.size()) {
                 EVLOG_error << "expeceted 'null' type, but got another type";
@@ -762,16 +765,16 @@ bool Everest::check_arg(ArgumentType arg_types, json manifest_arg) {
         }
         // direct comparison
         // FIXME (aw): arg_types[0] access should be checked, otherwise core dumps
-        if (arg_types[0] != manifest_arg["type"]) {
-            EVLOG_error << fmt::format("types do not match: {} != {}", arg_types[0], manifest_arg["type"]);
+        if (arg_types[0] != manifest_arg_type) {
+            EVLOG_error << fmt::format("types do not match: {} != {}", arg_types[0], manifest_arg_type);
             return false;
         }
         return true;
     }
 
     for (size_t i = 0; i < arg_types.size(); i++) {
-        if (arg_types[i] != manifest_arg["type"][i]) {
-            EVLOG_error << fmt::format("types do not match: {} != {}", arg_types[i], manifest_arg["type"][i]);
+        if (arg_types[i] != manifest_arg_type.at(i)) {
+            EVLOG_error << fmt::format("types do not match: {} != {}", arg_types[i], manifest_arg_type.at(i));
             return false;
         }
     }

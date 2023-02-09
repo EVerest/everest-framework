@@ -318,9 +318,12 @@ void MQTTAbstractionImpl::unregister_handler(const std::string& topic, const Tok
 
     const std::lock_guard<std::mutex> lock(handlers_mutex);
     auto number_of_handlers = 0;
-    if (this->message_handlers.count(topic) > 0 && this->message_handlers[topic].count_handlers() != 0) {
-        this->message_handlers[topic].remove_handler(token);
-        number_of_handlers = this->message_handlers[topic].count_handlers();
+    if (this->message_handlers.find(topic) != this->message_handlers.end()) {
+        auto& topic_message_handler = this->message_handlers.at(topic);
+        if (topic_message_handler.count_handlers() != 0) {
+            topic_message_handler.remove_handler(token);
+            number_of_handlers = topic_message_handler.count_handlers();
+        }
     }
 
     // unsubscribe if this was the last handler for this topic

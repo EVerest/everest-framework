@@ -396,14 +396,15 @@ json Config::resolve_requirement(const std::string& module_id, const std::string
     //             isn't even listed in the module manifest
     // FIXME (aw): the following if doesn't check for the requirement id
     //             at all
-    if (!this->main.contains(module_id)) {
+    auto module_name_it = this->module_names.find(module_id);
+    if (module_name_it == this->module_names.end()) {
         EVLOG_AND_THROW(EverestApiError(fmt::format("Requested requirement id '{}' of module {} not found in config!",
                                                     requirement_id, printable_identifier(module_id))));
     }
 
     // check for connections for this requirement
-    json module_config = this->main[module_id];
-    std::string module_name = get_module_name(module_id);
+    auto& module_config = this->main[module_id];
+    std::string module_name = module_name_it->second;
     auto& requirement = this->manifests[module_name]["requires"][requirement_id];
     if (!module_config["connections"].contains(requirement_id)) {
         return json::array(); // return an empty array if our config does not contain any connections for this
