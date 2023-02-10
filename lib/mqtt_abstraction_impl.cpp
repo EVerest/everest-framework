@@ -414,7 +414,7 @@ int MQTTAbstractionImpl::open_nb_socket(const char* addr, const char* port) {
 }
 
 // NOLINTNEXTLINE(misc-no-recursion)
-bool MQTTAbstractionImpl::check_topic_matches(std::string full_topic, std::string wildcard_topic) {
+bool MQTTAbstractionImpl::check_topic_matches(const std::string& full_topic, const std::string& wildcard_topic) {
     BOOST_LOG_FUNCTION();
 
     // verbatim topic
