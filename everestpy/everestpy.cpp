@@ -354,5 +354,5 @@ PYBIND11_MODULE(everestpy, m) {
     m.def("register_pre_init_callback", &register_pre_init_callback);
     m.def("register_ready_callback", &register_ready_callback);
 
-    m.attr("__version__") = "0.3";
+    m.attr("__version__") = "0.4";
 }
