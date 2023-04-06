@@ -8,10 +8,10 @@
 #include <mutex>
 #include <thread>
 
+#include <csignal>
 #include <cstdlib>
 #include <errno.h>
 #include <fcntl.h>
-#include <signal.h>
 #include <sys/prctl.h>
 #include <sys/socket.h>
 #include <sys/wait.h>
@@ -27,6 +27,7 @@
 #include <framework/everest.hpp>
 #include <framework/runtime.hpp>
 #include <utils/config.hpp>
+#include <utils/exit_handler.hpp>
 #include <utils/mqtt_abstraction.hpp>
 
 #include "controller/ipc.hpp"
@@ -601,6 +602,9 @@ int boot(const po::variables_map& vm) {
     bool restart_modules = false;
 
     int wstatus;
+
+    std::signal(SIGINT,  Everest::ExitHandler::exit_handler);
+    std::signal(SIGTERM, Everest::ExitHandler::exit_handler);
 
     while (true) {
         // check if anyone died

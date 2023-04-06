@@ -16,6 +16,7 @@ target_sources(framework
     PRIVATE
         config.cpp
         everest.cpp
+        exit_handler.cpp
         message_queue.cpp
         mqtt_abstraction.cpp
         mqtt_abstraction_impl.cpp
