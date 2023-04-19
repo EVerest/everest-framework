@@ -15,6 +15,7 @@
 #include <iostream>
 #include <map>
 #include <thread>
+#include <unistd.h>
 #include <vector>
 
 #include "conversions.hpp"
@@ -179,6 +180,11 @@ void framework_ready_handler() {
             return args;
         },
         nullptr);
+}
+
+void framework_shutdown_handler() {
+    BOOST_LOG_FUNCTION();
+    _exit(EXIT_SUCCESS);
 }
 
 static Napi::Value mqtt_publish(const Napi::CallbackInfo& info) {
@@ -563,6 +569,7 @@ static Napi::Value boot_module(const Napi::CallbackInfo& info) {
         module_this.DefineProperty(Napi::PropertyDescriptor::Value("info", module_info_prop, napi_enumerable));
 
         ctx->everest.register_on_ready_handler(framework_ready_handler);
+        ctx->everest.register_on_shutdown_handler(framework_shutdown_handler);
     } catch (std::exception& e) {
         EVLOG_AND_RETHROW(env);
     }

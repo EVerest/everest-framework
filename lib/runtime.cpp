@@ -301,8 +301,12 @@ RuntimeSettings::RuntimeSettings(const std::string& prefix_, const std::string& 
 ModuleCallbacks::ModuleCallbacks(const std::function<void(ModuleAdapter module_adapter)>& register_module_adapter,
                                  const std::function<std::vector<cmd>(const json& connections)>& everest_register,
                                  const std::function<void(ModuleConfigs module_configs, const ModuleInfo& info)>& init,
-                                 const std::function<void()>& ready) :
-    register_module_adapter(register_module_adapter), everest_register(everest_register), init(init), ready(ready) {
+                                 const std::function<void()>& ready, const std::function<void()>& shutdown) :
+    register_module_adapter(register_module_adapter),
+    everest_register(everest_register),
+    init(init),
+    ready(ready),
+    shutdown(shutdown) {
 }
 
 ModuleLoader::ModuleLoader(int argc, char* argv[], ModuleCallbacks callbacks) :
@@ -404,6 +408,10 @@ int ModuleLoader::initialize() {
         // register the modules ready handler with the framework
         // this handler gets called when the global ready signal is received
         everest.register_on_ready_handler(this->callbacks.ready);
+
+        // register the modules shutdown handler with the framework
+        // this handler gets called when the global shutdown signal is received
+        everest.register_on_shutdown_handler(this->callbacks.shutdown);
 
         // the module should now be ready
         everest.signal_ready();

@@ -21,14 +21,6 @@ setup = None
 pub_cmds = None
 wait_for_exit = Event()
 
-
-def sigint_handler(_signum, _frame):
-    wait_for_exit.set()
-
-
-signal(SIGINT, sigint_handler)
-
-
 def register_module_adapter(module_adapter):
     global module_adapter_
     module_adapter_ = module_adapter
@@ -122,7 +114,7 @@ def populate_module_setup(requirements, module_interface):
     return module_setup
 
 
-def register_pre_init(reqs):
+def register_pre_init(reqs, request_shutdown):
     global pub_cmds
     pub_cmds = reqs.pub_cmds
     module_interface = populate_vars(reqs.vars)
@@ -144,6 +136,8 @@ def register_pre_init(reqs):
         MQTT = type("mqtt", (object, ), mqtt_functions)
         module_setup["mqtt"] = MQTT()
 
+    module_setup["request_shutdown"] = request_shutdown
+
     Setup = type("Setup", (object, ), module_setup)
     global setup
     setup = Setup()
@@ -163,18 +157,33 @@ def register_init(module_configs, _module_info):
 def register_ready():
     module.ready()
 
+def register_shutdown():
+    # first give the module a chance to clean up after itself
+    module.shutdown()
+    # now exit the main loop
+    wait_for_exit.set()
+
 
 if __name__ == '__main__':
     EV_MODULE = environ.get('EV_MODULE')
     EV_PREFIX = environ.get('EV_PREFIX')
     EV_CONF_FILE = environ.get('EV_CONF_FILE')
 
-    everestpy.register_module_adapter_callback(register_module_adapter)
-    everestpy.register_everest_register_callback(register_everest_register)
-    everestpy.register_init_callback(register_init)
-    everestpy.register_pre_init_callback(register_pre_init)
-    everestpy.register_ready_callback(register_ready)
-
-    everestpy.init(EV_PREFIX, EV_CONF_FILE, EV_MODULE)
+    context = everestpy.EverestPy()
+    context.register_module_adapter_callback(register_module_adapter)
+    context.register_everest_register_callback(register_everest_register)
+    context.register_init_callback(register_init)
+    context.register_pre_init_callback(register_pre_init)
+    context.register_ready_callback(register_ready)
+    context.register_shutdown_callback(register_shutdown)
+    context.init(EV_PREFIX, EV_CONF_FILE, EV_MODULE)
 
     wait_for_exit.wait()
+
+    context.register_module_adapter_callback(None)
+    context.register_everest_register_callback(None)
+    context.register_init_callback(None)
+    context.register_pre_init_callback(None)
+    context.register_ready_callback(None)
+    context.register_shutdown_callback(None)
+    context.shutdown()

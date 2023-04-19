@@ -394,7 +394,7 @@ static std::map<pid_t, std::string> start_modules(Config& config, MQTTAbstractio
             modules_to_spawn.emplace_back(module_name, printable_module_name, ModuleStartInfo::Language::python,
                                           fs::canonical(python_module_path));
         } else {
-            throw std::runtime_error(fmt::format("module: {} ({}) cannot be loaded because no C++ or JavaScript "
+            throw std::runtime_error(fmt::format("module: {} ({}) cannot be loaded because no C++, JavaScript or Python"
                                                  "library has been found\n"
                                                  "  checked paths:\n"
                                                  "    cpp: {}\n"
@@ -619,13 +619,25 @@ int boot(const po::variables_map& vm) {
 
             auto module_iter = module_handles.find(pid);
             if (module_iter == module_handles.end()) {
-                throw std::runtime_error(fmt::format("Unkown child width pid ({}) died.", pid));
+                throw std::runtime_error(fmt::format("Unknown child with pid ({}) died.", pid));
             }
 
             const auto module_name = module_iter->second;
             module_handles.erase(module_iter);
-            // one of our modules died -> kill 'em all
+            // don't kill all other modules if wstatus == 0 (a normal shutdown)
+            // TODO: ensure that all modules are shutdown within a reasonable amount of time
+            // if one of our modules died (wstatus != 0) -> kill 'em all
             if (modules_started) {
+                if (wstatus == 0) {
+                    EVLOG_info << fmt::format("Module {} (pid: {}) exited with status: {}. This probably was a normal shutdown.",
+                                              module_name, pid, wstatus);
+                    if (module_handles.size() > 0) {
+                        continue;
+                    } else {
+                        EVLOG_info << "All modules shut down properly, exiting manager.";
+                        return EXIT_SUCCESS;
+                    }
+                }
                 EVLOG_critical << fmt::format("Module {} (pid: {}) exited with status: {}. Terminating all modules.",
                                               module_name, pid, wstatus);
                 shutdown_modules(module_handles, *config, mqtt_abstraction);

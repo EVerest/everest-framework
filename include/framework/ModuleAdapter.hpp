@@ -66,13 +66,14 @@ struct ModuleBase;
 class ImplementationBase {
 public:
     friend class ModuleAdapter; // for accessing gather_cmds
-    friend class ModuleBase;    // for accessing init & ready
+    friend class ModuleBase;    // for accessing init, ready & shutdown
     virtual ~ImplementationBase() = default;
 
 private:
     virtual void _gather_cmds(std::vector<cmd>&) = 0;
     virtual void init() = 0;
     virtual void ready() = 0;
+    virtual void shutdown() = 0;
 };
 
 class ModuleBase {
@@ -88,6 +89,10 @@ protected:
 
     void invoke_ready(ImplementationBase& impl) {
         impl.ready();
+    }
+
+    void invoke_shutdown(ImplementationBase& impl) {
+        impl.shutdown();
     }
 };
 

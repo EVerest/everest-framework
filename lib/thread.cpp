@@ -14,6 +14,7 @@ Thread::~Thread() {
 
 void Thread::stop() {
     if (started) {
+        started = false;
         exitSignal.set_value();
         if (handle.joinable())
             handle.join();

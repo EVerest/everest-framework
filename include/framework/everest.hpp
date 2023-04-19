@@ -42,9 +42,12 @@ private:
     std::string module_id;
     std::map<std::string, std::set<std::string>> registered_cmds;
     bool ready_received;
+    bool shutdown_received;
+    bool shutting_down;
     std::chrono::seconds remote_cmd_res_timeout;
     bool validate_data_with_schema;
     std::unique_ptr<std::function<void()>> on_ready;
+    std::unique_ptr<std::function<void()>> on_shutdown;
     std::thread heartbeat_thread;
     std::string module_name;
     std::future<void> main_loop_end{};
@@ -61,6 +64,7 @@ private:
             const std::string& mqtt_external_prefix, const std::string& telemetry_prefix, bool telemetry_enabled);
 
     void handle_ready(json data);
+    void handle_shutdown(json data);
 
     void heartbeat();
 
@@ -156,9 +160,17 @@ public:
     void signal_ready();
 
     ///
+    /// \brief Signal that the module wants to shutdown
+    ///
+    void signal_shutdown();
+
+    ///
     /// \brief registers a callback \p handler that is called when the global ready signal is received via mqtt
     ///
     void register_on_ready_handler(const std::function<void()>& handler);
+
+    /// \brief registers a callback \p handler that is called when the global shutdown signal is received via mqtt
+    void register_on_shutdown_handler(const std::function<void()>& handler);
 
     ///
     /// \returns the instance of the Everest singleton taking a \p module_id, the \p config, a \p mqtt_server_address
