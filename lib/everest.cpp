@@ -47,7 +47,6 @@ Everest::Everest(std::string module_id, Config config, bool validate_data_with_s
     this->ready_received = false;
     this->on_ready = nullptr;
     this->shutdown_received = false;
-    this->shutting_down = false;
     this->on_shutdown = nullptr;
 
     // register handler for global ready signal
@@ -273,14 +272,13 @@ json Everest::call_cmd(const Requirement& req, const std::string& cmd_name, json
     std::future_status res_future_status;
     do {
         res_future_status = res_future.wait_for(remote_cmd_res_timeout_step);
-    } while (!this->shutting_down &&
+    } while (!this->shutdown_received &&
              (res_future_status == std::future_status::deferred ||
               (res_future_status == std::future_status::timeout && date::utc_clock::now() < res_wait)));
 
     json result;
-    if (this->shutting_down) {
-        EVLOG_warning << "Shutting down while waiting for result of call.";
-        _exit(EXIT_SUCCESS);
+    if (this->shutdown_received) {
+        EVLOG_AND_THROW(EverestShuttingDown("Shutting down while waiting for result of call."));
     }
     if (res_future_status == std::future_status::timeout) {
         EVLOG_AND_THROW(EverestTimeoutError(fmt::format(
@@ -589,7 +587,6 @@ void Everest::handle_shutdown(json data) {
     }
 
     this->mqtt_abstraction.disconnect();
-    this->shutting_down = true;
 }
 
 void Everest::provide_cmd(const std::string impl_id, const std::string cmd_name, const JsonCommand handler) {

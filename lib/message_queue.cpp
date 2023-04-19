@@ -4,6 +4,7 @@
 
 #include <fmt/format.h>
 
+#include <everest/exceptions.hpp>
 #include <everest/logging.hpp>
 
 #include <utils/message_queue.hpp>
@@ -79,39 +80,44 @@ MessageHandler::MessageHandler() : running(true) {
                 }
             }
 
-            // distribute this message to the registered handlers
-            for (auto handler_ : local_handlers) {
-                auto handler = *handler_.get()->handler;
+            try {
 
-                if (handler_->type == HandlerType::Call) {
-                    // unpack call
-                    if (handler_->name != data.at("name")) {
-                        continue;
-                    }
-                    if (data.at("type") == "call") {
-                        handler(data.at("data"));
-                    }
-                } else if (handler_->type == HandlerType::Result) {
-                    // unpack result
-                    if (handler_->name != data.at("name")) {
-                        continue;
-                    }
-                    if (data.at("type") == "result") {
-                        // only deliver result to handler with matching id
-                        if (handler_->id == data.at("data").at("id")) {
+                // distribute this message to the registered handlers
+                for (auto handler_ : local_handlers) {
+                    auto handler = *handler_.get()->handler;
+
+                    if (handler_->type == HandlerType::Call) {
+                        // unpack call
+                        if (handler_->name != data.at("name")) {
+                            continue;
+                        }
+                        if (data.at("type") == "call") {
                             handler(data.at("data"));
                         }
+                    } else if (handler_->type == HandlerType::Result) {
+                        // unpack result
+                        if (handler_->name != data.at("name")) {
+                            continue;
+                        }
+                        if (data.at("type") == "result") {
+                            // only deliver result to handler with matching id
+                            if (handler_->id == data.at("data").at("id")) {
+                                handler(data.at("data"));
+                            }
+                        }
+                    } else if (handler_->type == HandlerType::SubscribeVar) {
+                        // unpack var
+                        if (handler_->name != data.at("name")) {
+                            continue;
+                        }
+                        handler(data.at("data"));
+                    } else {
+                        // external or unknown, no preprocessing
+                        handler(data);
                     }
-                } else if (handler_->type == HandlerType::SubscribeVar) {
-                    // unpack var
-                    if (handler_->name != data.at("name")) {
-                        continue;
-                    }
-                    handler(data.at("data"));
-                } else {
-                    // external or unknown, no preprocessing
-                    handler(data);
                 }
+            } catch (const EverestShuttingDown& e) {
+                EVLOG_warning << "EVerest shutting down in message handler";
             }
         }
     });

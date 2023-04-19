@@ -43,7 +43,6 @@ private:
     std::map<std::string, std::set<std::string>> registered_cmds;
     bool ready_received;
     bool shutdown_received;
-    bool shutting_down;
     std::chrono::seconds remote_cmd_res_timeout;
     bool validate_data_with_schema;
     std::unique_ptr<std::function<void()>> on_ready;

@@ -10,6 +10,7 @@
 #include <boost/any.hpp>
 #include <boost/optional.hpp>
 #include <boost/variant.hpp>
+#include <everest/exceptions.hpp>
 #include <nlohmann/json.hpp>
 
 using json = nlohmann::json;
@@ -96,5 +97,10 @@ struct Requirement {
 };
 
 #define EVCALLBACK(function) [](auto&& PH1) { function(std::forward<decltype(PH1)>(PH1)); }
+
+class EverestShuttingDown : public Everest::EverestBaseRuntimeError {
+public:
+    using Everest::EverestBaseRuntimeError::EverestBaseRuntimeError;
+};
 
 #endif // UTILS_TYPES_HPP
