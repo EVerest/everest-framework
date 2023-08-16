@@ -45,6 +45,7 @@ if (NOT NO_FETCH_CONTENT)
     message(STATUS "Fetching everest-admin-panel")
     FetchContent_Declare(admin-panel
         URL https://github.com/EVerest/everest-admin-panel/releases/download/manually_dispatched/everest-admin-panel.tar.gz
+        DOWNLOAD_EXTRACT_TIMESTAMP TRUE
     )
     FetchContent_Populate(admin-panel)
     install(

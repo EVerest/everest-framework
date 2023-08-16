@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
-// Copyright 2020 - 2022 Pionix GmbH and Contributors to EVerest
-#include <catch2/catch.hpp>
+// Copyright 2020 - 2023 Pionix GmbH and Contributors to EVerest
+#include <catch2/catch_all.hpp>
 
 #include <framework/everest.hpp>
 

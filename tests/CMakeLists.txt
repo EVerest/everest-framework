@@ -1,12 +1,12 @@
 include(Catch)
 
-add_executable(tests main.cpp test_config.cpp)
+add_executable(tests test_config.cpp)
 
 target_link_libraries(tests
     PRIVATE
         everest::framework
         everest::log
-        Catch2::Catch2
+        Catch2::Catch2WithMain
 )
 
 catch_discover_tests(tests)

@@ -13,6 +13,7 @@
 #include "rpc.hpp"
 
 #include <utils/yaml_loader.hpp>
+#include <utils/formatter.hpp>
 
 using json = nlohmann::json;
 namespace fs = std::filesystem;
