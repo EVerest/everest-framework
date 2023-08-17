@@ -55,7 +55,7 @@ template <typename T> struct fmt::formatter<std::atomic<T>> {
     }
 
     auto format(const std::atomic<T>& a, fmt::format_context& ctx) const -> fmt::format_context::iterator {
-        return fmt::format_to(ctx.out(),  "{}", a.load());
+        return fmt::format_to(ctx.out(), "{}", a.load());
     }
 };
 
