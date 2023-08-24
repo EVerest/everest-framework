@@ -104,26 +104,13 @@ static json parse_config_map(const json& config_map_schema, const json& config_m
     return parsed_config_map;
 }
 
-static void setup_probe_module_manifest(json& manifest) {
-    manifest = {
-        {"description", "ProbeModule (generated)"},
-        {
-            "metadata",
-            {
-                {"license", "https://opensource.org/licenses/Apache-2.0"},
-                {"authors", {"everest"}},
-            },
-        },
-    };
-}
+static auto get_provides_for_probe_module(const std::string& probe_module_id, const json& config,
+                                          const json& manifests) {
+    auto probe_module_config = config.at(probe_module_id);
 
-auto add_neccessary_provides_to_probe_module(const std::string& probe_module_id, const json& modules,
-                                             const json& manifests) {
-    auto probe_module_config = modules.at(probe_module_id);
+    auto provides = json::object();
 
-    json provides;
-
-    for (const auto& item : modules.items()) {
+    for (const auto& item : config.items()) {
         if (item.key() == probe_module_id) {
             // do not parse ourself
             continue;
@@ -161,14 +148,18 @@ auto add_neccessary_provides_to_probe_module(const std::string& probe_module_id,
         }
     }
 
+    if (provides.empty()) {
+        provides["none"] = {{"interface", "empty"}, {"description", "none"}};
+    }
+
     return provides;
 }
 
-auto add_neccessary_requires_to_probe_module(const std::string& probe_module_id, const json& modules,
-                                             const json& manifests) {
-    auto probe_module_config = modules.at(probe_module_id);
+static auto get_requirements_for_probe_module(const std::string& probe_module_id, const json& config,
+                                              const json& manifests) {
+    auto probe_module_config = config.at(probe_module_id);
 
-    json requirements;
+    auto requirements = json::object();
 
     const auto connections_it = probe_module_config.find("connections");
     if (connections_it == probe_module_config.end()) {
@@ -182,9 +173,9 @@ auto add_neccessary_requires_to_probe_module(const std::string& probe_module_id,
             const std::string module_id = ffs.at("module_id");
             const std::string impl_id = ffs.at("implementation_id");
 
-            const auto& module_config_it = modules.find(module_id);
+            const auto& module_config_it = config.find(module_id);
 
-            if (module_config_it == modules.end()) {
+            if (module_config_it == config.end()) {
                 EVLOG_AND_THROW(
                     EverestConfigError("ProbeModule refers to a non-existent module id '" + module_id + "'"));
             }
@@ -216,6 +207,28 @@ auto add_neccessary_requires_to_probe_module(const std::string& probe_module_id,
     }
 
     return requirements;
+}
+
+static void setup_probe_module_manifest(const std::string& probe_module_id, const json& config, json& manifests) {
+    // setup basic information
+    auto& manifest = manifests["ProbeModule"];
+    manifest = {
+        {"description", "ProbeModule (generated)"},
+        {
+            "metadata",
+            {
+                {"license", "https://opensource.org/licenses/Apache-2.0"},
+                {"authors", {"everest"}},
+            },
+        },
+    };
+
+    manifest["provides"] = get_provides_for_probe_module(probe_module_id, config, manifests);
+
+    auto requirements = get_requirements_for_probe_module(probe_module_id, config, manifests);
+    if (not requirements.empty()) {
+        manifest["requires"] = requirements;
+    }
 }
 
 void Config::load_and_validate_manifest(const std::string& module_id, const json& module_config) {
@@ -437,10 +450,9 @@ Config::Config(std::string schemas_dir, std::string config_file, std::string mod
         const auto& module_id = element.key();
         const auto& module_config = element.value();
 
-        if (module_config["module"] == "ProbeModule") {
+        if (module_config.at("module") == "ProbeModule") {
             if (probe_module_id) {
-                // already found one module of type ProbeModule
-                EVLOG_AND_THROW(EverestConfigError("Multiple instance of module type ProbeModule not allowed"));
+                EVLOG_AND_THROW(EverestConfigError("Multiple instance of module type ProbeModule not supported yet"));
             }
             probe_module_id = module_id;
             continue;
@@ -452,14 +464,9 @@ Config::Config(std::string schemas_dir, std::string config_file, std::string mod
     if (probe_module_id) {
         auto& manifest = this->manifests["ProbeModule"];
 
-        setup_probe_module_manifest(manifest);
-
-        manifest["provides"] = add_neccessary_provides_to_probe_module(*probe_module_id, this->main, this->manifests);
-        manifest["requires"] = add_neccessary_requires_to_probe_module(*probe_module_id, this->main, this->manifests);
+        setup_probe_module_manifest(*probe_module_id, this->main, this->manifests);
 
         load_and_validate_manifest(*probe_module_id, this->main.at(*probe_module_id));
-
-        printf("mani: %s\n", manifest.dump(2).c_str());
     }
 
     // load telemetry configs

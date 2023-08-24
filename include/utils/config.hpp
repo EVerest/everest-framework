@@ -117,6 +117,7 @@ public:
 
     ///
     /// \returns a json object that contains the main config
+    // FIXME (aw): this should be const and return the config by const ref!
     json get_main_config();
 
     ///
