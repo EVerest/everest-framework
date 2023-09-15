@@ -1,0 +1,38 @@
+// SPDX-License-Identifier: Apache-2.0
+// Copyright 2020 - 2023 Pionix GmbH and Contributors to EVerest
+
+#pragma once
+
+#include <string>
+#include <vector>
+
+#include <sys/types.h>
+
+namespace Everest::system {
+
+class SubProcess {
+public:
+    static SubProcess create(bool set_pdeathsig = true);
+    bool is_child() const {
+        return this->pid == 0;
+    }
+
+    void send_error_and_exit(const std::string& message);
+
+    // FIXME (aw): this function should be callable only once
+    pid_t check_child_executed();
+
+private:
+    const size_t MAX_PIPE_MESSAGE_SIZE = 1024;
+    SubProcess(int fd, pid_t pid) : fd(fd), pid(pid){};
+    int fd{};
+    pid_t pid{};
+};
+
+bool keep_caps();
+
+std::string set_caps(const std::vector<std::string>& capabilities);
+
+std::string set_real_user(const std::string& user_name);
+
+} // namespace Everest::system
