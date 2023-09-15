@@ -12,19 +12,19 @@
 #include <cstdlib>
 #include <errno.h>
 #include <fcntl.h>
+#include <pwd.h>
 #include <signal.h>
-#include <sys/prctl.h>
 #include <sys/socket.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
 #include <boost/exception/diagnostic_information.hpp>
-
 #include <boost/program_options.hpp>
-#include <everest/logging.hpp>
+
 #include <fmt/color.h>
 #include <fmt/core.h>
 
+#include <everest/logging.hpp>
 #include <framework/everest.hpp>
 #include <framework/runtime.hpp>
 #include <utils/config.hpp>
@@ -33,6 +33,7 @@
 #include <utils/status_fifo.hpp>
 
 #include "controller/ipc.hpp"
+#include "system_unix.hpp"
 
 namespace po = boost::program_options;
 namespace fs = std::filesystem;
@@ -179,13 +180,21 @@ struct ModuleStartInfo {
         javascript,
         python
     };
-    ModuleStartInfo(const std::string& name, const std::string& printable_name, Language lang, const fs::path& path) :
-        name(name), printable_name(printable_name), language(lang), path(path) {
+    ModuleStartInfo(const std::string& name_, const std::string& printable_name_, Language lang_, const fs::path& path_,
+                    std::vector<std::string> capabilities_) :
+        name(name_),
+        printable_name(printable_name_),
+        language(lang_),
+        path(path_),
+        capabilities(std::move(capabilities_)) {
     }
     std::string name;
     std::string printable_name;
     Language language;
     fs::path path;
+
+    // required capabilities of this module
+    std::vector<std::string> capabilities;
 };
 
 static std::vector<char*> arguments_to_exec_argv(std::vector<std::string>& arguments) {
@@ -198,27 +207,23 @@ static std::vector<char*> arguments_to_exec_argv(std::vector<std::string>& argum
     return argv_list;
 }
 
-static SubprocessHandle exec_cpp_module(const ModuleStartInfo& module_info, std::shared_ptr<RuntimeSettings> rs) {
+static void exec_cpp_module(system::SubProcess& proc_handle, const ModuleStartInfo& module_info,
+                            std::shared_ptr<RuntimeSettings> rs) {
     const auto exec_binary = module_info.path.c_str();
     std::vector<std::string> arguments = {module_info.printable_name, "--prefix", rs->prefix.string(), "--conf",
                                           rs->config_file.string(),   "--module", module_info.name};
 
-    auto handle = create_subprocess();
-    if (handle.is_child()) {
-        auto argv_list = arguments_to_exec_argv(arguments);
-        execv(exec_binary, argv_list.data());
+    auto argv_list = arguments_to_exec_argv(arguments);
+    execv(exec_binary, argv_list.data());
 
-        // exec failed
-        handle.send_error_and_exit(fmt::format("Syscall to execv() with \"{} {}\" failed ({})", exec_binary,
-                                               fmt::join(arguments.begin() + 1, arguments.end(), " "),
-                                               strerror(errno)));
-    }
-
-    return handle;
+    // exec failed
+    proc_handle.send_error_and_exit(fmt::format("Syscall to execv() with \"{} {}\" failed ({})", exec_binary,
+                                                fmt::join(arguments.begin() + 1, arguments.end(), " "),
+                                                strerror(errno)));
 }
 
-static SubprocessHandle exec_javascript_module(const ModuleStartInfo& module_info,
-                                               std::shared_ptr<RuntimeSettings> rs) {
+static void exec_javascript_module(system::SubProcess& proc_handle, const ModuleStartInfo& module_info,
+                                   std::shared_ptr<RuntimeSettings> rs) {
     // instead of using setenv, using execvpe might be a better way for a controlled environment!
 
     // FIXME (aw): everest directory layout
@@ -245,20 +250,17 @@ static SubprocessHandle exec_javascript_module(const ModuleStartInfo& module_inf
         module_info.path.string(),
     };
 
-    auto handle = create_subprocess();
-    if (handle.is_child()) {
-        auto argv_list = arguments_to_exec_argv(arguments);
-        execvp(node_binary, argv_list.data());
+    auto argv_list = arguments_to_exec_argv(arguments);
+    execvp(node_binary, argv_list.data());
 
-        // exec failed
-        handle.send_error_and_exit(fmt::format("Syscall to execv() with \"{} {}\" failed ({})", node_binary,
-                                               fmt::join(arguments.begin() + 1, arguments.end(), " "),
-                                               strerror(errno)));
-    }
-    return handle;
+    // exec failed
+    proc_handle.send_error_and_exit(fmt::format("Syscall to execv() with \"{} {}\" failed ({})", node_binary,
+                                                fmt::join(arguments.begin() + 1, arguments.end(), " "),
+                                                strerror(errno)));
 }
 
-static SubprocessHandle exec_python_module(const ModuleStartInfo& module_info, std::shared_ptr<RuntimeSettings> rs) {
+static void exec_python_module(system::SubProcess& proc_handle, const ModuleStartInfo& module_info,
+                               std::shared_ptr<RuntimeSettings> rs) {
     // instead of using setenv, using execvpe might be a better way for a controlled environment!
 
     const auto pythonpath = rs->prefix / defaults::LIB_DIR / defaults::NAMESPACE / "everestpy";
@@ -280,17 +282,58 @@ static SubprocessHandle exec_python_module(const ModuleStartInfo& module_info, s
 
     std::vector<std::string> arguments = {python_binary, module_info.path.c_str()};
 
-    auto handle = create_subprocess();
-    if (handle.is_child()) {
-        auto argv_list = arguments_to_exec_argv(arguments);
-        execvp(python_binary, argv_list.data());
+    auto argv_list = arguments_to_exec_argv(arguments);
+    execvp(python_binary, argv_list.data());
 
-        // exec failed
-        handle.send_error_and_exit(fmt::format("Syscall to execv() with \"{} {}\" failed ({})", python_binary,
-                                               fmt::join(arguments.begin() + 1, arguments.end(), " "),
-                                               strerror(errno)));
+    // exec failed
+    proc_handle.send_error_and_exit(fmt::format("Syscall to execv() with \"{} {}\" failed ({})", python_binary,
+                                                fmt::join(arguments.begin() + 1, arguments.end(), " "),
+                                                strerror(errno)));
+}
+
+static void setup_permissions_for_module(const std::string& run_as_user, const ModuleStartInfo& module) {
+    if (run_as_user.empty()) {
+        // no user has been set, don't do anything - where either root or can't do better ...
+        return;
     }
-    return handle;
+
+    if (not module.capabilities.empty()) {
+        // we need to keep caps, otherwise, we'll loose all our capabilities (except inherited)
+        if (system::keep_caps() == false) {
+            throw std::runtime_error("Keeping capabilities (SECBIT_KEEP_CAPS) failed");
+        }
+    }
+
+    auto error = system::set_real_user(run_as_user);
+    if (not error.empty()) {
+        throw std::runtime_error(fmt::format("Failed to set real user to: {}", run_as_user));
+    }
+
+    error = system::set_caps(module.capabilities);
+    if (not error.empty()) {
+        throw std::runtime_error(
+            fmt::format("Failed to set capabilities for module {}, reason: {}", module.name, error));
+    }
+}
+
+static void exec_module(std::shared_ptr<RuntimeSettings> rs, const ModuleStartInfo& module,
+                        system::SubProcess& proc_handle) {
+    setup_permissions_for_module(rs->run_as_user, module);
+
+    switch (module.language) {
+    case ModuleStartInfo::Language::cpp:
+        exec_cpp_module(proc_handle, module, rs);
+        break;
+    case ModuleStartInfo::Language::javascript:
+        exec_javascript_module(proc_handle, module, rs);
+        break;
+    case ModuleStartInfo::Language::python:
+        exec_python_module(proc_handle, module, rs);
+        break;
+    default:
+        throw std::logic_error("Module language not in enum");
+        break;
+    }
 }
 
 static std::map<pid_t, std::string> spawn_modules(const std::vector<ModuleStartInfo>& modules,
@@ -299,23 +342,21 @@ static std::map<pid_t, std::string> spawn_modules(const std::vector<ModuleStartI
 
     for (const auto& module : modules) {
 
-        auto handle = [&module, &rs]() -> SubprocessHandle {
-            // this if should never return!
-            switch (module.language) {
-            case ModuleStartInfo::Language::cpp:
-                return exec_cpp_module(module, rs);
-            case ModuleStartInfo::Language::javascript:
-                return exec_javascript_module(module, rs);
-            case ModuleStartInfo::Language::python:
-                return exec_python_module(module, rs);
-            default:
-                throw std::logic_error("Module language not in enum");
-                break;
+        auto proc_handle = system::SubProcess::create();
+
+        if (proc_handle.is_child()) {
+            // first, check if we need any capabilities
+
+            try {
+                exec_module(rs, module, proc_handle);
+            } catch (const std::exception& err) {
+                // FIXME (aw): seems like other processes don't get killed, when this happens
+                proc_handle.send_error_and_exit(err.what());
             }
-        }();
+        }
 
         // we can only come here, if we're the parent!
-        auto child_pid = handle.check_child_executed();
+        auto child_pid = proc_handle.check_child_executed();
 
         EVLOG_debug << fmt::format("Forked module {} with pid: {}", module.name, child_pid);
         started_modules[child_pid] = module.name;
@@ -352,9 +393,25 @@ static std::map<pid_t, std::string> start_modules(Config& config, MQTTAbstractio
             EVLOG_info << fmt::format("Ignoring module: {}", module_name);
             continue;
         }
+
+        // FIXME (aw): shall create a ref to main_confit.at(module_name)!
         std::string module_type = main_config[module_name]["module"];
         // FIXME (aw): implicitely adding ModuleReadyInfo and setting its ready member
         auto module_it = modules_ready.emplace(module_name, ModuleReadyInfo{false, nullptr}).first;
+
+        const auto capabilities = [&module_config = main_config.at(module_name)]() {
+            const auto cap_it = module_config.find("capabilities");
+            if (cap_it == module_config.end()) {
+                return std::vector<std::string>();
+            }
+
+            return std::vector<std::string>(cap_it->begin(), cap_it->end());
+        }();
+
+        if (not capabilities.empty()) {
+            EVLOG_info << fmt::format("Module {} wants to aquire the following capabilities: {}", module_name,
+                                      fmt::join(capabilities.begin(), capabilities.end(), " "));
+        }
 
         Handler module_ready_handler = [module_name, &mqtt_abstraction, standalone_modules,
                                         mqtt_everest_prefix = rs->mqtt_everest_prefix,
@@ -434,15 +491,15 @@ static std::map<pid_t, std::string> start_modules(Config& config, MQTTAbstractio
         if (fs::exists(binary_path)) {
             EVLOG_debug << fmt::format("module: {} ({}) provided as binary", module_name, module_type);
             modules_to_spawn.emplace_back(module_name, printable_module_name, ModuleStartInfo::Language::cpp,
-                                          binary_path);
+                                          binary_path, capabilities);
         } else if (fs::exists(javascript_library_path)) {
             EVLOG_debug << fmt::format("module: {} ({}) provided as javascript library", module_name, module_type);
             modules_to_spawn.emplace_back(module_name, printable_module_name, ModuleStartInfo::Language::javascript,
-                                          fs::canonical(javascript_library_path));
+                                          fs::canonical(javascript_library_path), capabilities);
         } else if (fs::exists(python_module_path)) {
             EVLOG_verbose << fmt::format("module: {} ({}) provided as python module", module_name, module_type);
             modules_to_spawn.emplace_back(module_name, printable_module_name, ModuleStartInfo::Language::python,
-                                          fs::canonical(python_module_path));
+                                          fs::canonical(python_module_path), capabilities);
         } else {
             throw std::runtime_error(
                 fmt::format("module: {} ({}) cannot be loaded because no Binary, JavaScript or Python "
@@ -504,14 +561,23 @@ static ControllerHandle start_controller(std::shared_ptr<RuntimeSettings> rs) {
     const int manager_socket = socket_pair[0];
     const int controller_socket = socket_pair[1];
 
-    auto handle = create_subprocess();
+    auto proc_handle = system::SubProcess::create();
 
-    // FIXME (aw): hack to get the correct directory of the controller
-    const auto bin_dir = fs::canonical("/proc/self/exe").parent_path();
+    if (proc_handle.is_child()) {
 
-    auto controller_binary = bin_dir / "controller";
+        if (not rs->run_as_user.empty()) {
+            const auto error = system::set_real_user(rs->run_as_user);
+            if (not error.empty()) {
+                throw std::runtime_error(std::string("Failed to set real user for controller ipc process to ") +
+                                         rs->run_as_user + ": " + error);
+            }
+        }
 
-    if (handle.is_child()) {
+        // FIXME (aw): hack to get the correct directory of the controller
+        const auto bin_dir = fs::canonical("/proc/self/exe").parent_path();
+
+        auto controller_binary = bin_dir / "controller";
+
         close(manager_socket);
         dup2(controller_socket, STDIN_FILENO);
         close(controller_socket);
@@ -519,7 +585,7 @@ static ControllerHandle start_controller(std::shared_ptr<RuntimeSettings> rs) {
         execl(controller_binary.c_str(), MAGIC_CONTROLLER_ARG0, NULL);
 
         // exec failed
-        handle.send_error_and_exit(
+        proc_handle.send_error_and_exit(
             fmt::format("Syscall to execl() with \"{} {}\" failed ({})", controller_binary.string(), strerror(errno)));
     }
 
@@ -540,7 +606,7 @@ static ControllerHandle start_controller(std::shared_ptr<RuntimeSettings> rs) {
                                                       }},
                                                  });
 
-    return {handle.check_child_executed(), manager_socket};
+    return {proc_handle.check_child_executed(), manager_socket};
 #else
     return {};
 #endif
@@ -567,6 +633,9 @@ int boot(const po::variables_map& vm) {
     EVLOG_info << "Using MQTT broker " << rs->mqtt_broker_host << ":" << rs->mqtt_broker_port;
     if (rs->telemetry_enabled) {
         EVLOG_info << "Telemetry enabled";
+    }
+    if (not rs->run_as_user.empty()) {
+        EVLOG_info << "EVerest will run as system user: " << rs->run_as_user;
     }
 
     EVLOG_verbose << fmt::format("EVerest prefix was set to {}", rs->prefix.string());
@@ -689,6 +758,10 @@ int boot(const po::variables_map& vm) {
     bool restart_modules = false;
 
     int wstatus;
+
+    // switch to system user
+#warning "need to add this back"
+    // set_user_and_capabilities(rs->run_as_user, "");
 
     while (true) {
         // check if anyone died
