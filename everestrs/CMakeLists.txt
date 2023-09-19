@@ -24,6 +24,8 @@ target_include_directories(everestrs_sys PRIVATE
   ${CMAKE_CURRENT_BINARY_DIR}/cxxbridge
 )
 
+# This is a requirement that linking works on systems enforcing PIE.
+set_property(TARGET everestrs_sys PROPERTY POSITION_INDEPENDENT_CODE ON)
 target_link_libraries(everestrs_sys
     PRIVATE
     everest::framework

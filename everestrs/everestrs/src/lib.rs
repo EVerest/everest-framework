@@ -23,6 +23,9 @@ mod ffi {
     struct CommandMeta {
         implementation_id: String,
         name: String,
+        // cxx.rs does not expose a *const c_void type, so we use *const c_char everywhere.
+        // Wherever this shows it means "pointer to some random blob of memory that only Rust
+        // understand what it means and is of no concern to C".
         obj: *const c_char,
     }
 
@@ -47,6 +50,7 @@ mod ffi {
         /// `Everest::Module::signal_ready`.
         unsafe fn signal_ready(
             self: &Module,
+            // See comment in `CommandMeta::obj`.
             obj: *const c_char,
             on_ready: unsafe fn(obj: *const c_char) -> (),
         );
@@ -102,22 +106,26 @@ pub trait GenericModule: Sync {
     /// Handler for the command `name` on `implementation_id` with the given `parameters`. The return value
     /// will be returned as the result of the call.
     fn handle_command(
-        &mut self,
+        &self,
         implementation_id: &str,
         name: &str,
         parameters: HashMap<String, serde_json::Value>,
     ) -> Result<serde_json::Value>;
 
-    fn on_ready(&mut self) {}
+    fn on_ready(&self) {}
 }
 
 pub struct Runtime<T: GenericModule> {
-    // We are handing out pointers to `module_impl` to `cpp_module` for callbacks. The pointers must
-    // must stay valid for as long as `cpp_module` is alive. Hence `module_impl` must never move in
-    // memory. Rust can model this through the Pin concept which upholds this guarantee. We use a
-    // Box to put the object on the heap.
-    module_impl: Pin<Box<T>>,
+    // There are two subleties here:
+    // 1. We are handing out pointers to `module_impl` to `cpp_module` for callbacks. The pointers
+    //    must must stay valid for as long as `cpp_module` is alive. Hence `module_impl` must never
+    //    move in memory. Rust can model this through the Pin concept which upholds this guarantee.
+    //    We use a Box to put the object on the heap.
+    // 2. For the same reason, `module_impl` should outlive `cpp_module`, hence should be dropped
+    //    after it. Rust drops fields in declaration order, hence `cpp_module` should come before
+    //    `module_impl` in this struct.
     cpp_module: cxx::UniquePtr<ffi::Module>,
+    module_impl: Pin<Box<T>>,
 }
 
 impl<T: GenericModule> Runtime<T> {

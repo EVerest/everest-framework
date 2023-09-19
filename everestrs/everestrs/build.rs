@@ -23,7 +23,7 @@ fn find_everest_workspace_root() -> PathBuf {
 
 /// Returns the Libraries path if this is a standalone build of everest-framework or None if it is
 /// not.
-fn find_libs_in_qwello_framework(root: &Path) -> Option<Libraries> {
+fn find_libs_in_everest_framework(root: &Path) -> Option<Libraries> {
     let everestrs_sys = root.join("everest-framework/build/everestrs/libeverestrs_sys.a");
     let framework = root.join("everest-framework/build/lib/libframework.so");
     if everestrs_sys.exists() && framework.exists() {
@@ -38,7 +38,7 @@ fn find_libs_in_qwello_framework(root: &Path) -> Option<Libraries> {
 
 /// Returns the Libraries path if this is an EVerest workspace where make install was run in
 /// everest-core/build or None if not.
-fn find_libs_in_qwello_core_build_dist(root: &Path) -> Option<Libraries> {
+fn find_libs_in_everest_core_build_dist(root: &Path) -> Option<Libraries> {
     let everestrs_sys = root.join("everest-core/build/dist/lib/libeverestrs_sys.a");
     let framework = root.join("everest-core/build/dist/lib/libframework.so");
     if everestrs_sys.exists() && framework.exists() {
@@ -54,13 +54,12 @@ fn find_libs_in_qwello_core_build_dist(root: &Path) -> Option<Libraries> {
 /// Takes a path to a library like `libframework.so` and returns the name for the linker, aka
 /// `framework`
 fn libname_from_path(p: &Path) -> String {
-    let mut name = p
-        .file_stem()
+    p.file_stem()
         .and_then(|os_str| os_str.to_str())
-        .unwrap_or("")
-        .to_string();
-    name.drain(..3); // remove 'lib' prefix.
-    name
+        .expect("'p' must be valid UTF-8 and have a .so extension.")
+        .strip_prefix("lib")
+        .expect("'p' should start with `lib`")
+        .to_string()
 }
 
 fn print_link_options(p: &Path) {
@@ -72,11 +71,11 @@ fn print_link_options(p: &Path) {
 }
 
 fn find_libs(root: &Path) -> Libraries {
-    let libs = find_libs_in_qwello_core_build_dist(&root);
+    let libs = find_libs_in_everest_core_build_dist(&root);
     if libs.is_some() {
         return libs.unwrap();
     }
-    find_libs_in_qwello_framework(&root)
+    find_libs_in_everest_framework(&root)
         .expect("everestrs is not build in a EVerest workspace that already ran cmake build")
 }
 
