@@ -59,19 +59,16 @@ JsonBlob Module::initialize() {
   return json2blob(config_->get_manifests().at(module_name));
 }
 
-void Module::signal_ready(const char* obj,
-                          rust::Fn<void(const char*)> on_ready) const {
-  handle_->register_on_ready_handler([on_ready, obj]() { on_ready(obj); });
+void Module::signal_ready(const Runtime& rt) const {
+  handle_->register_on_ready_handler([&rt]() { rt.on_ready(); });
   handle_->signal_ready();
 }
 
-void Module::provide_command(
-    CommandMeta meta,
-    rust::Fn<JsonBlob(const CommandMeta&, JsonBlob)> command_handler) const {
+void Module::provide_command(const Runtime& rt, const CommandMeta& meta) const {
   handle_->provide_cmd(std::string(meta.implementation_id),
                        std::string(meta.name),
-                       [command_handler, meta](json args) {
-                         JsonBlob blob = command_handler(meta, json2blob(args));
+                       [&rt, meta](json args) {
+                         JsonBlob blob = rt.handle_command(meta, json2blob(args));
                          return json::parse(blob.data.begin(), blob.data.end());
                        });
 }

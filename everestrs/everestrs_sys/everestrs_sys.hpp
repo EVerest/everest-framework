@@ -9,6 +9,7 @@
 
 struct CommandMeta;
 struct JsonBlob;
+struct Runtime;
 
 class Module {
  public:
@@ -18,11 +19,8 @@ class Module {
   JsonBlob initialize();
   JsonBlob get_interface(rust::Str interface_name) const;
 
-  void signal_ready(const char* obj,
-                    rust::Fn<void(const char*)> on_ready) const;
-  void provide_command(
-      CommandMeta meta,
-      rust::Fn<JsonBlob(const CommandMeta&, JsonBlob)> command_handler) const;
+  void signal_ready(const Runtime&rt) const;
+  void provide_command(const Runtime& rt,const CommandMeta& meta) const;
 
   // TODO(hrapp): Add call_command, publish_variable and subscribe_variable.
 
