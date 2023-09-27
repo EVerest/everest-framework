@@ -115,8 +115,8 @@ pub trait GenericModule: Sync {
     fn on_ready(&self) {}
 }
 
-pub struct Runtime<T: GenericModule> {
-    // There are two subleties here:
+pub struct Runtime {
+    // There are two subtleties here:
     // 1. We are handing out pointers to `module_impl` to `cpp_module` for callbacks. The pointers
     //    must must stay valid for as long as `cpp_module` is alive. Hence `module_impl` must never
     //    move in memory. Rust can model this through the Pin concept which upholds this guarantee.
@@ -125,16 +125,16 @@ pub struct Runtime<T: GenericModule> {
     //    after it. Rust drops fields in declaration order, hence `cpp_module` should come before
     //    `module_impl` in this struct.
     cpp_module: cxx::UniquePtr<ffi::Module>,
-    module_impl: Pin<Box<T>>,
+    module_impl: Pin<Box<dyn GenericModule>>,
 }
 
-impl<T: GenericModule> Runtime<T> {
+impl Runtime {
     fn ptr_to_module_impl(&self) -> *const c_char {
-        &*self.module_impl.as_ref() as *const T as *const c_char
+        &*self.module_impl.as_ref() as *const dyn GenericModule as *const c_char
     }
 
     // TODO(hrapp): This function could use some error handling.
-    pub fn from_commandline(module_impl: T) -> Self {
+    pub fn from_commandline<T: GenericModule + 'static>(module_impl: T) -> Self {
         let args: Args = argh::from_env();
         let mut cpp_module = ffi::create_module(
             &args.module,
