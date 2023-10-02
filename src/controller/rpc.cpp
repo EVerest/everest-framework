@@ -89,9 +89,9 @@ private:
     nlohmann::json params;
 };
 
-RPC::RPC(int ipc_fd, const CommandApi::Config& config) : ipc_fd(ipc_fd) {
+RPC::RPC(int ipc_fd, const CommandApi::Config& config) :
+    ipc_fd(ipc_fd), rpc_timeout(std::chrono::milliseconds(config.controller_rpc_timeout_ms)) {
     this->api = std::make_unique<CommandApi>(config, *this);
-    this->rpc_timeout = std::chrono::milliseconds(config.controller_rpc_timeout_ms);
 }
 
 void RPC::run(const NotificationHandler& notification_handler) {
