@@ -19,9 +19,9 @@ public:
 
     void signal_ready(const Runtime& rt) const;
     void provide_command(const Runtime& rt, rust::String implementation_id, rust::String name) const;
-	 JsonBlob call_command(rust::Str implementation_id, rust::Str name, JsonBlob args) const;
-	 void subscribe_variable(const Runtime& rt, rust::String implementation_id, rust::String name) const;
-	 void publish_variable(rust::Str implementation_id, rust::Str name, JsonBlob blob) const;
+    JsonBlob call_command(rust::Str implementation_id, rust::Str name, JsonBlob args) const;
+    void subscribe_variable(const Runtime& rt, rust::String implementation_id, rust::String name) const;
+    void publish_variable(rust::Str implementation_id, rust::Str name, JsonBlob blob) const;
 
 private:
     const std::string module_id_;

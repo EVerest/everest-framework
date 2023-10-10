@@ -65,27 +65,26 @@ void Module::provide_command(const Runtime& rt, rust::String implementation_id, 
 }
 
 void Module::subscribe_variable(const Runtime& rt, rust::String implementation_id, rust::String name) const {
-	// TODO(hrapp): I am not sure how to model the multiple slots that could theoretically be here.
-	const Requirement req(std::string(implementation_id), 0);
+    // TODO(hrapp): I am not sure how to model the multiple slots that could theoretically be here.
+    const Requirement req(std::string(implementation_id), 0);
     handle_->subscribe_var(req, std::string(name), [&rt, implementation_id, name](json args) {
         rt.handle_variable(implementation_id, name, json2blob(args));
     });
 }
 
 JsonBlob Module::call_command(rust::Str implementation_id, rust::Str name, JsonBlob blob) const {
-	// TODO(hrapp): I am not sure how to model the multiple slots that could theoretically be here.
-	const Requirement req(std::string(implementation_id), 0);
-	json return_value = handle_->call_cmd(req, std::string(name), json::parse(blob.data.begin(), blob.data.end()));
+    // TODO(hrapp): I am not sure how to model the multiple slots that could theoretically be here.
+    const Requirement req(std::string(implementation_id), 0);
+    json return_value = handle_->call_cmd(req, std::string(name), json::parse(blob.data.begin(), blob.data.end()));
 
-	return json2blob(return_value);
+    return json2blob(return_value);
 }
 
 std::unique_ptr<Module> create_module(rust::Str module_id, rust::Str prefix, rust::Str conf) {
     return std::make_unique<Module>(std::string(module_id), std::string(prefix), std::string(conf));
 }
 
-void Module::publish_variable(rust::Str implementation_id, rust::Str name,
-                              JsonBlob blob) const {
-  handle_->publish_var(std::string(implementation_id), std::string(name),
-                       json::parse(blob.data.begin(), blob.data.end()));
+void Module::publish_variable(rust::Str implementation_id, rust::Str name, JsonBlob blob) const {
+    handle_->publish_var(std::string(implementation_id), std::string(name),
+                         json::parse(blob.data.begin(), blob.data.end()));
 }
