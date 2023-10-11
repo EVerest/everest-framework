@@ -22,7 +22,7 @@ namespace Everest {
 const auto remote_cmd_res_timeout_seconds = 300;
 const std::array<std::string, 3> TELEMETRY_RESERVED_KEYS = {{"connector_id"}};
 
-Everest::Everest(std::string module_id_, Config config_, bool validate_data_with_schema,
+Everest::Everest(std::string module_id_, const Config& config_, bool validate_data_with_schema,
                  const std::string& mqtt_server_address, int mqtt_server_port, const std::string& mqtt_everest_prefix,
                  const std::string& mqtt_external_prefix, const std::string& telemetry_prefix, bool telemetry_enabled) :
     mqtt_abstraction(mqtt_server_address, std::to_string(mqtt_server_port), mqtt_everest_prefix, mqtt_external_prefix),
