@@ -416,8 +416,8 @@ Config::Config(std::shared_ptr<RuntimeSettings> rs, bool manager) : rs(rs), mana
     }
 
     // load type files
-    int total_time_validation_ms = 0, total_time_parsing_ms = 0;
     if (manager or rs->validate_schema) {
+        int total_time_validation_ms = 0, total_time_parsing_ms = 0;
         for (auto const& types_entry : fs::recursive_directory_iterator(this->rs->types_dir)) {
             auto start_time = std::chrono::system_clock::now();
             auto const& type_file_path = types_entry.path();
