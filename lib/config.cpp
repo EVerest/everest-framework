@@ -416,6 +416,7 @@ Config::Config(std::shared_ptr<RuntimeSettings> rs, bool manager) : rs(rs), mana
     }
 
     // load type files
+    int total_time_validation_ms = 0, total_time_parsing_ms = 0;
     if (manager or rs->validate_schema) {
         for (auto const& types_entry : fs::recursive_directory_iterator(this->rs->types_dir)) {
             auto start_time = std::chrono::system_clock::now();
@@ -432,11 +433,14 @@ Config::Config(std::shared_ptr<RuntimeSettings> rs, bool manager) : rs(rs), mana
                     validator.set_root_schema(this->_schemas.type);
                     validator.validate(type_json);
                     auto end_time_validate = std::chrono::system_clock::now();
-                    EVLOG_info << "YAML validation of " << types_entry.path().string() << " took: "
-                               << std::chrono::duration_cast<std::chrono::milliseconds>(end_time_validate -
-                                                                                        start_time_validate)
-                                      .count()
-                               << "ms";
+                    EVLOG_debug << "YAML validation of " << types_entry.path().string() << " took: "
+                                << std::chrono::duration_cast<std::chrono::milliseconds>(end_time_validate -
+                                                                                         start_time_validate)
+                                       .count()
+                                << "ms";
+                    total_time_validation_ms +=
+                        std::chrono::duration_cast<std::chrono::milliseconds>(end_time_validate - start_time_validate)
+                            .count();
 
                     this->types[type_path] = type_json["types"];
                 } catch (const std::exception& e) {
@@ -445,9 +449,13 @@ Config::Config(std::shared_ptr<RuntimeSettings> rs, bool manager) : rs(rs), mana
                 }
             }
             auto end_time = std::chrono::system_clock::now();
-            EVLOG_info << "Parsing of type " << types_entry.path().string() << " took: "
-                       << std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count() << "ms";
+            total_time_parsing_ms +=
+                std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+            EVLOG_debug << "Parsing of type " << types_entry.path().string() << " took: "
+                        << std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count() << "ms";
         }
+        EVLOG_info << "- Types loaded in [" << total_time_parsing_ms - total_time_validation_ms << "ms]";
+        EVLOG_info << "- Types validated [" << total_time_validation_ms << "ms]";
     }
 
     std::optional<std::string> probe_module_id;

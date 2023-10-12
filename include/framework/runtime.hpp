@@ -87,6 +87,7 @@ std::string parse_string_option(const boost::program_options::variables_map& vm,
 
 const auto TERMINAL_STYLE_ERROR = fmt::emphasis::bold | fg(fmt::terminal_color::red);
 const auto TERMINAL_STYLE_OK = fmt::emphasis::bold | fg(fmt::terminal_color::green);
+const auto TERMINAL_STYLE_BLUE = fmt::emphasis::bold | fg(fmt::terminal_color::blue);
 
 struct BootException : public std::runtime_error {
     using std::runtime_error::runtime_error;

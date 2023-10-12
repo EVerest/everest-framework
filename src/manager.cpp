@@ -358,15 +358,12 @@ static std::map<pid_t, std::string> start_modules(Config& config, MQTTAbstractio
             }
             if (std::all_of(modules_ready.begin(), modules_ready.end(),
                             [](const auto& element) { return element.second.ready; })) {
-                EVLOG_info << fmt::format(TERMINAL_STYLE_OK,
-                                          ">>> All modules are initialized. EVerest up and running <<<");
-                status_fifo.update(StatusFifo::ALL_MODULES_STARTED);
                 auto complete_end_time = std::chrono::system_clock::now();
-                EVLOG_info << "Complete startup time: "
-                           << std::chrono::duration_cast<std::chrono::milliseconds>(complete_end_time -
-                                                                                    complete_start_time)
-                                  .count()
-                           << "ms";
+                status_fifo.update(StatusFifo::ALL_MODULES_STARTED);
+                EVLOG_info << fmt::format(
+                    TERMINAL_STYLE_OK, "🚙🚙🚙 All modules are initialized. EVerest up and running [{}ms] 🚙🚙🚙",
+                    std::chrono::duration_cast<std::chrono::milliseconds>(complete_end_time - complete_start_time)
+                        .count());
                 mqtt_abstraction.publish(fmt::format("{}ready", mqtt_everest_prefix), nlohmann::json(true));
             } else if (!standalone_modules.empty()) {
                 if (modules_spawned == modules_ready.size() - standalone_modules.size()) {
@@ -519,11 +516,17 @@ int boot(const po::variables_map& vm) {
 
     Logging::init(rs->logging_config_file.string());
 
-    EVLOG_info << "8< 8< 8< ------------------------------------------------------------------------------ 8< 8< 8<";
-    EVLOG_info << "EVerest manager starting using " << rs->config_file.string();
-    EVLOG_info << "EVerest using MQTT broker " << rs->mqtt_broker_host << ":" << rs->mqtt_broker_port;
+    EVLOG_info << fmt::format(TERMINAL_STYLE_BLUE, "  ________      __                _   ");
+    EVLOG_info << fmt::format(TERMINAL_STYLE_BLUE, " |  ____\\ \\    / /               | |  ");
+    EVLOG_info << fmt::format(TERMINAL_STYLE_BLUE, " | |__   \\ \\  / /__ _ __ ___  ___| |_ ");
+    EVLOG_info << fmt::format(TERMINAL_STYLE_BLUE, " |  __|   \\ \\/ / _ \\ '__/ _ \\/ __| __|");
+    EVLOG_info << fmt::format(TERMINAL_STYLE_BLUE, " | |____   \\  /  __/ | |  __/\\__ \\ |_ ");
+    EVLOG_info << fmt::format(TERMINAL_STYLE_BLUE, " |______|   \\/ \\___|_|  \\___||___/\\__|");
+    EVLOG_info << "";
+
+    EVLOG_info << "Using MQTT broker " << rs->mqtt_broker_host << ":" << rs->mqtt_broker_port;
     if (rs->telemetry_enabled) {
-        EVLOG_info << "EVerest telemetry enabled";
+        EVLOG_info << "Telemetry enabled";
     }
 
     EVLOG_verbose << fmt::format("EVerest prefix was set to {}", rs->prefix.string());
@@ -566,7 +569,7 @@ int boot(const po::variables_map& vm) {
         return EXIT_FAILURE;
     }
     auto end_time = std::chrono::system_clock::now();
-    EVLOG_info << "Config parsing in manager took: "
+    EVLOG_info << "Config loading completed in "
                << std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count() << "ms";
 
     // dump config if requested

@@ -434,9 +434,8 @@ int ModuleLoader::initialize() {
         everest.signal_ready();
 
         auto end_time = std::chrono::system_clock::now();
-        EVLOG_info << "Initialization of module " << module_id
-                   << " took: " << std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count()
-                   << "ms";
+        EVLOG_info << "Module " << fmt::format(TERMINAL_STYLE_BLUE, "{}", module_id) << " initialized ["
+                   << std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count() << "ms]";
 
         everest.wait_for_main_loop_end();
 
