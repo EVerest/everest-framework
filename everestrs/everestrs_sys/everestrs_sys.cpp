@@ -8,14 +8,14 @@
 namespace {
 
 std::unique_ptr<Everest::Everest> create_everest_instance(const std::string& module_id,
-                                                          std::shared_ptr<RuntimeSettings> rs,
+                                                          std::shared_ptr<Everest::RuntimeSettings> rs,
                                                           const Everest::Config& config) {
-    return std::make_unique<Everest::Everest>(module_id, config, , rs->validate_schema, rs->mqtt_broker_host,
+    return std::make_unique<Everest::Everest>(module_id, config, rs->validate_schema, rs->mqtt_broker_host,
                                               rs->mqtt_broker_port, rs->mqtt_everest_prefix, rs->mqtt_external_prefix,
                                               rs->telemetry_prefix, rs->telemetry_enabled);
 }
 
-std::unique_ptr<Everest::Config> create_config_instance(std::shared_ptr<RuntimeSettings> rs) {
+std::unique_ptr<Everest::Config> create_config_instance(std::shared_ptr<Everest::RuntimeSettings> rs) {
     // FIXME (aw): where to initialize the logger?
     Everest::Logging::init(rs->logging_config_file);
     return std::make_unique<Everest::Config>(rs);
@@ -34,7 +34,7 @@ JsonBlob json2blob(const json& j) {
 
 Module::Module(const std::string& module_id, const std::string& prefix, const std::string& config_file) :
     module_id_(module_id),
-    rs_(prefix, config_file),
+    rs_(std::make_shared<Everest::RuntimeSettings>(prefix, config_file)),
     config_(create_config_instance(rs_)),
     handle_(create_everest_instance(module_id, rs_, *config_)) {
 }
