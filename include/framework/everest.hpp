@@ -13,6 +13,7 @@
 #include <everest/exceptions.hpp>
 
 #include <utils/config.hpp>
+#include <utils/error.hpp>
 #include <utils/mqtt_abstraction.hpp>
 #include <utils/types.hpp>
 
@@ -38,7 +39,8 @@ class Everest {
 public:
     Everest(std::string module_id, const Config& config, bool validate_data_with_schema,
             const std::string& mqtt_server_address, int mqtt_server_port, const std::string& mqtt_everest_prefix,
-            const std::string& mqtt_external_prefix, const std::string& telemetry_prefix, bool telemetry_enabled);
+            const std::string& mqtt_external_prefix, const std::string& telemetry_prefix, bool telemetry_enabled,
+            const fs::path& errors_dir);
 
     // forbid copy assignment and copy construction
     // NOTE (aw): move assignment and construction are also not supported because we're creating explicit references to
@@ -72,6 +74,32 @@ public:
     /// var_name. The given \p callback is called when a new value becomes available
     ///
     void subscribe_var(const Requirement& req, const std::string& var_name, const JsonCallback& callback);
+
+    ///
+    /// \brief Subscribes to an error of another module indentified by the given \p req and error type
+    /// \p error_type. The given \p callback is called when a new error is raised
+    ///
+    void subscribe_error(const Requirement& req, const std::string& error_type, const JsonCallback& callback);
+
+    ///
+    /// \brief Subscribes to an error cleared event of another module indentified by the given \p req and error type
+    /// \p error_type. The given \p callback is called when an error is cleared
+    ///
+    void subscribe_error_cleared(const Requirement& req, const std::string& error_type, const JsonCallback& callback);
+
+    ///
+    /// \brief Requests to clear the error with the given \p uuid of the given \p impl_id.
+    /// If \p clear_all is true, all errors of the given \p impl_id are cleared.
+    /// Return a response json with the uuid of the cleared error
+    ///
+    json request_clear_error(const std::string& impl_id, const std::string& uuid = "", const bool clear_all = false);
+
+    ///
+    /// \brief Raises an given \p error of the given \p impl_id, with the given \p error_type. Returns the uuid of the
+    /// raised error
+    ///
+    std::string raise_error(const std::string& impl_id, const std::string& error_type, const std::string& message,
+                            const std::string& severity);
 
     ///
     /// \brief publishes the given \p data on the given \p topic
@@ -152,6 +180,7 @@ private:
     std::string telemetry_prefix;
     std::optional<TelemetryConfig> telemetry_config;
     bool telemetry_enabled;
+    error::ErrorTypeMap error_map;
 
     void handle_ready(json data);
 

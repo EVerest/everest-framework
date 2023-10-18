@@ -37,6 +37,8 @@ enum class HandlerType {
     Call,
     Result,
     SubscribeVar,
+    SubscribeError,
+    ClearErrorRequest,
     ExternalMQTT,
     Unknown
 };
@@ -100,6 +102,13 @@ struct Requirement {
     }
     std::string id;
     size_t index;
+};
+
+struct ImplementationIdentifier {
+    ImplementationIdentifier(const std::string& module_id_, const std::string& implementation_id_) :
+        module_id(module_id_), implementation_id(implementation_id_){};
+    std::string module_id;
+    std::string implementation_id;
 };
 
 #define EVCALLBACK(function) [](auto&& PH1) { function(std::forward<decltype(PH1)>(PH1)); }

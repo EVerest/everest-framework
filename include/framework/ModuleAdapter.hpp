@@ -7,6 +7,7 @@
 #include <everest/logging.hpp>
 #include <utils/conversions.hpp>
 #include <utils/date.hpp>
+#include <utils/error.hpp>
 
 #include <iomanip>
 #include <iostream>
@@ -71,6 +72,12 @@ struct ModuleAdapter {
     using CallFunc = std::function<Result(const Requirement&, const std::string&, Parameters)>;
     using PublishFunc = std::function<void(const std::string&, const std::string&, Value)>;
     using SubscribeFunc = std::function<void(const Requirement&, const std::string&, ValueCallback)>;
+    using SubscribeErrorFunc = std::function<void(const Requirement&, const std::string&, error::ErrorCallback)>;
+    using SubscribeErrorClearedFunc = std::function<void(const Requirement&, const std::string&, error::ErrorCallback)>;
+    using RaiseErrorFunc = std::function<error::ErrorHandle(const std::string&, const std::string&, const std::string&,
+                                                            const error::Severity&)>;
+    using RequestClearAllErrorsFunc = std::function<Result(const std::string)>;
+    using RequestClearErrorFunc = std::function<Result(const std::string&, const error::ErrorHandle&)>;
     using ExtMqttPublishFunc = std::function<void(const std::string&, const std::string&)>;
     using ExtMqttSubscribeFunc = std::function<void(const std::string&, StringHandler)>;
     using TelemetryPublishFunc =
@@ -79,6 +86,11 @@ struct ModuleAdapter {
     CallFunc call;
     PublishFunc publish;
     SubscribeFunc subscribe;
+    SubscribeErrorFunc subscribe_error;
+    SubscribeErrorClearedFunc subscribe_error_cleared;
+    RaiseErrorFunc raise_error;
+    RequestClearAllErrorsFunc request_clear_all_errors;
+    RequestClearErrorFunc request_clear_error;
     ExtMqttPublishFunc ext_mqtt_publish;
     ExtMqttSubscribeFunc ext_mqtt_subscribe;
     std::vector<cmd> registered_commands;

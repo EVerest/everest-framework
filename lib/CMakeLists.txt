@@ -14,6 +14,7 @@ set_target_properties(framework PROPERTIES SOVERSION ${PROJECT_VERSION})
 
 target_sources(framework
     PRIVATE
+        error.cpp
         config.cpp
         everest.cpp
         message_queue.cpp

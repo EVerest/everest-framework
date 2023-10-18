@@ -218,14 +218,7 @@ void MQTTAbstractionImpl::on_mqtt_message(std::shared_ptr<Message> message) {
         std::vector<Handler> local_handlers;
         for (auto& [handler_topic, handler] : this->message_handlers) {
             bool topic_matches = false;
-            if (is_everest_topic) {
-                // everest topics never contain wildcards, so a direct comparison is enough
-                if (topic == handler_topic) {
-                    topic_matches = true;
-                }
-            } else {
-                topic_matches = MQTTAbstractionImpl::check_topic_matches(topic, handler_topic);
-            }
+            topic_matches = MQTTAbstractionImpl::check_topic_matches(topic, handler_topic);
             if (topic_matches) {
                 found = true;
                 handler.add(data);
@@ -292,6 +285,14 @@ void MQTTAbstractionImpl::register_handler(const std::string& topic, std::shared
         break;
     case HandlerType::SubscribeVar:
         EVLOG_debug << fmt::format("Registering subscribe handler {} for variable {} on topic {}",
+                                   fmt::ptr(&handler->handler), handler->name, topic);
+        break;
+    case HandlerType::SubscribeError:
+        EVLOG_debug << fmt::format("Registering error handler {} for variable {} on topic {}",
+                                   fmt::ptr(&handler->handler), handler->name, topic);
+        break;
+    case HandlerType::ClearErrorRequest:
+        EVLOG_debug << fmt::format("Registering clear error handler {} for variable {} on topic {}",
                                    fmt::ptr(&handler->handler), handler->name, topic);
         break;
     case HandlerType::ExternalMQTT:

@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <list>
 #include <map>
 #include <mutex>
 #include <thread>
@@ -40,6 +41,8 @@ using namespace Everest;
 const auto PARENT_DIED_SIGNAL = SIGTERM;
 const int CONTROLLER_IPC_READ_TIMEOUT_MS = 50;
 auto complete_start_time = std::chrono::system_clock::now();
+
+std::map<error::ErrorHandle, nlohmann::json> errors_map;
 
 class SubprocessHandle {
 public:
@@ -319,6 +322,97 @@ static std::map<pid_t, std::string> start_modules(Config& config, MQTTAbstractio
                                                   const std::vector<std::string>& ignored_modules,
                                                   const std::vector<std::string>& standalone_modules,
                                                   std::shared_ptr<RuntimeSettings> rs, StatusFifo& status_fifo) {
+    BOOST_LOG_FUNCTION();
+    Handler incoming_error = [](nlohmann::json const& json) {
+        EVLOG_info << fmt::format("received error: {}", json["uuid"].get<std::string>());
+        error::ErrorHandle handle(json.at("uuid"));
+        if (errors_map.find(handle) != errors_map.end()) {
+            EVLOG_AND_THROW(EverestInternalError(
+                fmt::format("received error with uuid \"{}\" can't be raised, uuid already in use", handle.uuid)));
+        }
+        errors_map[handle] = json;
+    };
+
+    auto clear_error = [&config, &mqtt_abstraction](error::ErrorHandle const& handle, std::string const& module_name,
+                                                    std::string const& impl_id) {
+        if (errors_map.find(handle) == errors_map.end()) {
+            EVLOG_error << fmt::format("received request to clear error with uuid \"{}\" but no such error exists",
+                                       handle.uuid);
+            return false;
+        }
+        if (errors_map[handle]["from"]["module"] != module_name ||
+            errors_map[handle]["from"]["implementation"] != impl_id) {
+            EVLOG_error << fmt::format("received request from \"{}->{}\" to clear error with uuid \"{}\" but the error "
+                                       "was raised by \"{}->{}\"",
+                                       module_name, impl_id, handle.uuid,
+                                       errors_map[handle]["from"]["module"].get<std::string>(),
+                                       errors_map[handle]["from"]["implementation"].get<std::string>());
+            return false;
+        }
+        std::string error_cleared_topic = fmt::format(
+            "{}/error-cleared/{}",
+            config.mqtt_prefix(errors_map[handle]["from"]["module"], errors_map[handle]["from"]["implementation"]),
+            errors_map[handle]["type"].get<std::string>());
+        mqtt_abstraction.publish(error_cleared_topic, errors_map[handle], QOS::QOS2);
+        errors_map.erase(handle);
+        return true;
+    };
+
+    auto clear_all_errors_of = [&config, &mqtt_abstraction, &clear_error](std::string const& module_name,
+                                                                          std::string const& impl_id) {
+        std::list<error::ErrorHandle> errors_to_clear;
+        for (const auto& [key, value] : errors_map) {
+            if (value["from"]["module"] == module_name && value["from"]["implementation"] == impl_id) {
+                errors_to_clear.push_back(key);
+            }
+        }
+        bool result = true;
+        for (auto& error_handle : errors_to_clear) {
+            result == clear_error(error_handle, module_name, impl_id) && result;
+        }
+        if (errors_to_clear.empty()) {
+            EVLOG_error << fmt::format("received request from \"{}->{}\" to clear all errors but no errors were found",
+                                       module_name, impl_id);
+            result = false;
+        }
+        return result;
+    };
+
+    Handler incoming_request_clear_error = [&clear_all_errors_of, &clear_error, &mqtt_abstraction,
+                                            mqtt_everest_prefix = rs->mqtt_everest_prefix](nlohmann::json const& json) {
+        std::string module_name = json["origin"]["module"];
+        std::string impl_id = json["origin"]["implementation"];
+        bool result = false;
+        if (json.contains("error_id")) {
+            error::ErrorHandle handle(json.at("error_id"));
+            result = clear_error(handle, module_name, impl_id);
+        } else if (json.contains("clear_all")) {
+            bool clear_all_bool = json["clear_all"].get<bool>();
+            if (!clear_all_bool) {
+                EVLOG_error << fmt::format(
+                    "received request from \"{}->{}\" to clear all errors but the clear_all field was set to false",
+                    module_name, impl_id);
+                result = false;
+            } else {
+                result = clear_all_errors_of(module_name, impl_id);
+            }
+        } else {
+            EVLOG_error << fmt::format(
+                "received request from \"{}->{}\" to clear error but neither error_id nor clear_all field was set",
+                module_name, impl_id);
+            result = false;
+        }
+
+        nlohmann::json result_data = json::object({{"name", "request-clear-error"},
+                                                   {"type", "result"},
+                                                   {"data", {{"id", json["request-id"]}, {"success", result}}}});
+        std::string result_topic = fmt::format("{}request-clear-error", mqtt_everest_prefix);
+        mqtt_abstraction.publish(result_topic, result_data, QOS::QOS2);
+    };
+    std::string request_clear_error_topic = fmt::format("{}request-clear-error", rs->mqtt_everest_prefix);
+    auto request_clear_error_token = std::make_shared<TypedHandler>(
+        "request-clear-error", HandlerType::Call, std::make_shared<Handler>(incoming_request_clear_error));
+    mqtt_abstraction.register_handler(request_clear_error_topic, request_clear_error_token, QOS::QOS2);
 
     std::vector<ModuleStartInfo> modules_to_spawn;
 
@@ -380,6 +474,11 @@ static std::map<pid_t, std::string> start_modules(Config& config, MQTTAbstractio
             std::make_shared<TypedHandler>(HandlerType::ExternalMQTT, std::make_shared<Handler>(module_ready_handler));
 
         mqtt_abstraction.register_handler(topic, module_it->second.token, QOS::QOS2);
+
+        std::string error_topic = fmt::format("{}/+/error/#", config.mqtt_module_prefix(module_name));
+        auto error_token =
+            std::make_shared<TypedHandler>(HandlerType::SubscribeError, std::make_shared<Handler>(incoming_error));
+        mqtt_abstraction.register_handler(error_topic, error_token, QOS::QOS2);
 
         if (std::any_of(standalone_modules.begin(), standalone_modules.end(),
                         [module_name](const auto& element) { return element == module_name; })) {
