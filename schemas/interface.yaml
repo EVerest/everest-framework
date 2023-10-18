@@ -135,4 +135,13 @@ properties:
     additionalProperties: false
     # add empty vars if not already present
     default: {}
+  errors:
+    description: This describes a list of error list allowed to be raised by this unit
+    type: array
+    items:
+      # type: object
+      anyOf:
+        - $ref: './error-declaration-list.yaml#/$defs/error_list_subschema'
+        - $ref: './error-declaration-list.yaml#/$defs/error_subschema'
+    default: []
 additionalProperties: false
