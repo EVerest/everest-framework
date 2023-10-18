@@ -419,7 +419,7 @@ int ModuleLoader::initialize() {
 
         module_adapter.raise_error = [&everest](const std::string& impl_id, const std::string& type,
                                                 const std::string& message, const error::Severity& severity) {
-            return everest.raise_error(impl_id, type, message, error::severity_to_string(severity));
+            return error::ErrorHandle(everest.raise_error(impl_id, type, message, error::severity_to_string(severity)));
         };
 
         module_adapter.request_clear_all_errors = [&everest](const std::string& impl_id) {

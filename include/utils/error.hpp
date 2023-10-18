@@ -36,7 +36,7 @@ Severity string_to_severity(const std::string& s);
 
 struct UUID {
     UUID();
-    UUID(const std::string& uuid);
+    explicit UUID(const std::string& uuid);
     bool operator<(const UUID& other) const;
 
     std::string uuid;
@@ -67,7 +67,7 @@ struct Error {
 class ErrorTypeMap {
 public:
     ErrorTypeMap() = default;
-    ErrorTypeMap(std::filesystem::path error_types_dir);
+    explicit ErrorTypeMap(std::filesystem::path error_types_dir);
     void load_error_types(std::filesystem::path error_types_dir);
     std::string get_description(const std::string& error_type) const;
     bool has(const std::string& error_type) const;
