@@ -555,43 +555,92 @@ std::string Everest::raise_error(const std::string& impl_id, const std::string& 
     return error.uuid.uuid;
 }
 
-json Everest::request_clear_error(const std::string& impl_id, const std::string& uuid, const bool clear_all) {
+json Everest::request_clear_error(const error::RequestClearErrorOption request_type, const std::string& impl_id,
+                                  const std::string& uuid, const std::string& error_type) {
     BOOST_LOG_FUNCTION();
+    // Check parameters
+    switch (request_type) {
+    case error::RequestClearErrorOption::ClearUUID:
+        if (uuid == "") {
+            EVLOG_AND_THROW(EverestApiError(fmt::format("No error id provided for request-clear-error in mode {}",
+                                                        error::request_clear_error_option_to_string(request_type))));
+        }
+        if (impl_id == "") {
+            EVLOG_AND_THROW(
+                EverestApiError(fmt::format("No implementation id provided for request-clear-error in mode {}",
+                                            error::request_clear_error_option_to_string(request_type))));
+        }
+        if (error_type != "") {
+            EVLOG_warning << fmt::format(
+                "Error type '{}' is ignored for request-clear-error in mode {} with error id '{}'", error_type,
+                error::request_clear_error_option_to_string(request_type), uuid);
+        }
+        break;
+    case error::RequestClearErrorOption::ClearAllOfTypeOfModule:
+        if (uuid != "") {
+            EVLOG_warning << fmt::format(
+                "Error id '{}' is ignored for request-clear-error in mode {} with error type '{}'", uuid,
+                error::request_clear_error_option_to_string(request_type), error_type);
+        }
+        if (impl_id == "") {
+            EVLOG_AND_THROW(
+                EverestApiError(fmt::format("No implementation id provided for request-clear-error in mode {}",
+                                            error::request_clear_error_option_to_string(request_type))));
+        }
+        if (error_type == "") {
+            EVLOG_AND_THROW(EverestApiError(fmt::format("No error type provided for request-clear-error in mode {}",
+                                                        error::request_clear_error_option_to_string(request_type))));
+        }
+        break;
+    case error::RequestClearErrorOption::ClearAllOfModule:
+        if (uuid != "") {
+            EVLOG_warning << fmt::format("Error id '{}' is ignored for request-clear-error in mode {}", uuid,
+                                         error::request_clear_error_option_to_string(request_type));
+        }
+        if (error_type != "") {
+            EVLOG_warning << fmt::format("Error type '{}' is ignored for request-clear-error in mode {}", error_type,
+                                         error::request_clear_error_option_to_string(request_type));
+        }
+        if (impl_id == "") {
+            EVLOG_AND_THROW(
+                EverestApiError(fmt::format("No implementation id provided for request-clear-error in mode {}",
+                                            error::request_clear_error_option_to_string(request_type))));
+        }
+    }
 
+    // Setup response handler
     std::string request_id = error::UUID().uuid;
-
     std::promise<json> res_promise;
     std::future<json> res_future = res_promise.get_future();
-
     Handler res_handler = [this, &res_promise, request_id](json data) {
         auto& data_id = data.at("id");
         if (data_id != request_id) {
             EVLOG_debug << fmt::format("RES: data_id != request_id ({} != {})", data_id, request_id);
             return;
         }
-
         EVLOG_debug << fmt::format("Incoming res {} for request clear error", data_id);
-
         res_promise.set_value(std::move(data));
     };
-
     const auto request_topic = fmt::format("{}request-clear-error", this->mqtt_everest_prefix);
-
     std::shared_ptr<TypedHandler> res_token = std::make_shared<TypedHandler>(
         "request-clear-error", request_id, HandlerType::Result, std::make_shared<Handler>(res_handler));
     this->mqtt_abstraction.register_handler(request_topic, res_token, QOS::QOS2);
 
-    json origin_data = json::object({{"module", this->module_id}, {"implementation", impl_id}});
+    // Setup request
     json data;
-    if (clear_all) {
-        data = json::object({{"request-id", request_id}, {"clear_all", true}, {"origin", origin_data}});
-    } else if (uuid != "") {
-        data = json::object({{"request-id", request_id}, {"error_id", uuid}, {"origin", origin_data}});
-    } else {
-        EVLOG_AND_THROW(EverestApiError(fmt::format("No error id or clear all flag provided for request-clear-error")));
+    data["request-id"] = request_id;
+    data["origin"]["module"] = this->module_id;
+    data["origin"]["implementation"] = impl_id;
+    data["request-clear-type"] = error::request_clear_error_option_to_string(request_type);
+    if (request_type == error::RequestClearErrorOption::ClearUUID) {
+        data["error_id"] = uuid;
+    } else if (request_type == error::RequestClearErrorOption::ClearAllOfTypeOfModule) {
+        data["error_type"] = error_type;
     }
-    json request_data = json::object({{"name", "request-clear-error"}, {"type", "call"}, {"data", data}});
-
+    json request_data;
+    request_data["name"] = "request-clear-error";
+    request_data["type"] = "call";
+    request_data["data"] = data;
     this->mqtt_abstraction.publish(request_topic, request_data, QOS::QOS2);
 
     // wait for result future
@@ -600,7 +649,6 @@ json Everest::request_clear_error(const std::string& impl_id, const std::string&
     do {
         res_future_status = res_future.wait_until(res_wait);
     } while (res_future_status == std::future_status::deferred);
-
     json result;
     if (res_future_status == std::future_status::timeout) {
         EVLOG_AND_THROW(
@@ -610,7 +658,6 @@ json Everest::request_clear_error(const std::string& impl_id, const std::string&
         result = res_future.get();
     }
     this->mqtt_abstraction.unregister_handler(request_topic, res_token);
-
     return result;
 }
 

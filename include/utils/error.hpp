@@ -14,6 +14,14 @@
 namespace Everest {
 namespace error {
 
+enum class RequestClearErrorOption {
+    ClearUUID,
+    ClearAllOfTypeOfModule,
+    ClearAllOfModule
+};
+std::string request_clear_error_option_to_string(const RequestClearErrorOption& o);
+RequestClearErrorOption string_to_request_clear_error_option(const std::string& s);
+
 class NotValidErrorType : public std::exception {
 public:
     explicit NotValidErrorType(const std::string& error_type_) : error_type(error_type_){};

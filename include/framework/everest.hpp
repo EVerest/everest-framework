@@ -88,11 +88,16 @@ public:
     void subscribe_error_cleared(const Requirement& req, const std::string& error_type, const JsonCallback& callback);
 
     ///
-    /// \brief Requests to clear the error with the given \p uuid of the given \p impl_id.
-    /// If \p clear_all is true, all errors of the given \p impl_id are cleared.
-    /// Return a response json with the uuid of the cleared error
+    /// \brief Requests to clear errors
+    /// If \p request_type is RequestClearErrorOption::ClearUUID, the error with the given \p uuid of the given \p
+    /// impl_id is cleared. \p error_type is ignored. If \p request_type is
+    /// RequestClearErrorOption::ClearAllOfTypeOfModule, all errors of the given \p impl_id with the given \p error_type
+    /// are cleared. \p uuid is ignored. If \p request_type is RequestClearErrorOption::ClearAllOfModule, all errors of
+    /// the given \p impl_id are cleared. \p uuid and \p error_type are ignored. Return a response json with the uuids
+    /// of the cleared errors
     ///
-    json request_clear_error(const std::string& impl_id, const std::string& uuid = "", const bool clear_all = false);
+    json request_clear_error(const error::RequestClearErrorOption request_type, const std::string& impl_id,
+                             const std::string& uuid, const std::string& error_type);
 
     ///
     /// \brief Raises an given \p error of the given \p impl_id, with the given \p error_type. Returns the uuid of the

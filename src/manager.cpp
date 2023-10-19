@@ -333,82 +333,112 @@ static std::map<pid_t, std::string> start_modules(Config& config, MQTTAbstractio
         errors_map[handle] = json;
     };
 
-    auto clear_error = [&config, &mqtt_abstraction](error::ErrorHandle const& handle, std::string const& module_name,
-                                                    std::string const& impl_id) {
+    auto clear_error_uuid = [&config, &mqtt_abstraction](const ImplementationIdentifier& impl,
+                                                         const error::ErrorHandle& handle) {
         if (errors_map.find(handle) == errors_map.end()) {
             EVLOG_error << fmt::format("received request to clear error with uuid \"{}\" but no such error exists",
                                        handle.uuid);
             return false;
         }
-        if (errors_map[handle]["from"]["module"] != module_name ||
-            errors_map[handle]["from"]["implementation"] != impl_id) {
+        if (errors_map.at(handle).at("from").at("module") != impl.module_id ||
+            errors_map.at(handle).at("from").at("implementation") != impl.implementation_id) {
             EVLOG_error << fmt::format("received request from \"{}->{}\" to clear error with uuid \"{}\" but the error "
                                        "was raised by \"{}->{}\"",
-                                       module_name, impl_id, handle.uuid,
-                                       errors_map[handle]["from"]["module"].get<std::string>(),
-                                       errors_map[handle]["from"]["implementation"].get<std::string>());
+                                       impl.module_id, impl.implementation_id, handle.uuid,
+                                       errors_map.at(handle).at("from").at("module").get<std::string>(),
+                                       errors_map.at(handle).at("from").at("implementation").get<std::string>());
             return false;
         }
-        std::string error_cleared_topic = fmt::format(
-            "{}/error-cleared/{}",
-            config.mqtt_prefix(errors_map[handle]["from"]["module"], errors_map[handle]["from"]["implementation"]),
-            errors_map[handle]["type"].get<std::string>());
+        std::string error_cleared_topic =
+            fmt::format("{}/error-cleared/{}", config.mqtt_prefix(impl.module_id, impl.implementation_id),
+                        errors_map.at(handle).at("type").get<std::string>());
         mqtt_abstraction.publish(error_cleared_topic, errors_map[handle], QOS::QOS2);
         errors_map.erase(handle);
         return true;
     };
 
-    auto clear_all_errors_of = [&config, &mqtt_abstraction, &clear_error](std::string const& module_name,
-                                                                          std::string const& impl_id) {
+    auto clear_all_errors_of_module = [&clear_error_uuid](const ImplementationIdentifier& impl) {
         std::list<error::ErrorHandle> errors_to_clear;
         for (const auto& [key, value] : errors_map) {
-            if (value["from"]["module"] == module_name && value["from"]["implementation"] == impl_id) {
+            if (value.at("from").at("module") == impl.module_id &&
+                value.at("from").at("implementation") == impl.implementation_id) {
                 errors_to_clear.push_back(key);
             }
         }
-        bool result = true;
-        for (auto& error_handle : errors_to_clear) {
-            result == clear_error(error_handle, module_name, impl_id) && result;
-        }
         if (errors_to_clear.empty()) {
             EVLOG_error << fmt::format("received request from \"{}->{}\" to clear all errors but no errors were found",
-                                       module_name, impl_id);
-            result = false;
+                                       impl.module_id, impl.implementation_id);
+            return false;
+        }
+        bool result = true;
+        for (auto& error_handle : errors_to_clear) {
+            result == clear_error_uuid(impl, error_handle) && result;
         }
         return result;
     };
 
-    Handler incoming_request_clear_error = [&clear_all_errors_of, &clear_error, &mqtt_abstraction,
-                                            mqtt_everest_prefix = rs->mqtt_everest_prefix](nlohmann::json const& json) {
-        std::string module_name = json["origin"]["module"];
-        std::string impl_id = json["origin"]["implementation"];
-        bool result = false;
-        if (json.contains("error_id")) {
-            error::ErrorHandle handle(json.at("error_id"));
-            result = clear_error(handle, module_name, impl_id);
-        } else if (json.contains("clear_all")) {
-            bool clear_all_bool = json["clear_all"].get<bool>();
-            if (!clear_all_bool) {
-                EVLOG_error << fmt::format(
-                    "received request from \"{}->{}\" to clear all errors but the clear_all field was set to false",
-                    module_name, impl_id);
-                result = false;
-            } else {
-                result = clear_all_errors_of(module_name, impl_id);
+    auto clear_all_errors_of_type_of_module = [&clear_error_uuid](const ImplementationIdentifier& impl,
+                                                                  const std::string& error_type) {
+        std::list<error::ErrorHandle> errors_to_clear;
+        for (const auto& [key, value] : errors_map) {
+            if (value.at("from").at("module") == impl.module_id &&
+                value.at("from").at("implementation") == impl.implementation_id && value.at("type") == error_type) {
+                errors_to_clear.push_back(key);
             }
-        } else {
-            EVLOG_error << fmt::format(
-                "received request from \"{}->{}\" to clear error but neither error_id nor clear_all field was set",
-                module_name, impl_id);
-            result = false;
         }
+        if (errors_to_clear.empty()) {
+            EVLOG_error << fmt::format(
+                "received request from \"{}->{}\" to clear all errors of type {} but no errors were found",
+                impl.module_id, impl.implementation_id, error_type);
+            return false;
+        }
+        bool result = true;
+        for (auto& error_handle : errors_to_clear) {
+            result == clear_error_uuid(impl, error_handle) && result;
+        }
+        return result;
+    };
 
-        nlohmann::json result_data = json::object({{"name", "request-clear-error"},
-                                                   {"type", "result"},
-                                                   {"data", {{"id", json["request-id"]}, {"success", result}}}});
+    Handler incoming_request_clear_error = [&clear_error_uuid, &clear_all_errors_of_type_of_module,
+                                            &clear_all_errors_of_module, &mqtt_abstraction,
+                                            mqtt_everest_prefix = rs->mqtt_everest_prefix](nlohmann::json const& json) {
+        ImplementationIdentifier impl{json.at("origin").at("module"), json.at("origin").at("implementation")};
+        error::RequestClearErrorOption request_type =
+            error::string_to_request_clear_error_option(json.at("request-clear-type"));
+        bool result = false;
+        // do operation
+        switch (request_type) {
+        case error::RequestClearErrorOption::ClearUUID: {
+            error::ErrorHandle handle(json.at("error_id"));
+            result = clear_error_uuid(impl, handle);
+            break;
+        }
+        case error::RequestClearErrorOption::ClearAllOfTypeOfModule:
+            result = clear_all_errors_of_type_of_module(impl, json.at("error_type"));
+            break;
+        case error::RequestClearErrorOption::ClearAllOfModule:
+            result = clear_all_errors_of_module(impl);
+            break;
+        default:
+            EVLOG_error << fmt::format("received request from {}->{}, but request-type {} is not supported",
+                                       impl.module_id, impl.implementation_id,
+                                       error::request_clear_error_option_to_string(request_type));
+            result = false;
+            break;
+        }
+        // send result
+        nlohmann::json data;
+        data["id"] = json["request-id"];
+        data["success"] = result;
+        nlohmann::json result_data;
+        result_data["name"] = "request-clear-error";
+        result_data["type"] = "result";
+        result_data["data"] = data;
         std::string result_topic = fmt::format("{}request-clear-error", mqtt_everest_prefix);
         mqtt_abstraction.publish(result_topic, result_data, QOS::QOS2);
     };
+
+    // setup handler for request-clear-error
     std::string request_clear_error_topic = fmt::format("{}request-clear-error", rs->mqtt_everest_prefix);
     auto request_clear_error_token = std::make_shared<TypedHandler>(
         "request-clear-error", HandlerType::Call, std::make_shared<Handler>(incoming_request_clear_error));

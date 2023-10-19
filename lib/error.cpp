@@ -18,6 +18,29 @@
 namespace Everest {
 namespace error {
 
+std::string request_clear_error_option_to_string(const RequestClearErrorOption& o) {
+    switch (o) {
+    case RequestClearErrorOption::ClearUUID:
+        return "ClearUUID";
+    case RequestClearErrorOption::ClearAllOfTypeOfModule:
+        return "ClearAllOfTypeOfModule";
+    case RequestClearErrorOption::ClearAllOfModule:
+        return "ClearAllOfModule";
+    }
+    throw std::runtime_error(fmt::format("RequestClearErrorOption is not valid."));
+}
+RequestClearErrorOption string_to_request_clear_error_option(const std::string& s) {
+    if (s == "ClearUUID") {
+        return RequestClearErrorOption::ClearUUID;
+    } else if (s == "ClearAllOfTypeOfModule") {
+        return RequestClearErrorOption::ClearAllOfTypeOfModule;
+    } else if (s == "ClearAllOfModule") {
+        return RequestClearErrorOption::ClearAllOfModule;
+    } else {
+        throw std::runtime_error(fmt::format("RequestClearErrorOption '{}' is not valid.", s));
+    }
+}
+
 UUID::UUID() {
     uuid = boost::uuids::to_string(boost::uuids::random_generator()());
 }
