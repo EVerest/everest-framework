@@ -52,6 +52,10 @@ bool UUID::operator<(const UUID& other) const {
     return uuid < other.uuid;
 }
 
+std::string UUID::to_string() const {
+    return uuid;
+}
+
 Error::Error(const std::string& type_, const std::string& message_, const std::string& description_,
              const ImplementationIdentifier& from_, const bool persistent_, const Severity& severity_,
              const time_point& timestamp_, const UUID& uuid_) :

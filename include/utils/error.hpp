@@ -46,6 +46,7 @@ struct UUID {
     UUID();
     explicit UUID(const std::string& uuid);
     bool operator<(const UUID& other) const;
+    std::string to_string() const;
 
     std::string uuid;
 };
