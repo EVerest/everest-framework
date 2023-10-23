@@ -394,16 +394,15 @@ static std::map<pid_t, std::string> start_modules(Config& config, MQTTAbstractio
                     for (auto it_err : it_err_entry) {
                         std::string err_namespace = it_err.at("namespace");
                         std::string err_name = it_err.at("name");
-                        std::string err_topic = fmt::format("{}/{}/error/{}/{}", module_name, impl_name,
-                                                            err_namespace, err_name);
+                        std::string err_topic =
+                            fmt::format("{}/{}/error/{}/{}", module_name, impl_name, err_namespace, err_name);
                         err_manager.add_error_topic(err_topic);
                     }
-                }
-                else {
+                } else {
                     std::string err_namespace = it_err_entry.at("namespace");
                     std::string err_name = it_err_entry.at("name");
-                    std::string err_topic = fmt::format("{}/{}/error/{}/{}", module_name, impl_name,
-                                                        err_namespace, err_name);
+                    std::string err_topic =
+                        fmt::format("{}/{}/error/{}/{}", module_name, impl_name, err_namespace, err_name);
                     err_manager.add_error_topic(err_topic);
                 }
             }

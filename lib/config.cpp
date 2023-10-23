@@ -466,7 +466,8 @@ Config::Config(std::shared_ptr<RuntimeSettings> rs, bool manager) : rs(rs), mana
             auto start_time = std::chrono::system_clock::now();
             auto const& error_file_path = errors_entry.path();
             if (fs::is_regular_file(error_file_path) && error_file_path.extension() == ".yaml") {
-                auto error_path = std::string("/") + fs::relative(error_file_path, this->rs->errors_dir).stem().string();
+                auto error_path =
+                    std::string("/") + fs::relative(error_file_path, this->rs->errors_dir).stem().string();
 
                 try {
                     // load and validate error file, store validated result in this->errors
