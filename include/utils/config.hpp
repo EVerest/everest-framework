@@ -26,10 +26,11 @@ struct RuntimeSettings;
 /// \brief A structure that contains all available schemas
 ///
 struct schemas {
-    json config;    ///< The config schema
-    json manifest;  ///< The manifest scheme
-    json interface; ///< The interface schema
-    json type;      ///< The type schema
+    json config;                    ///< The config schema
+    json manifest;                  ///< The manifest scheme
+    json interface;                 ///< The interface schema
+    json type;                      ///< The type schema
+    json error_declaration_list;    ///< The error-declaration-list schema
 };
 
 ///
@@ -58,6 +59,7 @@ private:
     json interfaces;
     json interface_definitions;
     json types;
+    json errors;
     schemas _schemas;
 
     std::unordered_map<std::string, std::optional<TelemetryConfig>> telemetry_configs;

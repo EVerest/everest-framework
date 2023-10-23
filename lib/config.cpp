@@ -375,6 +375,7 @@ Config::Config(std::shared_ptr<RuntimeSettings> rs, bool manager) : rs(rs), mana
     this->interfaces = json({});
     this->interface_definitions = json({});
     this->types = json({});
+    this->errors = json({});
     this->_schemas = Config::load_schemas(this->rs->schemas_dir);
 
     // load and process config file
@@ -458,6 +459,48 @@ Config::Config(std::shared_ptr<RuntimeSettings> rs, bool manager) : rs(rs), mana
         EVLOG_info << "- Types validated [" << total_time_validation_ms << "ms]";
     }
 
+    // load error files
+    if (manager or rs->validate_schema) {
+        int total_time_validation_ms = 0, total_time_parsing_ms = 0;
+        for (auto const& errors_entry : fs::recursive_directory_iterator(this->rs->errors_dir)) {
+            auto start_time = std::chrono::system_clock::now();
+            auto const& error_file_path = errors_entry.path();
+            if (fs::is_regular_file(error_file_path) && error_file_path.extension() == ".yaml") {
+                auto error_path = std::string("/") + fs::relative(error_file_path, this->rs->errors_dir).stem().string();
+
+                try {
+                    // load and validate error file, store validated result in this->errors
+                    EVLOG_verbose << fmt::format("Loading error file at: {}", fs::canonical(error_file_path).c_str());
+                    json error_json = load_yaml(error_file_path);
+                    auto start_time_validate = std::chrono::system_clock::now();
+                    json_validator validator(Config::abs_ref_loader, Config::format_checker);
+                    validator.set_root_schema(this->_schemas.error_declaration_list);
+                    validator.validate(error_json);
+                    auto end_time_validate = std::chrono::system_clock::now();
+                    EVLOG_debug << "YAML validation of " << errors_entry.path().string() << " took: "
+                                << std::chrono::duration_cast<std::chrono::milliseconds>(end_time_validate -
+                                                                                         start_time_validate)
+                                       .count()
+                                << "ms";
+                    total_time_validation_ms +=
+                        std::chrono::duration_cast<std::chrono::milliseconds>(end_time_validate - start_time_validate)
+                            .count();
+
+                    this->errors[error_path] = error_json["errors"];
+                } catch (const std::exception& e) {
+                    EVLOG_AND_THROW(EverestConfigError(fmt::format(
+                        "Failed to load and parse error file '{}', reason: {}", error_file_path.string(), e.what())));
+                }
+            }
+            auto end_time = std::chrono::system_clock::now();
+            total_time_parsing_ms +=
+                std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+            EVLOG_debug << "Parsing of error " << errors_entry.path().string() << " took: "
+                        << std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count() << "ms";
+        }
+        EVLOG_info << "- Errors loaded in [" << total_time_parsing_ms - total_time_validation_ms << "ms]";
+        EVLOG_info << "- Errors validated [" << total_time_validation_ms << "ms]";
+    }
     std::optional<std::string> probe_module_id;
 
     // load manifest files of configured modules
@@ -735,6 +778,7 @@ schemas Config::load_schemas(const fs::path& schemas_dir) {
     schemas.manifest = Config::load_schema(schemas_dir / "manifest.yaml");
     schemas.interface = Config::load_schema(schemas_dir / "interface.yaml");
     schemas.type = Config::load_schema(schemas_dir / "type.yaml");
+    schemas.error_declaration_list = Config::load_schema(schemas_dir / "error-declaration-list.yaml");
 
     return schemas;
 }
