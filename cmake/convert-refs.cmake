@@ -1,5 +1,5 @@
 include(ev-cli)
-require_ev_cli_version("0.0.20")
+require_ev_cli_version("0.0.21")
 
 add_custom_target(convert_yaml_refs_schemas)
 add_custom_target(convert_yaml_refs_schemas_installable
@@ -21,7 +21,7 @@ function(ev_convert_refs)
 
     get_filename_component(CONVERT_REFS_INPUT_FILE_NAME_WITHOUT_EXT ${CONVERT_REFS_INPUT_FILE} NAME_WE)
     get_filename_component(CONVERT_REFS_INPUT_FILE_PARENT ${CONVERT_REFS_INPUT_FILE} DIRECTORY)
-    cmake_path(GET CONVERT_REFS_INPUT_FILE_PARENT STEM CONVERT_REFS_INPUT_FILE_PARENT_NAME)
+    get_filename_component(CONVERT_REFS_INPUT_FILE_PARENT_NAME ${CONVERT_REFS_INPUT_FILE_PARENT} NAME_WE)
     set(CONVERT_REFS_TARGET_NAME "convert_yaml_refs_${CONVERT_REFS_INPUT_FILE_PARENT_NAME}_${CONVERT_REFS_INPUT_FILE_NAME_WITHOUT_EXT}")
 
     set(CONVERT_REFS_OUTPUT_FILE "${CONVERT_REFS_OUTPUT_DIR}/${CONVERT_REFS_INPUT_FILE_NAME}")
