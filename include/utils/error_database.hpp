@@ -24,7 +24,7 @@ public:
 class EverestErrorDoesNotExistsError : public EverestBaseLogicError {
 public:
     explicit EverestErrorDoesNotExistsError(const ErrorHandle& handle) :
-        EverestBaseLogicError("Errow with handle '" + handle.to_string() + "' does not exists."){};
+        EverestBaseLogicError("Error with handle '" + handle.to_string() + "' does not exists."){};
 };
 
 class EverestFalseRequestorError : public EverestBaseLogicError {

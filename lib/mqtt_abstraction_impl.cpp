@@ -218,7 +218,14 @@ void MQTTAbstractionImpl::on_mqtt_message(std::shared_ptr<Message> message) {
         std::vector<Handler> local_handlers;
         for (auto& [handler_topic, handler] : this->message_handlers) {
             bool topic_matches = false;
-            topic_matches = MQTTAbstractionImpl::check_topic_matches(topic, handler_topic);
+            if (is_everest_topic) {
+                // everest topics never contain wildcards, so a direct comparison is enough
+                if (topic == handler_topic) {
+                    topic_matches = true;
+                }
+            } else {
+                topic_matches = MQTTAbstractionImpl::check_topic_matches(topic, handler_topic);
+            }
             if (topic_matches) {
                 found = true;
                 handler.add(data);

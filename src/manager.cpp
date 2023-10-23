@@ -385,8 +385,29 @@ static std::map<pid_t, std::string> start_modules(Config& config, MQTTAbstractio
 
         mqtt_abstraction.register_handler(topic, module_it->second.token, QOS::QOS2);
 
-        std::string error_topic = fmt::format("{}/+/error/#", module_name);
-        err_manager.add_error_topic(error_topic);
+        for (auto& it_impl : config.get_manifests().at(module_type).at("provides").items()) {
+            std::string impl_name = it_impl.key();
+            std::string if_name = it_impl.value().at("interface");
+            auto if_def = config.get_interface_definition(if_name);
+            for (auto it_err_entry : if_def.at("errors")) {
+                if (it_err_entry.is_array()) {
+                    for (auto it_err : it_err_entry) {
+                        std::string err_namespace = it_err.at("namespace");
+                        std::string err_name = it_err.at("name");
+                        std::string err_topic = fmt::format("{}/{}/error/{}/{}", module_name, impl_name,
+                                                            err_namespace, err_name);
+                        err_manager.add_error_topic(err_topic);
+                    }
+                }
+                else {
+                    std::string err_namespace = it_err_entry.at("namespace");
+                    std::string err_name = it_err_entry.at("name");
+                    std::string err_topic = fmt::format("{}/{}/error/{}/{}", module_name, impl_name,
+                                                        err_namespace, err_name);
+                    err_manager.add_error_topic(err_topic);
+                }
+            }
+        }
 
         if (std::any_of(standalone_modules.begin(), standalone_modules.end(),
                         [module_name](const auto& element) { return element == module_name; })) {
