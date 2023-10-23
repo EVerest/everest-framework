@@ -4,7 +4,10 @@ use argh::FromArgs;
 use serde::de::DeserializeOwned;
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::sync::{RwLock, Weak};
+use std::pin::Pin;
+use std::sync::Arc;
+use std::sync::RwLock;
+use std::sync::Weak;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -21,7 +24,12 @@ pub type Result<T> = ::std::result::Result<T, Error>;
 mod ffi {
     extern "Rust" {
         type Runtime;
-        fn handle_command(self: &Runtime, implementation_id: &str, name: &str, json: JsonBlob) -> JsonBlob;
+        fn handle_command(
+            self: &Runtime,
+            implementation_id: &str,
+            name: &str,
+            json: JsonBlob,
+        ) -> JsonBlob;
         fn handle_variable(self: &Runtime, implementation_id: &str, name: &str, json: JsonBlob);
         fn on_ready(&self);
     }
@@ -45,11 +53,16 @@ mod ffi {
 
         /// Registers the callback of the `Subscriber` to be called and calls
         /// `Everest::Module::signal_ready`.
-        fn signal_ready(self: &Module, rt: &Runtime);
+        fn signal_ready(self: &Module, rt: Pin<&Runtime>);
 
         /// Informs the runtime that we implement the command described by `implementation_id` and
         /// `name`, and registers the `handle_command` method from the `Subscriber` as the handler.
-        fn provide_command(self: &Module, rt: &Runtime, implementation_id: String, name: String);
+        fn provide_command(
+            self: &Module,
+            rt: Pin<&Runtime>,
+            implementation_id: String,
+            name: String,
+        );
 
         /// Call the command described by 'implementation_id' and `name` with the given 'args'.
         /// Returns the return value.
@@ -63,7 +76,12 @@ mod ffi {
         /// Informs the runtime that we want to receive the variable described by
         /// `implementation_id` and `name` and registers the `handle_variable` method from the
         /// `Subscriber` as the handler.
-        fn subscribe_variable(self: &Module, rt: &Runtime, implementation_id: String, name: String);
+        fn subscribe_variable(
+            self: &Module,
+            rt: Pin<&Runtime>,
+            implementation_id: String,
+            name: String,
+        );
 
         /// Publishes the given `blob` under the `implementation_id` and `name`.
         fn publish_variable(self: &Module, implementation_id: &str, name: &str, blob: JsonBlob);
@@ -216,7 +234,7 @@ impl Runtime {
     }
 
     // TODO(hrapp): This function could use some error handling.
-    pub fn new() -> Self {
+    pub fn new() -> Pin<Arc<Self>> {
         let args: Args = argh::from_env();
         let cpp_module = ffi::create_module(
             &args.module,
@@ -224,13 +242,13 @@ impl Runtime {
             &args.conf.to_string_lossy(),
         );
 
-        Self {
+        Arc::pin(Self {
             cpp_module,
             sub_impl: RwLock::new(None),
-        }
+        })
     }
 
-    pub fn set_subscriber(&self, sub_impl: Weak<dyn Subscriber>) {
+    pub fn set_subscriber(self: Pin<&Self>, sub_impl: Weak<dyn Subscriber>) {
         *self.sub_impl.write().unwrap() = Some(sub_impl);
         let manifest_json = self.cpp_module.as_ref().unwrap().initialize();
         let manifest: schema::Manifest = manifest_json.deserialize();
@@ -241,10 +259,11 @@ impl Runtime {
             let interface_s = self.cpp_module.get_interface(&implementation.interface);
             let interface: schema::Interface = interface_s.deserialize();
             for (name, _) in interface.cmds {
-                self.cpp_module
-                    .as_ref()
-                    .unwrap()
-                    .provide_command(self, implementation_id.clone(), name);
+                self.cpp_module.as_ref().unwrap().provide_command(
+                    self,
+                    implementation_id.clone(),
+                    name,
+                );
             }
         }
 
@@ -254,16 +273,17 @@ impl Runtime {
             let interface_s = self.cpp_module.get_interface(&provides.interface);
             let interface: schema::Interface = interface_s.deserialize();
             for (name, _) in interface.vars {
-                self.cpp_module
-                    .as_ref()
-                    .unwrap()
-                    .subscribe_variable(self, implementation_id.clone(), name);
+                self.cpp_module.as_ref().unwrap().subscribe_variable(
+                    self,
+                    implementation_id.clone(),
+                    name,
+                );
             }
         }
 
         // Since users can choose to overwrite `on_ready`, we can call signal_ready right away.
         // TODO(hrapp): There were some doubts if this strategy is too inflexible, discuss design
         // again.
-        (self.cpp_module).as_ref().unwrap().signal_ready(&self);
+        (self.cpp_module).as_ref().unwrap().signal_ready(self);
     }
 }
