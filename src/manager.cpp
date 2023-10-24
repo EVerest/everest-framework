@@ -161,8 +161,7 @@ struct ModuleStartInfo {
     enum class Language {
         cpp,
         javascript,
-        python,
-        rust
+        python
     };
     ModuleStartInfo(const std::string& name, const std::string& printable_name, Language lang, const fs::path& path) :
         name(name), printable_name(printable_name), language(lang), path(path) {
@@ -193,26 +192,6 @@ static SubprocessHandle exec_cpp_module(const ModuleStartInfo& module_info, std:
         auto argv_list = arguments_to_exec_argv(arguments);
         execv(exec_binary, argv_list.data());
 
-        // exec failed
-        handle.send_error_and_exit(fmt::format("Syscall to execv() with \"{} {}\" failed ({})", exec_binary,
-                                               fmt::join(arguments.begin() + 1, arguments.end(), " "),
-                                               strerror(errno)));
-    }
-
-    return handle;
-}
-
-static SubprocessHandle exec_rust_module(const ModuleStartInfo& module_info, std::shared_ptr<RuntimeSettings> rs) {
-    const auto exec_binary = module_info.path.c_str();
-    std::vector<std::string> arguments = {module_info.printable_name, "--prefix", rs->prefix.string(), "--conf",
-                                          rs->config_file.string(),   "--module", module_info.name};
-
-    auto handle = create_subprocess();
-    if (handle.is_child()) {
-        auto argv_list = arguments_to_exec_argv(arguments);
-        execv(exec_binary, argv_list.data());
-
-        EVLOG_error << "exec failed?";
         // exec failed
         handle.send_error_and_exit(fmt::format("Syscall to execv() with \"{} {}\" failed ({})", exec_binary,
                                                fmt::join(arguments.begin() + 1, arguments.end(), " "),
@@ -313,8 +292,6 @@ static std::map<pid_t, std::string> spawn_modules(const std::vector<ModuleStartI
                 return exec_javascript_module(module, rs);
             case ModuleStartInfo::Language::python:
                 return exec_python_module(module, rs);
-            case ModuleStartInfo::Language::rust:
-                return exec_rust_module(module, rs);
             default:
                 throw std::logic_error("Module language not in enum");
                 break;
@@ -437,23 +414,6 @@ static std::map<pid_t, std::string> start_modules(Config& config, MQTTAbstractio
         auto cpp_binary_path = module_path / binary_filename;
         auto javascript_library_path = module_path / javascript_library_filename;
         auto python_module_path = module_path / python_filename;
-        std::string rust_filename;
-        auto char_count = 0;
-        for (auto& character : binary_filename) {
-            if (char_count > 0 && isupper(character)) {
-                rust_filename += "_";
-                rust_filename += tolower(character);
-            } else {
-                if (isupper(character)) {
-                    rust_filename += tolower(character);
-
-                } else {
-                    rust_filename += character;
-                }
-            }
-            char_count++;
-        }
-        auto rust_binary_path = module_path / "bin" / rust_filename;
 
         if (fs::exists(cpp_binary_path)) {
             EVLOG_debug << fmt::format("module: {} ({}) provided as binary", module_name, module_type);
@@ -467,21 +427,15 @@ static std::map<pid_t, std::string> start_modules(Config& config, MQTTAbstractio
             EVLOG_verbose << fmt::format("module: {} ({}) provided as python module", module_name, module_type);
             modules_to_spawn.emplace_back(module_name, printable_module_name, ModuleStartInfo::Language::python,
                                           fs::canonical(python_module_path));
-        } else if (fs::exists(rust_binary_path)) {
-            EVLOG_debug << fmt::format("module: {} ({}) provided as rust binary", module_name, module_type);
-            modules_to_spawn.emplace_back(module_name, printable_module_name, ModuleStartInfo::Language::rust,
-                                          rust_binary_path);
         } else {
-            throw std::runtime_error(fmt::format("module: {} ({}) cannot be loaded because no C++ or JavaScript "
-                                                 "library has been found\n"
-                                                 "  checked paths:\n"
-                                                 "    cpp: {}\n"
-                                                 "    js:  {}\n",
-                                                 "    py:  {}\n"
-                                                 "    rs:  {}\n",
-                                                 module_name, module_type, cpp_binary_path.string(),
-                                                 javascript_library_path.string(), python_module_path.string(),
-                                                 rust_binary_path.string()));
+            throw std::runtime_error(
+                fmt::format("module: {} ({}) cannot be loaded because no C++, JavaScript or Python "
+                            "module has been found\n"
+                            "  checked paths:\n"
+                            "    cpp: {}\n"
+                            "    js:  {}\n",
+                            "    py:  {}\n", module_name, module_type, cpp_binary_path.string(),
+                            javascript_library_path.string(), python_module_path.string()));
         }
     }
 
