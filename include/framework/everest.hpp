@@ -79,6 +79,11 @@ public:
     void external_mqtt_publish(const std::string& topic, const std::string& data);
 
     ///
+    /// \brief publishes the given \p data on the given \p topic with \p retain
+    ///
+    void external_mqtt_publish_retain(const std::string& topic, const std::string& data, bool retain);
+
+    ///
     /// \brief Allows a module to indicate that it provides a external mqtt \p handler at the given \p topic
     ///
     void provide_external_mqtt_handler(const std::string& topic, const StringHandler& handler);

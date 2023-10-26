@@ -38,20 +38,20 @@ public:
     void disconnect();
 
     ///
-    /// \copydoc MQTTAbstractionImpl::publish(const std::string&, const json&)
-    void publish(const std::string& topic, const json& json);
+    /// \copydoc MQTTAbstractionImpl::publish(const std::string&, const json&, RETAIN)
+    void publish(const std::string& topic, const json& json, RETAIN retain = RETAIN::NOT_RETAINED);
 
     ///
-    /// \copydoc MQTTAbstractionImpl::publish(const std::string&, const json&, QOS)
-    void publish(const std::string& topic, const json& json, QOS qos);
+    /// \copydoc MQTTAbstractionImpl::publish(const std::string&, const json&, QOS, RETAIN)
+    void publish(const std::string& topic, const json& json, QOS qos, RETAIN retain = RETAIN::NOT_RETAINED);
 
     ///
-    /// \copydoc MQTTAbstractionImpl::publish(const std::string&, const std::string&)
-    void publish(const std::string& topic, const std::string& data);
+    /// \copydoc MQTTAbstractionImpl::publish(const std::string&, const std::string&, RETAIN)
+    void publish(const std::string& topic, const std::string& data, RETAIN retain = RETAIN::NOT_RETAINED);
 
     ///
-    /// \copydoc MQTTAbstractionImpl::publish(const std::string&, const std::string&, QOS)
-    void publish(const std::string& topic, const std::string& data, QOS qos);
+    /// \copydoc MQTTAbstractionImpl::publish(const std::string&, const std::string&, QOS, RETAIN)
+    void publish(const std::string& topic, const std::string& data, QOS qos, RETAIN retain = RETAIN::NOT_RETAINED);
 
     ///
     /// \copydoc MQTTAbstractionImpl::subscribe(const std::string&)

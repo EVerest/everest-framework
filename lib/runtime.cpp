@@ -399,6 +399,10 @@ int ModuleLoader::initialize() {
             std::bind(&Everest::Everest::external_mqtt_publish, &everest, std::placeholders::_1, std::placeholders::_2);
 
         // NOLINTNEXTLINE(modernize-avoid-bind): prefer bind here for readability
+        module_adapter.ext_mqtt_publish_retain =
+            std::bind(&Everest::Everest::external_mqtt_publish_retain, &everest, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+            
+        // NOLINTNEXTLINE(modernize-avoid-bind): prefer bind here for readability
         module_adapter.ext_mqtt_subscribe = std::bind(&Everest::Everest::provide_external_mqtt_handler, &everest,
                                                       std::placeholders::_1, std::placeholders::_2);
 

@@ -68,6 +68,12 @@ enum class QOS {
     QOS2  ///< Exactly once delivery
 };
 
+/// \brief MQTT retain flag for message, stores message at broker
+enum class RETAIN : bool {
+    RETAINED     = true, ///< Message is sent to new subscriber
+    NOT_RETAINED = false ///< Message isn't sent to new subscriber
+};
+
 struct ModuleInfo {
     struct Paths {
         std::filesystem::path etc;

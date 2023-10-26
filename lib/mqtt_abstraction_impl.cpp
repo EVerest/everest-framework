@@ -71,26 +71,26 @@ void MQTTAbstractionImpl::disconnect() {
     this->mqtt_is_connected = false;
 }
 
-void MQTTAbstractionImpl::publish(const std::string& topic, const json& json) {
+void MQTTAbstractionImpl::publish(const std::string& topic, const json& json, RETAIN retain /*= RETAIN::NOT_RETAINED*/) {
     BOOST_LOG_FUNCTION();
 
-    publish(topic, json, QOS::QOS2);
+    publish(topic, json, QOS::QOS2, retain);
 }
 
-void MQTTAbstractionImpl::publish(const std::string& topic, const json& json, QOS qos) {
+void MQTTAbstractionImpl::publish(const std::string& topic, const json& json, QOS qos, RETAIN retain /*= RETAIN::NOT_RETAINED*/) {
     BOOST_LOG_FUNCTION();
 
     std::string data = json.dump();
-    publish(topic, data, qos);
+    publish(topic, data, qos, retain);
 }
 
-void MQTTAbstractionImpl::publish(const std::string& topic, const std::string& data) {
+void MQTTAbstractionImpl::publish(const std::string& topic, const std::string& data, RETAIN retain /*= RETAIN::NOT_RETAINED*/) {
     BOOST_LOG_FUNCTION();
 
-    publish(topic, data, QOS::QOS0);
+    publish(topic, data, QOS::QOS0, retain);
 }
 
-void MQTTAbstractionImpl::publish(const std::string& topic, const std::string& data, QOS qos) {
+void MQTTAbstractionImpl::publish(const std::string& topic, const std::string& data, QOS qos, RETAIN retain /*= RETAIN::NOT_RETAINED*/) {
     BOOST_LOG_FUNCTION();
 
     auto publish_flags = 0;
@@ -104,6 +104,9 @@ void MQTTAbstractionImpl::publish(const std::string& topic, const std::string& d
     case QOS::QOS2:
         publish_flags = MQTT_PUBLISH_QOS_2;
         break;
+    
+    if(retain == RETAIN::RETAINED)
+        publish_flags |= MQTT_PUBLISH_RETAIN;
 
     default:
         break;

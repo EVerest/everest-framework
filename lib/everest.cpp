@@ -384,6 +384,20 @@ void Everest::external_mqtt_publish(const std::string& topic, const std::string&
     this->mqtt_abstraction.publish(fmt::format("{}{}", this->mqtt_external_prefix, topic), data);
 }
 
+void Everest::external_mqtt_publish_retain(const std::string& topic, const std::string& data, bool retain) {
+    BOOST_LOG_FUNCTION();
+
+    // check if external mqtt is enabled
+    if (!this->module_manifest.contains("enable_external_mqtt") &&
+        this->module_manifest["enable_external_mqtt"] == false) {
+        EVLOG_AND_THROW(EverestApiError(fmt::format("Module {} tries to subscribe to an external MQTT topic, but "
+                                                    "didn't set 'enable_external_mqtt' to 'true' in its manifest",
+                                                    this->config.printable_identifier(this->module_id))));
+    }
+
+    this->mqtt_abstraction.publish(fmt::format("{}{}", this->mqtt_external_prefix, topic), data, static_cast<RETAIN>(retain));
+}
+
 void Everest::provide_external_mqtt_handler(const std::string& topic, const StringHandler& handler) {
     BOOST_LOG_FUNCTION();
 

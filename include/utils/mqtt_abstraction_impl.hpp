@@ -51,20 +51,20 @@ public:
     void disconnect();
 
     ///
-    /// \brief publishes the given \p json on the given \p topic with QOS level 0
-    void publish(const std::string& topic, const json& json);
+    /// \brief publishes the given \p json on the given \p topic with QOS level 0 with \p retain
+    void publish(const std::string& topic, const json& json, RETAIN retain = RETAIN::NOT_RETAINED);
 
     ///
-    /// \brief publishes the given \p json on the given \p topic with the given \p qos
-    void publish(const std::string& topic, const json& json, QOS qos);
+    /// \brief publishes the given \p json on the given \p topic with the given \p qos with \p retain
+    void publish(const std::string& topic, const json& json, QOS qos, RETAIN retain = RETAIN::NOT_RETAINED);
 
     ///
-    /// \brief publishes the given \p data on the given \p topic with QOS level 0
-    void publish(const std::string& topic, const std::string& data);
+    /// \brief publishes the given \p data on the given \p topic with QOS level 0 with \p retain
+    void publish(const std::string& topic, const std::string& data, RETAIN retain = RETAIN::NOT_RETAINED);
 
     ///
-    /// \brief publishes the given \p data on the given \p topic with the given \p qos
-    void publish(const std::string& topic, const std::string& data, QOS qos);
+    /// \brief publishes the given \p data on the given \p topic with the given \p qos with \p retain
+    void publish(const std::string& topic, const std::string& data, QOS qos, RETAIN retain = RETAIN::NOT_RETAINED);
 
     ///
     /// \brief subscribes to the given \p topic with QOS level 0

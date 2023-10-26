@@ -25,24 +25,24 @@ void MQTTAbstraction::disconnect() {
     mqtt_abstraction->disconnect();
 }
 
-void MQTTAbstraction::publish(const std::string& topic, const json& json) {
+void MQTTAbstraction::publish(const std::string& topic, const json& json, RETAIN retain /*= RETAIN::NOT_RETAINED*/) {
     BOOST_LOG_FUNCTION();
-    mqtt_abstraction->publish(topic, json);
+    mqtt_abstraction->publish(topic, json, retain);
 }
 
-void MQTTAbstraction::publish(const std::string& topic, const json& json, QOS qos) {
+void MQTTAbstraction::publish(const std::string& topic, const json& json, QOS qos, RETAIN retain /*= RETAIN::NOT_RETAINED*/) {
     BOOST_LOG_FUNCTION();
-    mqtt_abstraction->publish(topic, json, qos);
+    mqtt_abstraction->publish(topic, json, qos, retain);
 }
 
-void MQTTAbstraction::publish(const std::string& topic, const std::string& data) {
+void MQTTAbstraction::publish(const std::string& topic, const std::string& data, RETAIN retain /*= RETAIN::NOT_RETAINED*/) {
     BOOST_LOG_FUNCTION();
-    mqtt_abstraction->publish(topic, data);
+    mqtt_abstraction->publish(topic, data, retain);
 }
 
-void MQTTAbstraction::publish(const std::string& topic, const std::string& data, QOS qos) {
+void MQTTAbstraction::publish(const std::string& topic, const std::string& data, QOS qos, RETAIN retain /*= RETAIN::NOT_RETAINED*/) {
     BOOST_LOG_FUNCTION();
-    mqtt_abstraction->publish(topic, data, qos);
+    mqtt_abstraction->publish(topic, data, qos, retain);
 }
 
 void MQTTAbstraction::subscribe(const std::string& topic) {

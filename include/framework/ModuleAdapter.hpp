@@ -72,6 +72,7 @@ struct ModuleAdapter {
     using PublishFunc = std::function<void(const std::string&, const std::string&, Value)>;
     using SubscribeFunc = std::function<void(const Requirement&, const std::string&, ValueCallback)>;
     using ExtMqttPublishFunc = std::function<void(const std::string&, const std::string&)>;
+    using ExtMqttPublishRetainFunc = std::function<void(const std::string&, const std::string&, bool)>;
     using ExtMqttSubscribeFunc = std::function<void(const std::string&, StringHandler)>;
     using TelemetryPublishFunc =
         std::function<void(const std::string&, const std::string&, const std::string&, const TelemetryMap&)>;
@@ -80,6 +81,7 @@ struct ModuleAdapter {
     PublishFunc publish;
     SubscribeFunc subscribe;
     ExtMqttPublishFunc ext_mqtt_publish;
+    ExtMqttPublishRetainFunc ext_mqtt_publish_retain;
     ExtMqttSubscribeFunc ext_mqtt_subscribe;
     std::vector<cmd> registered_commands;
     TelemetryPublishFunc telemetry_publish;
@@ -126,6 +128,36 @@ public:
 
     void publish(const std::string& topic, double data) {
         this->publish(topic, data, 5);
+    }
+
+    void publish(const std::string& topic, const std::string& data, bool retain) {
+        ev.ext_mqtt_publish_retain(topic, data, retain);
+    }
+
+    void publish(const std::string& topic, const char* data, bool retain) {
+        ev.ext_mqtt_publish_retain(topic, std::string(data), retain);
+    }
+
+    void publish(const std::string& topic, bool data, bool retain) {
+        if (data) {
+            ev.ext_mqtt_publish_retain(topic, "true", retain);
+        } else {
+            ev.ext_mqtt_publish_retain(topic, "false", retain);
+        }
+    }
+
+    void publish(const std::string& topic, int data, bool retain) {
+        ev.ext_mqtt_publish_retain(topic, std::to_string(data), retain);
+    }
+
+    void publish(const std::string& topic, double data, int precision, bool retain) {
+        std::stringstream stream;
+        stream << std::fixed << std::setprecision(precision) << data;
+        ev.ext_mqtt_publish_retain(topic, stream.str(), retain);
+    }
+
+    void publish(const std::string& topic, double data, bool retain) {
+        this->publish(topic, data, 5, retain);
     }
 
     void subscribe(const std::string& topic, StringHandler handler) {
