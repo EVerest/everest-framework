@@ -411,14 +411,14 @@ static std::map<pid_t, std::string> start_modules(Config& config, MQTTAbstractio
         std::string python_filename = "module.py";
         auto module_path = rs->modules_dir / module_type;
         const auto printable_module_name = config.printable_identifier(module_name);
-        auto cpp_binary_path = module_path / binary_filename;
+        auto binary_path = module_path / binary_filename;
         auto javascript_library_path = module_path / javascript_library_filename;
         auto python_module_path = module_path / python_filename;
 
-        if (fs::exists(cpp_binary_path)) {
+        if (fs::exists(binary_path)) {
             EVLOG_debug << fmt::format("module: {} ({}) provided as binary", module_name, module_type);
             modules_to_spawn.emplace_back(module_name, printable_module_name, ModuleStartInfo::Language::cpp,
-                                          cpp_binary_path);
+                                          binary_path);
         } else if (fs::exists(javascript_library_path)) {
             EVLOG_debug << fmt::format("module: {} ({}) provided as javascript library", module_name, module_type);
             modules_to_spawn.emplace_back(module_name, printable_module_name, ModuleStartInfo::Language::javascript,
@@ -429,12 +429,12 @@ static std::map<pid_t, std::string> start_modules(Config& config, MQTTAbstractio
                                           fs::canonical(python_module_path));
         } else {
             throw std::runtime_error(
-                fmt::format("module: {} ({}) cannot be loaded because no C++, JavaScript or Python "
+                fmt::format("module: {} ({}) cannot be loaded because no Binary, JavaScript or Python "
                             "module has been found\n"
                             "  checked paths:\n"
-                            "    cpp: {}\n"
+                            "    binary: {}\n"
                             "    js:  {}\n",
-                            "    py:  {}\n", module_name, module_type, cpp_binary_path.string(),
+                            "    py:  {}\n", module_name, module_type, binary_path.string(),
                             javascript_library_path.string(), python_module_path.string()));
         }
     }
