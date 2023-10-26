@@ -3,7 +3,7 @@
 #include <cstdlib>
 #include <stdexcept>
 
-#include "everestrs/lib.rs.h"
+#include "cxxbridge/lib.rs.h"
 
 namespace {
 
