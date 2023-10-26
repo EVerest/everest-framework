@@ -14,6 +14,16 @@ endif()
 emit_cxxrs_header()
 emit_cxxrs_for_module(everestrs)
 
+set_property(
+    TARGET
+        framework
+    PROPERTY
+        EVERESTRS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/everestrs
+)
+
+# FIXME (aw): this is still broken
+#             we need a custom target, which does builds the everestrs/lib.rs.h first
+#             because everestrs_sys depends on it
 add_library(everestrs_sys STATIC
   ${CMAKE_CURRENT_BINARY_DIR}/cxxbridge/everestrs/lib.rs.cc
   everestrs_sys/everestrs_sys.cpp
