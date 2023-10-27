@@ -12,7 +12,9 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
+#ifndef __APPLE__
 #include <sys/prctl.h>
+#endif
 #include <sys/socket.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -112,10 +114,11 @@ private:
 SubprocessHandle create_subprocess(bool set_pdeathsig = true) {
     int pipefd[2];
 
+#ifndef __APPLE__
     if (pipe2(pipefd, O_CLOEXEC | O_DIRECT)) {
         throw std::runtime_error(fmt::format("Syscall pipe2() failed ({}), exiting", strerror(errno)));
     }
-
+#endif
     const auto reading_end_fd = pipefd[0];
     const auto writing_end_fd = pipefd[1];
 
@@ -134,12 +137,15 @@ SubprocessHandle create_subprocess(bool set_pdeathsig = true) {
         SubprocessHandle handle{writing_end_fd, pid};
 
         if (set_pdeathsig) {
+#ifdef __APPLE__
+        #warning Some cleanup functions are disabled on Apple platforms
+#else
             // FIXME (aw): how does the the forked process does cleanup when receiving PARENT_DIED_SIGNAL compared to
             //             _exit() before exec() has been called?
             if (prctl(PR_SET_PDEATHSIG, PARENT_DIED_SIGNAL)) {
                 handle.send_error_and_exit(fmt::format("Syscall prctl() failed ({}), exiting", strerror(errno)));
             }
-
+#endif
             if (getppid() != parent_pid) {
                 // kill ourself, with the same handler as we would have
                 // happened when the parent process died

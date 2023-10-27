@@ -359,11 +359,13 @@ int ModuleLoader::initialize() {
         const std::string module_identifier = config.printable_identifier(this->module_id);
         EVLOG_debug << fmt::format("Initializing framework for module {}...", module_identifier);
         EVLOG_verbose << fmt::format("Setting process name to: '{}'...", module_identifier);
+#ifndef __APPLE__
         int prctl_return = prctl(PR_SET_NAME, module_identifier.c_str());
         if (prctl_return == 1) {
             EVLOG_warning << fmt::format("Could not set process name to '{}', it remains '{}'", module_identifier,
                                          this->original_process_name);
         }
+#endif
         Logging::update_process_name(module_identifier);
 
         auto everest =

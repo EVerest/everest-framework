@@ -1,0 +1,4 @@
+build  --cxxopt='-std=c++17'
+# build  --cxxopt='-g'
+# build  --cxxopt='-O0'
+common --enable_bzlmod

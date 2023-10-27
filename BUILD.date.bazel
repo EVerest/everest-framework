@@ -1,0 +1,10 @@
+cc_library(
+  name = "date",
+  srcs = glob(["src/*.cpp"]),
+  hdrs = glob(["include/**/*.h"]),
+  strip_include_prefix = "include",
+  deps = [
+    "@com_github_curl_curl//:libcurl_boringssl",
+  ],
+  visibility = ["//visibility:public"],
+)
