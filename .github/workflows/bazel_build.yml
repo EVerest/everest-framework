@@ -1,0 +1,21 @@
+name: Bazel Build
+run-name: ${{ github.actor }} is building with bazel
+on: [push]
+jobs:
+  bazel-build:
+    runs-on: ubuntu-20.04
+    steps:
+      - run: echo "Hello from github actions"
+      - run: echo "The job is triggered by ${{ github.event_name }}"
+      - run: echo "OS is ${{ runner.os }}"
+      - run: echo branch name is ${{ github.ref }}
+      - name: Checkout
+        uses: actions/checkout@v4.1.0
+      - name: Mount bazel cache
+        uses: actions/cache@v3
+        with:
+          path: "~/.cache/bazel"
+          key: "bazel-cache"
+      - name: Build all
+        run: >
+          bazel build //...
