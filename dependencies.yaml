@@ -73,6 +73,3 @@ pybind11:
 pybind11_json:
   git: https://github.com/pybind/pybind11_json.git
   git_tag: 0.2.13
-everest-utils:
-  git: https://github.com/EVerest/everest-utils.git
-  git_tag: 14adc34

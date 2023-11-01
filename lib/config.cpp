@@ -430,7 +430,7 @@ Config::Config(std::shared_ptr<RuntimeSettings> rs, bool manager) : rs(rs), mana
                     EVLOG_verbose << fmt::format("Loading type file at: {}", fs::canonical(type_file_path).c_str());
                     json type_json = load_yaml(type_file_path);
                     auto start_time_validate = std::chrono::system_clock::now();
-                    json_validator validator(Config::abs_ref_loader, Config::format_checker);
+                    json_validator validator(Config::loader, Config::format_checker);
                     validator.set_root_schema(this->_schemas.type);
                     validator.validate(type_json);
                     auto end_time_validate = std::chrono::system_clock::now();
@@ -474,6 +474,7 @@ Config::Config(std::shared_ptr<RuntimeSettings> rs, bool manager) : rs(rs), mana
                     EVLOG_verbose << fmt::format("Loading error file at: {}", fs::canonical(error_file_path).c_str());
                     json error_json = load_yaml(error_file_path);
                     auto start_time_validate = std::chrono::system_clock::now();
+                    // LTODO
                     json_validator validator(Config::abs_ref_loader, Config::format_checker);
                     validator.set_root_schema(this->_schemas.error_declaration_list);
                     validator.validate(error_json);
@@ -562,6 +563,7 @@ json Config::resolve_interface(const std::string& intf_name) {
     return intf_definition;
 }
 
+// LTODO
 json Config::replace_error_refs(json& interface_json) {
     BOOST_LOG_FUNCTION();
     if (!interface_json.contains("errors")) {
@@ -606,12 +608,13 @@ json Config::load_interface_file(const std::string& intf_name) {
         EVLOG_debug << fmt::format("Loading interface file at: {}", fs::canonical(intf_path).string());
 
         json interface_json = load_yaml(intf_path);
+        // LTODO
         interface_json = Config::replace_error_refs(interface_json);
 
         // this subschema can not use allOf with the draft-07 schema because that will cause our validator to
         // add all draft-07 default values which never validate (the {"not": true} default contradicts everything)
         // --> validating against draft-07 will be done in an extra step below
-        json_validator validator(Config::abs_ref_loader, Config::format_checker);
+        json_validator validator(Config::loader, Config::format_checker);
         validator.set_root_schema(this->_schemas.interface);
         auto patch = validator.validate(interface_json);
         if (!patch.is_null()) {
@@ -758,7 +761,7 @@ json Config::load_schema(const fs::path& path) {
 
     json schema = load_yaml(path);
 
-    json_validator validator(Config::abs_ref_loader, Config::format_checker);
+    json_validator validator(Config::loader, Config::format_checker);
 
     try {
         validator.set_root_schema(schema);
@@ -849,37 +852,21 @@ void Config::loader(const json_uri& uri, json& schema) {
     EVTHROW(EverestInternalError(fmt::format("{} is not supported for schema loading at the moment\n", uri.url())));
 }
 
-void Config::abs_ref_loader(const json_uri& uri, json& schema) {
+void Config::ref_loader(const json_uri& uri, json& schema) {
     BOOST_LOG_FUNCTION();
-    if (uri.location() == "http://json-schema.org/draft-07/schema") {
-        schema = nlohmann::json_schema::draft7_schema_builtin;
-        return;
-    }
-    if (uri.scheme() != "file") {
-        EVTHROW(EverestInternalError(fmt::format("abs_ref_loader needs absolute refs starting with 'file:///': {} is "
-                                                 "not supported for schema loading at the moment\n",
-                                                 uri.url())));
-    }
-    if (!fs::exists(uri.path())) {
-        EVTHROW(EverestInternalError(fmt::format("uri path does not exist: {}", uri.url())));
-    }
-    schema = load_yaml(uri.path());
-    return;
-}
 
-void Config::rel_ref_loader(const json_uri& uri, json& schema, const fs::path& base_path) {
-    BOOST_LOG_FUNCTION();
     if (uri.location() == "http://json-schema.org/draft-07/schema") {
         schema = nlohmann::json_schema::draft7_schema_builtin;
-        return;
-    }
-    auto path = fs::path(base_path.string() + uri.path());
-    if (fs::exists(path)) {
-        schema = load_yaml(path);
-        EVLOG_verbose << fmt::format("ref path \"{}\" schema has been found.", path.string());
         return;
     } else {
-        EVLOG_error << fmt::format("ref path \"{}\" schema has not been found.", path.string());
+        auto path = uri.path();
+        if (this->types.contains(path)) {
+            schema = this->types[path];
+            EVLOG_verbose << fmt::format("ref path \"{}\" schema has been found.", path);
+            return;
+        } else {
+            EVLOG_verbose << fmt::format("ref path \"{}\" schema has not been found.", path);
+        }
     }
 
     // TODO(kai): think about supporting more urls here
@@ -894,8 +881,8 @@ void Config::format_checker(const std::string& format, const std::string& value)
             EVTHROW(std::invalid_argument("URI does not contain :// - invalid"));
         }
     } else if (format == "uri-reference") {
-        if (!std::regex_match(value, relative_ref_regex) && !std::regex_match(value, absolute_ref_regex)) {
-            EVTHROW(std::invalid_argument("Type uri-reference is malformed."));
+        if (!std::regex_match(value, type_uri_regex)) {
+            EVTHROW(std::invalid_argument("Type URI is malformed."));
         }
     } else {
         nlohmann::json_schema::default_string_format_check(format, value);

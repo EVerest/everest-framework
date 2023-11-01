@@ -34,16 +34,9 @@ struct schemas {
 };
 
 ///
-/// \brief Allowed format of a $ref, which can be any path to a yaml file with a json pointer to a json object
+/// \brief Allowed format of a type URI, which are of a format like this /type_file_name#/TypeName
 ///
-const static std::regex relative_ref_regex{
-    R"(^\.{1,2}\/[a-zA-Z0-9\-\_]+(?:\/[a-zA-Z0-9\-\_]+)*\.yaml#\/[a-zA-Z0-9\-\_]+(?:\/[a-zA-Z0-9\-\_]+)*$)"};
-
-///
-/// \brief Allowed format of a $ref, which can be any uri to a yaml file with a json pointer to a json object
-///
-const static std::regex absolute_ref_regex{
-    R"(^file:\/\/\/[a-zA-Z0-9\-\_]+(?:\/[a-zA-Z0-9\-\_]+)*\.yaml#\/[a-zA-Z0-9\-\_]+(?:\/[a-zA-Z0-9\-\_]+)*$)"};
+const static std::regex type_uri_regex{R"(^((?:\/[a-zA-Z0-9\-\_]+)+#\/[a-zA-Z0-9\-\_]+)$)"};
 
 ///
 /// \brief Contains config and manifest parsing
@@ -64,7 +57,6 @@ private:
 
     std::unordered_map<std::string, std::optional<TelemetryConfig>> telemetry_configs;
 
-    static json replace_error_refs(json& interface_json);
     ///
     /// \brief loads the contents of the interface file referenced by the give \p intf_name from disk and validates its
     /// contents
@@ -179,18 +171,11 @@ public:
     std::string mqtt_module_prefix(const std::string& module_id);
 
     ///
-    /// \biref A json schema loader that can handle absolute refs and otherwise uses the builtin draft7 schema of the
-    /// json schema validator when it encounters it. Throws an exception
-    /// otherwise
-    ///
-    static void abs_ref_loader(const json_uri& uri, json& schema);
-
-    ///
-    /// \brief A json schema loader that can handle relative refs and otherwise uses the builtin draft7 schema of
+    /// \brief A json schema loader that can handle type refs and otherwise uses the builtin draft7 schema of
     /// the json schema validator when it encounters it. Throws an exception
     /// otherwise
     ///
-    static void rel_ref_loader(const json_uri& uri, json& schema, const fs::path& base_path);
+    void ref_loader(const json_uri& uri, json& schema);
 
     ///
     /// \brief loads the config.json and manifest.json in the schemes subfolder of
