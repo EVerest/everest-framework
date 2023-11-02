@@ -402,16 +402,11 @@ void Everest::subscribe_error(const Requirement& req, const std::string& error_t
     }
     std::string error_type_namespace = error_type.substr(0, pos);
     std::string error_type_name = error_type.substr(pos + 1);
-    if (!requirement_impl_if.contains("errors")
-        || !requirement_impl_if.at("errors").contains(error_type_namespace)
-        || !requirement_impl_if.at("errors").at(error_type_namespace).contains(error_type_name)) {
-            EVLOG_AND_THROW(EverestApiError(
-                fmt::format(
-                    "{}: Error {} not listed in interface!",
-                    this->config.printable_identifier(requirement_module_id, requirement_impl_id),
-                    error_type
-                )
-            ));
+    if (!requirement_impl_if.contains("errors") || !requirement_impl_if.at("errors").contains(error_type_namespace) ||
+        !requirement_impl_if.at("errors").at(error_type_namespace).contains(error_type_name)) {
+        EVLOG_AND_THROW(EverestApiError(
+            fmt::format("{}: Error {} not listed in interface!",
+                        this->config.printable_identifier(requirement_module_id, requirement_impl_id), error_type)));
     }
 
     Handler handler = [this, requirement_module_id, requirement_impl_id, error_type, callback](json const& data) {
@@ -458,9 +453,8 @@ void Everest::subscribe_error_cleared(const Requirement& req, const std::string&
     }
     std::string error_type_namespace = error_type.substr(0, pos);
     std::string error_type_name = error_type.substr(pos + 1);
-    if (!requirement_impl_if.contains("errors")
-        || !requirement_impl_if.at("errors").contains(error_type_namespace)
-        || !requirement_impl_if.at("errors").at(error_type_namespace).contains(error_type_name)) {
+    if (!requirement_impl_if.contains("errors") || !requirement_impl_if.at("errors").contains(error_type_namespace) ||
+        !requirement_impl_if.at("errors").at(error_type_namespace).contains(error_type_name)) {
         EVLOG_AND_THROW(EverestApiError(
             fmt::format("{}: Error {} not listed in interface!",
                         this->config.printable_identifier(requirement_module_id, requirement_impl_id), error_type)));

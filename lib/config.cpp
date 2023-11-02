@@ -2,9 +2,9 @@
 // Copyright 2020 - 2023 Pionix GmbH and Contributors to EVerest
 #include <algorithm>
 #include <fstream>
+#include <list>
 #include <set>
 #include <sstream>
-#include <list>
 
 #include <fmt/format.h>
 

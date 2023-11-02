@@ -4,12 +4,12 @@
 #define UTILS_CONFIG_HPP
 
 #include <filesystem>
+#include <list>
 #include <optional>
 #include <regex>
 #include <set>
 #include <string>
 #include <unordered_map>
-#include <list>
 
 #include <nlohmann/json-schema.hpp>
 
