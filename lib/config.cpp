@@ -630,6 +630,7 @@ json Config::load_interface_file(const std::string& intf_name) {
         EVLOG_debug << fmt::format("Loading interface file at: {}", fs::canonical(intf_path).string());
 
         json interface_json = load_yaml(intf_path);
+
         // this subschema can not use allOf with the draft-07 schema because that will cause our validator to
         // add all draft-07 default values which never validate (the {"not": true} default contradicts everything)
         // --> validating against draft-07 will be done in an extra step below
