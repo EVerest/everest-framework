@@ -4,6 +4,7 @@
 #include <fstream>
 #include <set>
 #include <sstream>
+#include <list>
 
 #include <fmt/format.h>
 
@@ -474,8 +475,7 @@ Config::Config(std::shared_ptr<RuntimeSettings> rs, bool manager) : rs(rs), mana
                     EVLOG_verbose << fmt::format("Loading error file at: {}", fs::canonical(error_file_path).c_str());
                     json error_json = load_yaml(error_file_path);
                     auto start_time_validate = std::chrono::system_clock::now();
-                    // LTODO
-                    json_validator validator(Config::abs_ref_loader, Config::format_checker);
+                    json_validator validator(Config::loader, Config::format_checker);
                     validator.set_root_schema(this->_schemas.error_declaration_list);
                     validator.validate(error_json);
                     auto end_time_validate = std::chrono::system_clock::now();
@@ -563,39 +563,61 @@ json Config::resolve_interface(const std::string& intf_name) {
     return intf_definition;
 }
 
-// LTODO
+std::list<json> Config::resolve_error_ref(const std::string& reference) {
+    BOOST_LOG_FUNCTION();
+    std::string ref_prefix = "/errors/";
+    std::string err_ref = reference.substr(ref_prefix.length());
+    auto result = err_ref.find("#/");
+    std::string err_namespace;
+    std::string err_name;
+    bool is_error_list;
+    if (result == std::string::npos) {
+        err_namespace = err_ref;
+        err_name = "";
+        is_error_list = true;
+    } else {
+        err_namespace = err_ref.substr(0, result);
+        err_name = err_ref.substr(result + 2);
+        is_error_list = false;
+    }
+    fs::path path = this->rs->errors_dir / (err_namespace + ".yaml");
+    json error_json = load_yaml(path);
+    std::list<json> errors;
+    if (is_error_list) {
+        for (auto& error : error_json.at("errors")) {
+            error["namespace"] = err_namespace;
+            errors.push_back(error);
+        }
+    } else {
+        for (auto& error : error_json.at("errors")) {
+            if (error.at("name") == err_name) {
+                error["namespace"] = err_namespace;
+                errors.push_back(error);
+                break;
+            }
+        }
+    }
+    return errors;
+}
+
 json Config::replace_error_refs(json& interface_json) {
     BOOST_LOG_FUNCTION();
     if (!interface_json.contains("errors")) {
         return interface_json;
     }
-    json errors_new = json::array();
-    for (auto& error_entry : interface_json["errors"]) {
-        if (error_entry.contains("$ref")) {
-            json_uri uri(error_entry["$ref"]);
-            if (uri.location().size()) {
-                json data;
-                Config::abs_ref_loader(uri, data);
-
-                std::string error_namespace = fs::path(uri.path()).stem();
-
-                data = data.at(uri.pointer());
-
-                if (data.is_array()) {
-                    json tmp_data = json::array();
-                    for (auto error : data) {
-                        error["namespace"] = error_namespace;
-                        tmp_data.push_back(error);
-                    }
-                    data = tmp_data;
-                } else {
-                    data["namespace"] = error_namespace;
-                }
-                errors_new.push_back(data);
-                continue;
+    json errors_new = json::object();
+    for (auto& error_entry : interface_json.at("errors")) {
+        std::list<json> errors = resolve_error_ref(error_entry.at("reference"));
+        for (auto& error : errors) {
+            if (!errors_new.contains(error.at("namespace"))) {
+                errors_new[error.at("namespace")] = json::object();
             }
+            if (errors_new.at(error.at("namespace")).contains(error.at("name"))) {
+                EVLOG_AND_THROW(EverestConfigError(fmt::format("Error name '{}' in namespace '{}' already referenced!",
+                                                               error.at("name"), error.at("namespace"))));
+            }
+            errors_new[error.at("namespace")][error.at("name")] = error;
         }
-        errors_new.push_back(error_entry);
     }
     interface_json["errors"] = errors_new;
     return interface_json;
@@ -608,9 +630,6 @@ json Config::load_interface_file(const std::string& intf_name) {
         EVLOG_debug << fmt::format("Loading interface file at: {}", fs::canonical(intf_path).string());
 
         json interface_json = load_yaml(intf_path);
-        // LTODO
-        interface_json = Config::replace_error_refs(interface_json);
-
         // this subschema can not use allOf with the draft-07 schema because that will cause our validator to
         // add all draft-07 default values which never validate (the {"not": true} default contradicts everything)
         // --> validating against draft-07 will be done in an extra step below
@@ -621,6 +640,7 @@ json Config::load_interface_file(const std::string& intf_name) {
             // extend config entry with default values
             interface_json = interface_json.patch(patch);
         }
+        interface_json = Config::replace_error_refs(interface_json);
 
         // validate every cmd arg/result and var definition against draft-07 schema
         validator.set_root_schema(draft07);

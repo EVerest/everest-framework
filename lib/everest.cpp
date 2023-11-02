@@ -402,45 +402,16 @@ void Everest::subscribe_error(const Requirement& req, const std::string& error_t
     }
     std::string error_type_namespace = error_type.substr(0, pos);
     std::string error_type_name = error_type.substr(pos + 1);
-    bool error_available = false;
-    auto check_error_entry = [error_type_namespace, error_type_name](json& error_entry) {
-        if (!error_entry.contains("namespace")) {
-            EVLOG_warning << fmt::format("Error entry does not contain 'namespace' field: {}", error_entry.dump(2));
-            return false;
-        }
-        if (!error_entry.contains("name")) {
-            EVLOG_warning << fmt::format("Error entry does not contain 'name' field: {}", error_entry.dump(2));
-            return false;
-        }
-        if (error_entry["namespace"] != error_type_namespace) {
-            return false;
-        }
-        if (error_entry["name"] != error_type_name) {
-            return false;
-        }
-        return true;
-    };
-    if (requirement_impl_if.contains("errors")) {
-        for (auto entry : requirement_impl_if["errors"]) {
-            if (entry.is_array()) {
-                for (auto error : entry) {
-                    if (check_error_entry(error)) {
-                        error_available = true;
-                        break;
-                    }
-                }
-            } else {
-                if (check_error_entry(entry)) {
-                    error_available = true;
-                    break;
-                }
-            }
-        }
-    }
-    if (!error_available) {
-        EVLOG_AND_THROW(EverestApiError(
-            fmt::format("{}: Error {} not listed in interface!",
-                        this->config.printable_identifier(requirement_module_id, requirement_impl_id), error_type)));
+    if (!requirement_impl_if.contains("errors")
+        || !requirement_impl_if.at("errors").contains(error_type_namespace)
+        || !requirement_impl_if.at("errors").at(error_type_namespace).contains(error_type_name)) {
+            EVLOG_AND_THROW(EverestApiError(
+                fmt::format(
+                    "{}: Error {} not listed in interface!",
+                    this->config.printable_identifier(requirement_module_id, requirement_impl_id),
+                    error_type
+                )
+            ));
     }
 
     Handler handler = [this, requirement_module_id, requirement_impl_id, error_type, callback](json const& data) {
@@ -487,42 +458,9 @@ void Everest::subscribe_error_cleared(const Requirement& req, const std::string&
     }
     std::string error_type_namespace = error_type.substr(0, pos);
     std::string error_type_name = error_type.substr(pos + 1);
-    bool error_available = false;
-    auto check_error_entry = [error_type_namespace, error_type_name](json& error_entry) {
-        if (!error_entry.contains("namespace")) {
-            EVLOG_warning << fmt::format("Error entry does not contain 'namespace' field: {}", error_entry.dump(2));
-            return false;
-        }
-        if (!error_entry.contains("name")) {
-            EVLOG_warning << fmt::format("Error entry does not contain 'name' field: {}", error_entry.dump(2));
-            return false;
-        }
-        if (error_entry["namespace"] != error_type_namespace) {
-            return false;
-        }
-        if (error_entry["name"] != error_type_name) {
-            return false;
-        }
-        return true;
-    };
-    if (requirement_impl_if.contains("errors")) {
-        for (auto entry : requirement_impl_if["errors"]) {
-            if (entry.is_array()) {
-                for (auto error : entry) {
-                    if (check_error_entry(error)) {
-                        error_available = true;
-                        break;
-                    }
-                }
-            } else {
-                if (check_error_entry(entry)) {
-                    error_available = true;
-                    break;
-                }
-            }
-        }
-    }
-    if (!error_available) {
+    if (!requirement_impl_if.contains("errors")
+        || !requirement_impl_if.at("errors").contains(error_type_namespace)
+        || !requirement_impl_if.at("errors").at(error_type_namespace).contains(error_type_name)) {
         EVLOG_AND_THROW(EverestApiError(
             fmt::format("{}: Error {} not listed in interface!",
                         this->config.printable_identifier(requirement_module_id, requirement_impl_id), error_type)));

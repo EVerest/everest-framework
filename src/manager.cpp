@@ -389,18 +389,10 @@ static std::map<pid_t, std::string> start_modules(Config& config, MQTTAbstractio
             std::string impl_name = it_impl.key();
             std::string if_name = it_impl.value().at("interface");
             auto if_def = config.get_interface_definition(if_name);
-            for (auto it_err_entry : if_def.at("errors")) {
-                if (it_err_entry.is_array()) {
-                    for (auto it_err : it_err_entry) {
-                        std::string err_namespace = it_err.at("namespace");
-                        std::string err_name = it_err.at("name");
-                        std::string err_topic =
-                            fmt::format("{}/{}/error/{}/{}", module_name, impl_name, err_namespace, err_name);
-                        err_manager.add_error_topic(err_topic);
-                    }
-                } else {
-                    std::string err_namespace = it_err_entry.at("namespace");
-                    std::string err_name = it_err_entry.at("name");
+            for (auto& it_err_list : if_def.at("errors")) {
+                for (auto& it_err : it_err_list) {
+                    std::string err_namespace = it_err.at("namespace");
+                    std::string err_name = it_err.at("name");
                     std::string err_topic =
                         fmt::format("{}/{}/error/{}/{}", module_name, impl_name, err_namespace, err_name);
                     err_manager.add_error_topic(err_topic);
