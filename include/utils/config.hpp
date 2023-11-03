@@ -14,6 +14,7 @@
 #include <nlohmann/json-schema.hpp>
 
 #include <utils/config_cache.hpp>
+#include <utils/error.hpp>
 #include <utils/types.hpp>
 
 namespace Everest {
@@ -105,7 +106,10 @@ private:
 
     void load_and_validate_manifest(const std::string& module_id, const json& module_config);
 
+    error::ErrorTypeMap error_map;
+
 public:
+    error::ErrorTypeMap get_error_map() const;
     std::string get_module_name(const std::string& module_id);
     bool module_provides(const std::string& module_name, const std::string& impl_id);
     json get_module_cmds(const std::string& module_name, const std::string& impl_id);

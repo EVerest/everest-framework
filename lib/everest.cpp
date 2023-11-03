@@ -26,8 +26,7 @@ const std::array<std::string, 3> TELEMETRY_RESERVED_KEYS = {{"connector_id"}};
 
 Everest::Everest(std::string module_id_, const Config& config_, bool validate_data_with_schema,
                  const std::string& mqtt_server_address, int mqtt_server_port, const std::string& mqtt_everest_prefix,
-                 const std::string& mqtt_external_prefix, const std::string& telemetry_prefix, bool telemetry_enabled,
-                 const fs::path& errors_dir) :
+                 const std::string& mqtt_external_prefix, const std::string& telemetry_prefix, bool telemetry_enabled) :
     mqtt_abstraction(mqtt_server_address, std::to_string(mqtt_server_port), mqtt_everest_prefix, mqtt_external_prefix),
     config(std::move(config_)),
     module_id(std::move(module_id_)),
@@ -54,8 +53,6 @@ Everest::Everest(std::string module_id_, const Config& config_, bool validate_da
 
     this->ready_received = false;
     this->on_ready = nullptr;
-
-    this->error_map = error::ErrorTypeMap(errors_dir);
 
     // register handler for global ready signal
     Handler handle_ready_wrapper = [this](json data) { this->handle_ready(data); };
@@ -480,8 +477,7 @@ std::string Everest::raise_error(const std::string& impl_id, const std::string& 
                                  const std::string& severity) {
     BOOST_LOG_FUNCTION();
 
-    std::string description = this->error_map.get_description(error_type);
-    bool persistent = false;
+    std::string description = this->config.get_error_map().get_description(error_type);
 
     error::Error error(error_type, message, description, this->module_id, impl_id);
 

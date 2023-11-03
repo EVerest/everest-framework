@@ -378,6 +378,7 @@ Config::Config(std::shared_ptr<RuntimeSettings> rs, bool manager) : rs(rs), mana
     this->types = json({});
     this->errors = json({});
     this->_schemas = Config::load_schemas(this->rs->schemas_dir);
+    this->error_map = error::ErrorTypeMap(this->rs->errors_dir);
 
     // load and process config file
     fs::path config_path = rs->config_file;
@@ -540,6 +541,10 @@ Config::Config(std::shared_ptr<RuntimeSettings> rs, bool manager) : rs(rs), mana
     }
 
     resolve_all_requirements();
+}
+
+error::ErrorTypeMap Config::get_error_map() const {
+    return this->error_map;
 }
 
 std::string Config::get_module_name(const std::string& module_id) {

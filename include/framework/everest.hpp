@@ -39,8 +39,7 @@ class Everest {
 public:
     Everest(std::string module_id, const Config& config, bool validate_data_with_schema,
             const std::string& mqtt_server_address, int mqtt_server_port, const std::string& mqtt_everest_prefix,
-            const std::string& mqtt_external_prefix, const std::string& telemetry_prefix, bool telemetry_enabled,
-            const fs::path& errors_dir);
+            const std::string& mqtt_external_prefix, const std::string& telemetry_prefix, bool telemetry_enabled);
 
     // forbid copy assignment and copy construction
     // NOTE (aw): move assignment and construction are also not supported because we're creating explicit references to
@@ -185,7 +184,6 @@ private:
     std::string telemetry_prefix;
     std::optional<TelemetryConfig> telemetry_config;
     bool telemetry_enabled;
-    error::ErrorTypeMap error_map;
 
     void handle_ready(json data);
 
