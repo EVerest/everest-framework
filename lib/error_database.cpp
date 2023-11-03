@@ -20,6 +20,7 @@ ErrorHandle ErrorDatabase::add_error(std::shared_ptr<Error> error) {
     if (this->has_error(handle)) {
         EVTHROW(EverestErrorAlreadyExistsError(handle));
     }
+    std::lock_guard<std::mutex> guard(this->errors_mutex);
     this->errors[handle] = error;
     return handle;
 }
@@ -28,6 +29,7 @@ std::shared_ptr<Error> ErrorDatabase::clear_error_handle(const ImplementationIde
                                                          const ErrorHandle& handle) {
     BOOST_LOG_FUNCTION();
 
+    std::lock_guard<std::mutex> guard(this->errors_mutex);
     if (this->errors.find(handle) == this->errors.end()) {
         EVTHROW(EverestErrorDoesNotExistsError(handle));
     }
@@ -43,6 +45,7 @@ std::list<std::shared_ptr<Error>>
 ErrorDatabase::clear_all_errors_of_type_of_module(const ImplementationIdentifier& impl, const std::string& type) {
     BOOST_LOG_FUNCTION();
 
+    std::lock_guard<std::mutex> guard(this->errors_mutex);
     std::list<std::shared_ptr<Error>> cleared_errors;
     for (auto it = this->errors.begin(); it != this->errors.end();) {
         if (it->second->from != impl) {
@@ -62,6 +65,7 @@ ErrorDatabase::clear_all_errors_of_type_of_module(const ImplementationIdentifier
 std::list<std::shared_ptr<Error>> ErrorDatabase::clear_all_errors_of_module(const ImplementationIdentifier& impl) {
     BOOST_LOG_FUNCTION();
 
+    std::lock_guard<std::mutex> guard(this->errors_mutex);
     std::list<std::shared_ptr<Error>> cleared_errors;
     for (auto it = this->errors.begin(); it != this->errors.end();) {
         if (it->second->from != impl) {
@@ -75,6 +79,7 @@ std::list<std::shared_ptr<Error>> ErrorDatabase::clear_all_errors_of_module(cons
 }
 
 bool ErrorDatabase::has_error(const ErrorHandle& handle) const {
+    std::lock_guard<std::mutex> guard(this->errors_mutex);
     return this->errors.find(handle) != this->errors.end();
 }
 

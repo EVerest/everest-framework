@@ -9,6 +9,7 @@
 #include <list>
 #include <map>
 #include <memory>
+#include <mutex>
 
 #include <everest/exceptions.hpp>
 
@@ -49,6 +50,7 @@ private:
     bool has_error(const ErrorHandle& handle) const;
 
     std::map<ErrorHandle, std::shared_ptr<Error>> errors;
+    std::mutex errors_mutex;
 };
 
 } // namespace error
