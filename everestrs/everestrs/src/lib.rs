@@ -17,6 +17,8 @@ pub enum Error {
     MissingArgument(&'static str),
     #[error("invalid argument to command call: '{0}'")]
     InvalidArgument(&'static str),
+    #[error("Mismatched type: Variant contains '{0}'")]
+    MismatchedType(String),
 }
 
 pub type Result<T> = ::std::result::Result<T, Error>;
@@ -42,6 +44,7 @@ mod ffi {
     /// The possible types a config can have. Note: Naturally this would be am
     /// enum **with** values - however, cxx can't (for now) map Rusts enums to
     /// std::variant or union.
+    #[derive(Debug)]
     enum ConfigType {
         Boolean = 0,
         String = 1,
@@ -138,8 +141,6 @@ mod ffi {
 
     }
 }
-
-// type RsModuleConfigs = HashMap<String, HashMap<String, ConfigTypes>>;
 
 impl ffi::JsonBlob {
     fn as_bytes(&self) -> &[u8] {
@@ -352,41 +353,41 @@ pub enum Config {
 }
 
 impl TryFrom<&Config> for bool {
-    type Error = ();
+    type Error = Error;
     fn try_from(value: &Config) -> std::result::Result<Self, Self::Error> {
         match value {
             Config::Boolean(value) => Ok(*value),
-            _ => Err(()),
+            _ => Err(Error::MismatchedType(format!("{:?}", value))),
         }
     }
 }
 
 impl TryFrom<&Config> for String {
-    type Error = ();
+    type Error = Error;
     fn try_from(value: &Config) -> std::result::Result<Self, Self::Error> {
         match value {
             Config::String(value) => Ok(value.clone()),
-            _ => Err(()),
+            _ => Err(Error::MismatchedType(format!("{:?}", value))),
         }
     }
 }
 
 impl TryFrom<&Config> for f64 {
-    type Error = ();
+    type Error = Error;
     fn try_from(value: &Config) -> std::result::Result<Self, Self::Error> {
         match value {
             Config::Number(value) => Ok(*value),
-            _ => Err(()),
+            _ => Err(Error::MismatchedType(format!("{:?}", value))),
         }
     }
 }
 
 impl TryFrom<&Config> for i64 {
-    type Error = ();
+    type Error = Error;
     fn try_from(value: &Config) -> std::result::Result<Self, Self::Error> {
         match value {
             Config::Integer(value) => Ok(*value),
-            _ => Err(()),
+            _ => Err(Error::MismatchedType(format!("{:?}", value))),
         }
     }
 }
@@ -412,7 +413,7 @@ pub fn get_module_configs() -> HashMap<String, HashMap<String, Config>> {
                         ffi::ConfigType::String => Config::String(field.string_value),
                         ffi::ConfigType::Number => Config::Number(field.number_value),
                         ffi::ConfigType::Integer => Config::Integer(field.integer_value),
-                        _ => panic!("This should never happen"),
+                        _ => panic!("Unexpected value {:?}", field.config_type),
                     };
 
                     (field.name, value)

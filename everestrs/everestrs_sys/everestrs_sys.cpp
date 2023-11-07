@@ -92,6 +92,10 @@ std::unique_ptr<Module> create_module(rust::Str module_id, rust::Str prefix, rus
 
 namespace {
 
+// Below are overloads to be used with std::visit and our std::variant. We force
+// a compilation error if someone changes the underlying std::variant without
+// extending/adjusting the functions below.
+
 inline ConfigField get_config_field(const std::string& _name, bool _value) {
     return {_name, ConfigType::Boolean, _value, {}, 0, 0};
 }
