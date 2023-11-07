@@ -2,6 +2,7 @@
 
 #include <cstdlib>
 #include <stdexcept>
+#include <variant>
 
 #include "cxxbridge/lib.rs.h"
 
@@ -80,11 +81,56 @@ JsonBlob Module::call_command(rust::Str implementation_id, rust::Str name, JsonB
     return json2blob(return_value);
 }
 
+void Module::publish_variable(rust::Str implementation_id, rust::Str name, JsonBlob blob) const {
+    handle_->publish_var(std::string(implementation_id), std::string(name),
+                         json::parse(blob.data.begin(), blob.data.end()));
+}
+
 std::unique_ptr<Module> create_module(rust::Str module_id, rust::Str prefix, rust::Str conf) {
     return std::make_unique<Module>(std::string(module_id), std::string(prefix), std::string(conf));
 }
 
-void Module::publish_variable(rust::Str implementation_id, rust::Str name, JsonBlob blob) const {
-    handle_->publish_var(std::string(implementation_id), std::string(name),
-                         json::parse(blob.data.begin(), blob.data.end()));
+namespace {
+
+inline ConfigField get_config_field(const std::string& _name, bool _value) {
+    return {_name, ConfigType::Boolean, _value, {}, 0, 0};
+}
+
+inline ConfigField get_config_field(const std::string& _name, const std::string& _value) {
+    return {_name, ConfigType::String, false, _value, 0, 0};
+}
+
+inline ConfigField get_config_field(const std::string& _name, double _value) {
+    return {_name, ConfigType::Number, false, {}, _value, 0};
+}
+
+inline ConfigField get_config_field(const std::string& _name, int _value) {
+    return {_name, ConfigType::Integer, false, {}, 0, _value};
+}
+
+} // namespace
+
+rust::Vec<RsModuleConfig> get_module_configs(rust::Str module_id, rust::Str prefix, rust::Str config_file) {
+    const auto rs = std::make_shared<Everest::RuntimeSettings>(std::string(prefix), std::string(config_file));
+    const Everest::Config config{rs};
+    // TODO(ddo) We call this before initializing the logger.
+    const auto module_configs = config.get_module_configs(std::string(module_id));
+
+    rust::Vec<RsModuleConfig> out;
+    out.reserve(module_configs.size());
+
+    // Iterate over all modules stored in the module_config.
+    for (const auto& mm : module_configs) {
+        RsModuleConfig mm_out{mm.first, {}};
+        mm_out.data.reserve(mm.second.size());
+
+        // Iterate over all configs stored in the mm (our current module).
+        for (const auto& cc : mm.second) {
+            mm_out.data.emplace_back(
+                std::visit([&](auto&& _value) { return ::get_config_field(cc.first, _value); }, cc.second));
+        }
+        out.emplace_back(std::move(mm_out));
+    }
+
+    return out;
 }

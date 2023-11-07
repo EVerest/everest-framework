@@ -4,11 +4,16 @@
 #include <framework/runtime.hpp>
 #include <memory>
 #include <string>
+#include <utils/types.hpp>
 
 #include "cxxbridge/rust.h"
+// #include "cxxbridge/lib.rs.h"
 
 struct JsonBlob;
 struct Runtime;
+struct RsModuleConfig;
+struct ConfigField;
+enum class ConfigTypes : uint8_t;
 
 class Module {
 public:
@@ -31,3 +36,7 @@ private:
 };
 
 std::unique_ptr<Module> create_module(rust::Str module_name, rust::Str prefix, rust::Str conf);
+
+
+
+rust::Vec<RsModuleConfig> get_module_configs(rust::Str module_name, rust::Str prefix, rust::Str conf);
