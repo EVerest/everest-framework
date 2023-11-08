@@ -1,7 +1,9 @@
 #include "everestrs_sys.hpp"
+#include "utils/types.hpp"
 
 #include <cstdlib>
 #include <stdexcept>
+#include <type_traits>
 #include <variant>
 
 #include "cxxbridge/lib.rs.h"
@@ -96,19 +98,34 @@ namespace {
 // a compilation error if someone changes the underlying std::variant without
 // extending/adjusting the functions below.
 
+template <typename T, typename... VARIANT_T> struct VariantMemberImpl : public std::false_type {};
+
+template <typename T, typename... VARIANT_T>
+struct VariantMemberImpl<T, std::variant<VARIANT_T...>> : public std::disjunction<std::is_same<T, VARIANT_T>...> {};
+
+/// @brief Static checker if the type T can be converted to `ConfigEntry`.
+///
+/// We use this to detect `get_config_field` overloads which receive arguments
+/// which aren't part of our `ConfigEntry` variant.
+template <typename T> struct ConfigEntryMember : public VariantMemberImpl<T, ConfigEntry> {};
+
 inline ConfigField get_config_field(const std::string& _name, bool _value) {
+    static_assert(ConfigEntryMember<decltype(_value)>::value);
     return {_name, ConfigType::Boolean, _value, {}, 0, 0};
 }
 
 inline ConfigField get_config_field(const std::string& _name, const std::string& _value) {
+    static_assert(ConfigEntryMember<std::remove_cv_t<std::remove_reference_t<decltype(_value)>>>::value);
     return {_name, ConfigType::String, false, _value, 0, 0};
 }
 
 inline ConfigField get_config_field(const std::string& _name, double _value) {
+    static_assert(ConfigEntryMember<decltype(_value)>::value);
     return {_name, ConfigType::Number, false, {}, _value, 0};
 }
 
 inline ConfigField get_config_field(const std::string& _name, int _value) {
+    static_assert(ConfigEntryMember<decltype(_value)>::value);
     return {_name, ConfigType::Integer, false, {}, 0, _value};
 }
 
