@@ -401,26 +401,31 @@ pub fn get_module_configs() -> HashMap<String, HashMap<String, Config>> {
         &args.conf.to_string_lossy(),
     );
 
-    // Map the nested Vec's into a nested HashMaps.
-    raw_config
-        .into_iter()
-        .map(|ffi::RsModuleConfig { module_name, data }| {
-            let current = data
-                .into_iter()
-                .map(|field| {
-                    let value = match field.config_type {
-                        ffi::ConfigType::Boolean => Config::Boolean(field.bool_value),
-                        ffi::ConfigType::String => Config::String(field.string_value),
-                        ffi::ConfigType::Number => Config::Number(field.number_value),
-                        ffi::ConfigType::Integer => Config::Integer(field.integer_value),
-                        _ => panic!("Unexpected value {:?}", field.config_type),
-                    };
+    // Convert the nested Vec's into nested HashMaps.
+    let mut out: HashMap<String, HashMap<String, Config>> = HashMap::new();
+    for mm_config in raw_config {
+        let cc_config = mm_config
+            .data
+            .into_iter()
+            .map(|field| {
+                let value = match field.config_type {
+                    ffi::ConfigType::Boolean => Config::Boolean(field.bool_value),
+                    ffi::ConfigType::String => Config::String(field.string_value),
+                    ffi::ConfigType::Number => Config::Number(field.number_value),
+                    ffi::ConfigType::Integer => Config::Integer(field.integer_value),
+                    _ => panic!("Unexpected value {:?}", field.config_type),
+                };
 
-                    (field.name, value)
-                })
-                .collect::<HashMap<_, _>>();
+                (field.name, value)
+            })
+            .collect::<HashMap<_, _>>();
 
-            (module_name, current)
-        })
-        .collect::<HashMap<_, _>>()
+        // If we have already an entry with the `module_name`, we try to extend
+        // it.
+        out.entry(mm_config.module_name)
+            .or_default()
+            .extend(cc_config);
+    }
+
+    out
 }
