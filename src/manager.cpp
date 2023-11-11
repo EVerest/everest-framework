@@ -13,7 +13,9 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <signal.h>
+#ifndef __APPLE__
 #include <sys/prctl.h>
+#endif
 #include <sys/socket.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -127,12 +129,30 @@ struct ControllerHandle {
 
 #endif
 
-SubprocessHandle create_subprocess(bool set_pdeathsig = true) {
-    int pipefd[2];
+// Wrapper for pipe2()/pipe() syscall to support different platforms
+void create_pipe(int* pipefd) {
 
+#ifndef __APPLE__
     if (pipe2(pipefd, O_CLOEXEC | O_DIRECT)) {
         throw std::runtime_error(fmt::format("Syscall pipe2() failed ({}), exiting", strerror(errno)));
     }
+#else
+    if (pipe(pipefd)) {
+        throw std::runtime_error(fmt::format("Syscall pipe() failed ({}), exiting", strerror(errno)));
+    }
+    if (fcntl(pipefd[0], F_NOCACHE, 1)) {
+        throw std::runtime_error(fmt::format("Syscall fcntl() failed ({}), exiting", strerror(errno)));
+    }
+
+    if (fcntl(pipefd[0], F_SETFD, O_CLOEXEC)) {
+        throw std::runtime_error(fmt::format("Syscall fcntl() failed ({}), exiting", strerror(errno)));
+    }
+#endif
+}
+
+SubprocessHandle create_subprocess(bool set_pdeathsig = true) {
+    int pipefd[2];
+    create_pipe(pipefd);
 
     const auto reading_end_fd = pipefd[0];
     const auto writing_end_fd = pipefd[1];
@@ -154,9 +174,13 @@ SubprocessHandle create_subprocess(bool set_pdeathsig = true) {
         if (set_pdeathsig) {
             // FIXME (aw): how does the the forked process does cleanup when receiving PARENT_DIED_SIGNAL compared to
             //             _exit() before exec() has been called?
+#ifndef __APPLE__
             if (prctl(PR_SET_PDEATHSIG, PARENT_DIED_SIGNAL)) {
                 handle.send_error_and_exit(fmt::format("Syscall prctl() failed ({}), exiting", strerror(errno)));
             }
+#else
+            EVLOG_warning << "prctl() is not available on this platform, cannot set PDEATHSIG";
+#endif
 
             if (getppid() != parent_pid) {
                 // kill ourself, with the same handler as we would have
