@@ -10,9 +10,6 @@
 #include <fmt/color.h>
 #include <fmt/core.h>
 #include <framework/ModuleAdapter.hpp>
-#ifndef __APPLE__
-#include <sys/prctl.h>
-#endif
 
 #include <utils/yaml_loader.hpp>
 

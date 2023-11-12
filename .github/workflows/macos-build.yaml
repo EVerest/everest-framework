@@ -26,6 +26,11 @@ jobs:
           path: everest-dev-environment
           ref: v0.5.5
 
+      - name: Cache build
+        uses: actions/cache@v3
+        with:
+          path: ${{github.workspace}}/build
+
       - name: Install dependencies with homebrew
         run: brew install openssl@1.1 boost
 
@@ -43,5 +48,6 @@ jobs:
             -DCMAKE_PREFIX_PATH=$EVEREST_CMAKE_PATH \
             -DLWS_OPENSSL_LIBRARIES="/usr/local/opt/openssl@1.1/lib/libcrypto.dylib;/usr/local/opt/openssl@1.1/lib/libssl.dylib" \
             -DLWS_OPENSSL_INCLUDE_DIRS="/usr/local/opt/openssl@1.1/include" \
-            -DEVEREST_ENABLE_JS_SUPPORT=OFF
+            -DEVEREST_ENABLE_JS_SUPPORT=OFF \
+            -DEVEREST_ENABLE_RS_SUPPORT=ON
           make -j2

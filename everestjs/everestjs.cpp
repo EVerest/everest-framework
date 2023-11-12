@@ -5,12 +5,9 @@
 
 #include <framework/everest.hpp>
 #include <framework/runtime.hpp>
+#include <utils/set_process_name.hpp>
 
 #include <napi.h>
-
-#ifndef __APPLE__
-#include <sys/prctl.h>
-#endif
 
 #include <chrono>
 #include <future>
@@ -318,14 +315,8 @@ static Napi::Value boot_module(const Napi::CallbackInfo& info) {
         // initialize everest framework
         const auto& module_identifier = config->printable_identifier(module_id);
         EVLOG_debug << "Initializing framework for module " << module_identifier << "...";
-        EVLOG_debug << "Trying to set process name to: '" << module_identifier << "'...";
-#ifndef __APPLE__
-        if (prctl(PR_SET_NAME, module_identifier.c_str())) {
-            EVLOG_warning << "Could not set process name to '" << module_identifier << "'";
-        }
-#else
-        EVLOG_warning << "Could not set process name to '" << module_identifier << "' (not supported on macOS)";
-#endif
+
+        set_process_name(module_identifier);
 
         Everest::Logging::update_process_name(module_identifier);
 

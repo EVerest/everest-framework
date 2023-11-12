@@ -12,6 +12,12 @@ add_library(everest::framework ALIAS framework)
 
 set_target_properties(framework PROPERTIES SOVERSION ${PROJECT_VERSION})
 
+if(APPLE)
+    set(OS_SPECIFIC_FILES "set_process_name.macos.cpp")
+else()
+    set(OS_SPECIFIC_FILES "set_process_name.linux.cpp")
+endif()
+
 target_sources(framework
     PRIVATE
         config.cpp
@@ -29,6 +35,7 @@ target_sources(framework
         date.cpp
         runtime.cpp
         yaml_loader.cpp
+        ${OS_SPECIFIC_FILES}
 )
 
 # FIXME (aw): c++17 doesn't need necessarily to be public, but our

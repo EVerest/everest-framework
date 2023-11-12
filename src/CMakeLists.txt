@@ -1,4 +1,13 @@
-add_executable(manager manager.cpp)
+if (APPLE)
+    set(OS_SPECIFIC_FILES "create_pipe.macos.cpp")
+else ()
+    set(OS_SPECIFIC_FILES "create_pipe.linux.cpp")
+endif ()
+
+add_executable(manager 
+    manager.cpp
+    create_pipe.hpp
+    ${OS_SPECIFIC_FILES})
 
 target_link_libraries(manager
     PRIVATE

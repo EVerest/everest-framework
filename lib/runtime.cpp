@@ -4,6 +4,7 @@
 #include <framework/runtime.hpp>
 #include <utils/error.hpp>
 #include <utils/error_json.hpp>
+#include <utils/set_process_name.hpp>
 
 #include <algorithm>
 #include <cstdlib>
@@ -369,16 +370,9 @@ int ModuleLoader::initialize() {
 
         const std::string module_identifier = config.printable_identifier(this->module_id);
         EVLOG_debug << fmt::format("Initializing framework for module {}...", module_identifier);
-        EVLOG_verbose << fmt::format("Setting process name to: '{}'...", module_identifier);
-#ifndef __APPLE__
-        int prctl_return = prctl(PR_SET_NAME, module_identifier.c_str());
-        if (prctl_return == 1) {
-            EVLOG_warning << fmt::format("Could not set process name to '{}', it remains '{}'", module_identifier,
-                                         this->original_process_name);
-        }
-#else
-        EVLOG_warning << "Not Setting process names on macOS is not supported!";
-#endif
+
+        set_process_name(module_identifier);
+
         Logging::update_process_name(module_identifier);
 
         auto everest =

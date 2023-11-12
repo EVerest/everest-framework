@@ -35,6 +35,7 @@
 #include <utils/status_fifo.hpp>
 
 #include "controller/ipc.hpp"
+#include "create_pipe.hpp"
 
 namespace po = boost::program_options;
 namespace fs = std::filesystem;
@@ -128,27 +129,6 @@ struct ControllerHandle {
 };
 
 #endif
-
-// Wrapper for pipe2()/pipe() syscall to support different platforms
-void create_pipe(int* pipefd) {
-
-#ifndef __APPLE__
-    if (pipe2(pipefd, O_CLOEXEC | O_DIRECT)) {
-        throw std::runtime_error(fmt::format("Syscall pipe2() failed ({}), exiting", strerror(errno)));
-    }
-#else
-    if (pipe(pipefd)) {
-        throw std::runtime_error(fmt::format("Syscall pipe() failed ({}), exiting", strerror(errno)));
-    }
-    if (fcntl(pipefd[0], F_NOCACHE, 1)) {
-        throw std::runtime_error(fmt::format("Syscall fcntl() failed ({}), exiting", strerror(errno)));
-    }
-
-    if (fcntl(pipefd[0], F_SETFD, O_CLOEXEC)) {
-        throw std::runtime_error(fmt::format("Syscall fcntl() failed ({}), exiting", strerror(errno)));
-    }
-#endif
-}
 
 SubprocessHandle create_subprocess(bool set_pdeathsig = true) {
     int pipefd[2];
