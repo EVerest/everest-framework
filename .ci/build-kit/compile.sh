@@ -1,6 +1,7 @@
 #!/bin/bash
 set -e
 
+echo "$(ls)"
 # Install coverage dependencies
 apt update && apt install -y gcovr lcov
 
