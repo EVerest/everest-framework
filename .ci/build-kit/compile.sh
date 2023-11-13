@@ -1,11 +1,6 @@
 #!/bin/bash
 set -e
 
-echo "Listing dirs"
-ls -l
-echo "Listing $EXT_MOUNT"
-ls -l $EXT_MOUNT
-
 # Install coverage dependencies
 apt update && apt install -y gcovr lcov
 
@@ -15,7 +10,7 @@ source "$HOME/.cargo/env"
 
 cmake \
     -B build \
-    -S "$EXT_MOUNT" \
+    -S "$EXT_MOUNT/source" \
     -G Ninja \
     -DEVC_ENABLE_CCACHE=1 \
     -DISO15118_2_GENERATE_AND_INSTALL_CERTIFICATES=OFF \

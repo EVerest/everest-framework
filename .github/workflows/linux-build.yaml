@@ -31,7 +31,7 @@ jobs:
         run: |
           mkdir scripts
           rsync -a source/.ci/build-kit/ scripts
-      # Run from debian since alpine 3.17 does not ship lcov.
+      # Run on debian since alpine 3.17 does not ship lcov.
       - name: Pull docker container
         run: |
           docker pull --quiet ghcr.io/everest/build-kit-debian:latest
@@ -40,5 +40,4 @@ jobs:
         run: |
           docker run \
           --volume "$(pwd):/ext" \
-          --name compile-container \
           build-kit run-script compile
