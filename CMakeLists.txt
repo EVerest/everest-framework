@@ -17,8 +17,6 @@ option(CMAKE_RUN_CLANG_TIDY "Run clang-tidy" OFF)
 option(EVEREST_ENABLE_JS_SUPPORT "Enable everestjs for JavaScript modules" ON)
 option(EVEREST_ENABLE_PY_SUPPORT "Enable everestpy for Python modules" ON)
 option(EVEREST_ENABLE_RS_SUPPORT "Enable everestrs for Rust modules" OFF)
-# This can be removed once we can install lcov in our ci-docker image.
-option(TRACK_TEST_COV "Track the test coverage" ON)
 
 # make own cmake modules available
 list(INSERT CMAKE_MODULE_PATH 0 "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
@@ -151,21 +149,19 @@ if(BUILD_TESTING)
 
     add_subdirectory(tests)
 
-    # if(TRACK_TEST_COV)
-        setup_target_for_coverage_gcovr_html(
-            NAME gcovr_coverage
-            EXECUTABLE ctest --output-on-failure
-            EXCLUDE "${CMAKE_SOURCE_DIR}/tests" "${CMAKE_BINARY_DIR}"
-            DEPENDENCIES tests everest
-        )
+    setup_target_for_coverage_gcovr_html(
+        NAME gcovr_coverage
+        EXECUTABLE ctest --output-on-failure
+        EXCLUDE "${CMAKE_SOURCE_DIR}/tests" "${CMAKE_BINARY_DIR}"
+        DEPENDENCIES tests everest
+    )
 
-        setup_target_for_coverage_lcov(
-            NAME lcov_coverage
-            EXECUTABLE ctest --output-on-failure
-            EXCLUDE "${CMAKE_SOURCE_DIR}/tests" "${CMAKE_BINARY_DIR}"
-            DEPENDENCIES tests everest
-        )
-    # endif()
+    setup_target_for_coverage_lcov(
+        NAME lcov_coverage
+        EXECUTABLE ctest --output-on-failure
+        EXCLUDE "${CMAKE_SOURCE_DIR}/tests" "${CMAKE_BINARY_DIR}"
+        DEPENDENCIES tests everest
+    )
 else()
     message("Not running unit tests")
 endif()
