@@ -1,7 +1,11 @@
 #!/bin/bash
 set -e
 
-echo "$(ls)"
+echo "Listing dirs"
+ls -l
+echo "Listing $EXT_MOUNT"
+ls -l $EXT_MOUNT
+
 # Install coverage dependencies
 apt update && apt install -y gcovr lcov
 
