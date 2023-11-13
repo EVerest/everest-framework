@@ -20,6 +20,8 @@ option(EVEREST_ENABLE_PY_SUPPORT "Enable everestpy for Python modules" ON)
 option(EVEREST_ENABLE_RS_SUPPORT "Enable everestrs for Rust modules" OFF)
 option(EVEREST_ENABLE_ADMIN_PANEL_BACKEND "Enable everest admin panel backend" ON)
 option(EVEREST_INSTALL_ADMIN_PANEL "Download and install everest admin panel" ON)
+# This can be removed once we can install lcov in our ci-docker image.
+option(TRACK_TEST_COV "Track the test coverage" ON)
 
 # make own cmake modules available
 list(INSERT CMAKE_MODULE_PATH 0 "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
