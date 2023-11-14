@@ -341,8 +341,6 @@ RuntimeSettings::RuntimeSettings(const std::string& prefix_, const std::string& 
     } else {
         validate_schema = defaults::VALIDATE_SCHEMA;
     }
-
-    validate_schema_on_startup = settings.value("validate_schema_on_startup", defaults::VALIDATE_SCHEMA_ON_STARTUP);
 }
 
 ModuleCallbacks::ModuleCallbacks(const std::function<void(ModuleAdapter module_adapter)>& register_module_adapter,

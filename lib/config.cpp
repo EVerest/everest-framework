@@ -369,21 +369,19 @@ void Config::load_and_validate_manifest(const std::string& module_id, const json
 std::tuple<json, int> Config::load_and_validate_with_schema(const fs::path& file_path, const json& schema) {
     json json_to_validate = load_yaml(file_path);
     auto validation_ms = 0;
-    if (rs->validate_schema_on_startup) {
 
-        auto start_time_validate = std::chrono::system_clock::now();
-        json_validator validator(Config::loader, Config::format_checker);
-        validator.set_root_schema(schema);
-        validator.validate(json_to_validate);
-        auto end_time_validate = std::chrono::system_clock::now();
-        EVLOG_debug
-            << "YAML validation of " << file_path.string() << " took: "
-            << std::chrono::duration_cast<std::chrono::milliseconds>(end_time_validate - start_time_validate).count()
-            << "ms";
+    auto start_time_validate = std::chrono::system_clock::now();
+    json_validator validator(Config::loader, Config::format_checker);
+    validator.set_root_schema(schema);
+    validator.validate(json_to_validate);
+    auto end_time_validate = std::chrono::system_clock::now();
+    EVLOG_debug
+        << "YAML validation of " << file_path.string() << " took: "
+        << std::chrono::duration_cast<std::chrono::milliseconds>(end_time_validate - start_time_validate).count()
+        << "ms";
 
-        validation_ms =
-            std::chrono::duration_cast<std::chrono::milliseconds>(end_time_validate - start_time_validate).count();
-    }
+    validation_ms =
+        std::chrono::duration_cast<std::chrono::milliseconds>(end_time_validate - start_time_validate).count();
 
     return {json_to_validate, validation_ms};
 }

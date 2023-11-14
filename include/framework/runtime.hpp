@@ -120,7 +120,6 @@ struct RuntimeSettings {
     nlohmann::json config;
 
     bool validate_schema;
-    bool validate_schema_on_startup;
 
     explicit RuntimeSettings(const std::string& prefix, const std::string& config);
 };
