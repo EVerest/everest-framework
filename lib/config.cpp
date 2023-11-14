@@ -366,6 +366,28 @@ void Config::load_and_validate_manifest(const std::string& module_id, const json
     }
 }
 
+std::tuple<json, int> Config::load_and_validate_with_schema(const fs::path& file_path, const json& schema) {
+    json json_to_validate = load_yaml(file_path);
+    auto validation_ms = 0;
+    if (rs->validate_schema_on_startup) {
+
+        auto start_time_validate = std::chrono::system_clock::now();
+        json_validator validator(Config::loader, Config::format_checker);
+        validator.set_root_schema(schema);
+        validator.validate(json_to_validate);
+        auto end_time_validate = std::chrono::system_clock::now();
+        EVLOG_debug
+            << "YAML validation of " << file_path.string() << " took: "
+            << std::chrono::duration_cast<std::chrono::milliseconds>(end_time_validate - start_time_validate).count()
+            << "ms";
+
+        validation_ms =
+            std::chrono::duration_cast<std::chrono::milliseconds>(end_time_validate - start_time_validate).count();
+    }
+
+    return {json_to_validate, validation_ms};
+}
+
 Config::Config(std::shared_ptr<RuntimeSettings> rs) : Config(rs, false) {
 }
 
@@ -430,23 +452,9 @@ Config::Config(std::shared_ptr<RuntimeSettings> rs, bool manager) : rs(rs), mana
                 try {
                     // load and validate type file, store validated result in this->types
                     EVLOG_verbose << fmt::format("Loading type file at: {}", fs::canonical(type_file_path).c_str());
-                    json type_json = load_yaml(type_file_path);
 
-                    if (rs->validate_schema_on_startup) {
-                        auto start_time_validate = std::chrono::system_clock::now();
-                        json_validator validator(Config::loader, Config::format_checker);
-                        validator.set_root_schema(this->_schemas.type);
-                        validator.validate(type_json);
-                        auto end_time_validate = std::chrono::system_clock::now();
-                        EVLOG_debug << "YAML validation of " << types_entry.path().string() << " took: "
-                                    << std::chrono::duration_cast<std::chrono::milliseconds>(end_time_validate -
-                                                                                             start_time_validate)
-                                           .count()
-                                    << "ms";
-                        total_time_validation_ms += std::chrono::duration_cast<std::chrono::milliseconds>(
-                                                        end_time_validate - start_time_validate)
-                                                        .count();
-                    }
+                    auto [type_json, validate_ms] = load_and_validate_with_schema(type_file_path, this->_schemas.type);
+                    total_time_validation_ms += validate_ms;
 
                     this->types[type_path] = type_json["types"];
                 } catch (const std::exception& e) {
@@ -477,22 +485,9 @@ Config::Config(std::shared_ptr<RuntimeSettings> rs, bool manager) : rs(rs), mana
                 try {
                     // load and validate error file, store validated result in this->errors
                     EVLOG_verbose << fmt::format("Loading error file at: {}", fs::canonical(error_file_path).c_str());
-                    json error_json = load_yaml(error_file_path);
-                    if (rs->validate_schema_on_startup) {
-                        auto start_time_validate = std::chrono::system_clock::now();
-                        json_validator validator(Config::loader, Config::format_checker);
-                        validator.set_root_schema(this->_schemas.error_declaration_list);
-                        validator.validate(error_json);
-                        auto end_time_validate = std::chrono::system_clock::now();
-                        EVLOG_debug << "YAML validation of " << errors_entry.path().string() << " took: "
-                                    << std::chrono::duration_cast<std::chrono::milliseconds>(end_time_validate -
-                                                                                             start_time_validate)
-                                           .count()
-                                    << "ms";
-                        total_time_validation_ms += std::chrono::duration_cast<std::chrono::milliseconds>(
-                                                        end_time_validate - start_time_validate)
-                                                        .count();
-                    }
+
+                    auto [error_json, validate_ms] = load_and_validate_with_schema(error_file_path, this->_schemas.error_declaration_list);
+                    total_time_validation_ms += validate_ms;
 
                     this->errors[error_path] = error_json["errors"];
                 } catch (const std::exception& e) {
