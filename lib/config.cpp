@@ -439,7 +439,7 @@ Config::Config(std::shared_ptr<RuntimeSettings> rs, bool manager) : rs(rs), mana
     }
 
     // load type files
-    if (manager or rs->validate_schema) {
+    if (rs->validate_schema) {
         int total_time_validation_ms = 0, total_time_parsing_ms = 0;
         for (auto const& types_entry : fs::recursive_directory_iterator(this->rs->types_dir)) {
             auto start_time = std::chrono::system_clock::now();
@@ -471,7 +471,7 @@ Config::Config(std::shared_ptr<RuntimeSettings> rs, bool manager) : rs(rs), mana
     }
 
     // load error files
-    if (manager or rs->validate_schema) {
+    if (rs->validate_schema) {
         int total_time_validation_ms = 0, total_time_parsing_ms = 0;
         for (auto const& errors_entry : fs::recursive_directory_iterator(this->rs->errors_dir)) {
             auto start_time = std::chrono::system_clock::now();
