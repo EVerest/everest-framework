@@ -81,6 +81,7 @@ inline constexpr auto MQTT_EXTERNAL_PREFIX = "";
 inline constexpr auto TELEMETRY_PREFIX = "everest-telemetry";
 inline constexpr auto TELEMETRY_ENABLED = false;
 inline constexpr auto VALIDATE_SCHEMA = false;
+inline constexpr auto VALIDATE_SCHEMA_ON_STARTUP = false;
 
 } // namespace defaults
 
@@ -119,6 +120,7 @@ struct RuntimeSettings {
     nlohmann::json config;
 
     bool validate_schema;
+    bool validate_schema_on_startup;
 
     explicit RuntimeSettings(const std::string& prefix, const std::string& config);
 };
