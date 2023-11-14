@@ -486,7 +486,8 @@ Config::Config(std::shared_ptr<RuntimeSettings> rs, bool manager) : rs(rs), mana
                     // load and validate error file, store validated result in this->errors
                     EVLOG_verbose << fmt::format("Loading error file at: {}", fs::canonical(error_file_path).c_str());
 
-                    auto [error_json, validate_ms] = load_and_validate_with_schema(error_file_path, this->_schemas.error_declaration_list);
+                    auto [error_json, validate_ms] =
+                        load_and_validate_with_schema(error_file_path, this->_schemas.error_declaration_list);
                     total_time_validation_ms += validate_ms;
 
                     this->errors[error_path] = error_json["errors"];
