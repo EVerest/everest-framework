@@ -479,26 +479,26 @@ static Napi::Value boot_module(const Napi::CallbackInfo& info) {
                 auto impl_raise_errors_prop = Napi::Object::New(env);
                 auto impl_request_clear_errors_prop = Napi::Object::New(env);
                 for (const auto& error_namespace_it : impl_intf["errors"].items()) {
-                    const std::string& error_namespace = error_namespace_it.key();
                     for (const auto& error_name_it : error_namespace_it.value().items()) {
-                        const std::string& error_name = error_name_it.key();
+                        const std::string error_type = error_namespace_it.key() + "/" + error_name_it.key();
+                        const std::string prop_key = error_namespace_it.key() + "_" + error_name_it.key();
                         impl_raise_errors_prop.DefineProperty(Napi::PropertyDescriptor::Value(
-                            error_namespace + "_" + error_name,
+                            prop_key,
                             Napi::Function::New(env,
-                                                [impl_id, error_namespace, error_name](const Napi::CallbackInfo& info) {
+                                                [impl_id, error_type](const Napi::CallbackInfo& info) {
                                                     const std::string message = info[0].ToString().Utf8Value();
                                                     const std::string severity = info[1].ToString().Utf8Value();
-                                                    return raise_error(impl_id, error_namespace + "/" + error_name,
+                                                    return raise_error(impl_id, error_type,
                                                                        message, severity, info.Env());
                                                 }),
                             napi_enumerable));
                         impl_request_clear_errors_prop.DefineProperty(Napi::PropertyDescriptor::Value(
-                            error_namespace + "_" + error_name,
+                            prop_key,
                             Napi::Function::New(env,
-                                                [impl_id, error_namespace, error_name](const Napi::CallbackInfo& info) {
+                                                [impl_id, error_type](const Napi::CallbackInfo& info) {
                                                     return request_clear_error(
                                                         Everest::error::RequestClearErrorOption::ClearAllOfTypeOfModule,
-                                                        impl_id, "", error_namespace + "/" + error_name, info.Env());
+                                                        impl_id, "", error_type, info.Env());
                                                 }),
                             napi_enumerable));
                     }
@@ -609,21 +609,20 @@ static Napi::Value boot_module(const Napi::CallbackInfo& info) {
                 auto error_cleared_subscribe_prop = Napi::Object::New(env);
                 std::list<std::function<Napi::Value(const Napi::CallbackInfo&)>> error_subscribe_funcs;
                 for (auto const& error_namespace_it : requirement_errors.items()) {
-                    const std::string& error_namespace = error_namespace_it.key();
                     for (auto const& error_name_it : error_namespace_it.value().items()) {
-                        const std::string& error_name = error_name_it.key();
-                        auto subscribe_error_func = [requirement_id, i, error_namespace,
-                                                     error_name](const Napi::CallbackInfo& info) {
+                        const std::string error_type = error_namespace_it.key() + "/" + error_name_it.key();
+                        const std::string prop_key = error_namespace_it.key() + "_" + error_name_it.key();
+                        auto subscribe_error_func = [requirement_id, i, error_type](const Napi::CallbackInfo& info) {
                             Napi::Function error_subscribe_cb = info[0].As<Napi::Function>();
                             Napi::Function error_cleared_subscribe_cb = info[1].As<Napi::Function>();
-                            subscribe_error({requirement_id, i}, error_namespace + "/" + error_name, error_subscribe_cb,
+                            subscribe_error({requirement_id, i}, error_type, error_subscribe_cb,
                                             info.Env());
-                            subscribe_error_cleared({requirement_id, i}, error_namespace + "/" + error_name,
+                            subscribe_error_cleared({requirement_id, i}, error_type,
                                                     error_cleared_subscribe_cb, info.Env());
                             return info.Env().Undefined();
                         };
                         error_subscribe_prop.DefineProperty(Napi::PropertyDescriptor::Value(
-                            error_namespace + "_" + error_name, Napi::Function::New(env, subscribe_error_func),
+                            prop_key, Napi::Function::New(env, subscribe_error_func),
                             napi_enumerable));
                         error_subscribe_funcs.push_back(subscribe_error_func);
                     }
