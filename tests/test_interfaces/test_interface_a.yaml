@@ -1,0 +1,5 @@
+description: "This class defines a minimal valid class"
+vars:
+  test_var:
+    description: "This is a test variable"
+    type: string

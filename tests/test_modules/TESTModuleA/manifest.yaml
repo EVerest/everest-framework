@@ -1,0 +1,8 @@
+description: "This is TESTModuleA."
+provides:
+  main:
+    description: "This unit is the main unit of TESTModuleA."
+    interface: "test_interface_a"
+metadata:
+  license: "https://opensource.org/licenses/Apache-2.0"
+  authors: ["Andreas Heinrich"]
