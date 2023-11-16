@@ -132,6 +132,9 @@ RuntimeSettings::RuntimeSettings(const std::string& prefix_, const std::string& 
     }
 
     config = load_yaml(config_file);
+    if (config == nullptr) {
+        EVLOG_AND_THROW(EverestConfigError("Config file is nullptr!"));
+    }
 
     const auto settings = config.value("settings", json::object());
 
