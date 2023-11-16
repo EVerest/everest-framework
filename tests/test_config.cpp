@@ -37,7 +37,7 @@ SCENARIO("Check RuntimeSetting Constructor", "[!throws]") {
 }
 SCENARIO("Check Config Constructor", "[!throws]") {
     std::string bin_dir = Everest::tests::get_bin_dir().string() + "/";
-    GIVEN("An config without modules") {
+    GIVEN("A config without modules") {
         std::shared_ptr<Everest::RuntimeSettings> rs = std::make_shared<Everest::RuntimeSettings>(
             Everest::RuntimeSettings(bin_dir + "empty_config/", bin_dir + "empty_config/config.yaml"));
         Everest::Config config = Everest::Config(rs);
