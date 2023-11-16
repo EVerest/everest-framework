@@ -7,12 +7,12 @@
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 
-namespace Everest{
-namespace tests{
+namespace Everest {
+namespace tests {
 
 fs::path get_bin_dir() {
     return fs::canonical("/proc/self/exe").parent_path();
 }
 
 } // namespace tests
-} // namespace everest
+} // namespace Everest

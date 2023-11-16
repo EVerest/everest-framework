@@ -6,12 +6,12 @@
 
 namespace fs = std::filesystem;
 
-namespace Everest{
-namespace tests{
+namespace Everest {
+namespace tests {
 
 fs::path get_bin_dir();
 
 } // namespace tests
-} // namespace everest
+} // namespace Everest
 
 #endif // TESTS_HELPERS_HPP
