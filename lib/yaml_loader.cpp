@@ -40,7 +40,7 @@ struct RymlCallbackInitializer {
 
 static nlohmann::ordered_json ryml_to_nlohmann_json(const c4::yml::NodeRef& ryml_node) {
     if (ryml_node.empty()) {
-        return nullptr;
+        return nlohmann::ordered_json::object();
     } else if (ryml_node.is_map()) {
         // handle object
         auto object = nlohmann::ordered_json::object();
