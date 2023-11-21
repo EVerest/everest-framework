@@ -6,3 +6,5 @@ workspace.yaml
 
 # Clang
 .cache/
+
+cmake-build-debug/
