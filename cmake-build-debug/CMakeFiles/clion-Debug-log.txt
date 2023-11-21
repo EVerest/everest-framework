@@ -1,0 +1,22 @@
+/home/gaoler/.local/share/JetBrains/Toolbox/apps/clion-nova/bin/cmake/linux/x64/bin/cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_MAKE_PROGRAM=/home/gaoler/.local/share/JetBrains/Toolbox/apps/clion-nova/bin/ninja/linux/x64/ninja -G Ninja -S /home/gaoler/src/github.com/folkengine/everest-framework -B /home/gaoler/src/github.com/folkengine/everest-framework/cmake-build-debug
+-- The CXX compiler identification is GNU 11.4.0
+-- The C compiler identification is GNU 11.4.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/cc - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Found Boost: /usr/lib/x86_64-linux-gnu/cmake/Boost-1.74.0/BoostConfig.cmake (found version "1.74.0") found components: program_options system thread 
+CMake Error at /home/gaoler/src/github.com/folkengine/everest-cmake/edm.cmake:5 (message):
+  Could not find EVerest dependency manager.  Please make it available in
+  your PATH.
+Call Stack (most recent call first):
+  CMakeLists.txt:36 (evc_setup_edm)
+
+
+-- Configuring incomplete, errors occurred!
