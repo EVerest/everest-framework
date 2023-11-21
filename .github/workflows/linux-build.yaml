@@ -4,20 +4,21 @@ on: [workflow_dispatch, pull_request]
 jobs:
   build:
     name: Build
-    strategy:
-      matrix:
-        os: [large-ubuntu-22.04-xxl]
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-22.04
     steps:
+      - name: Format branch name for cache key
+        run: |
+          BRANCH_NAME_FOR_CACHE="${GITHUB_REF_NAME//-/_}"
+          echo "branch_name_for_cache=${BRANCH_NAME_FOR_CACHE}" >> "$GITHUB_ENV"
       - name: Setup cache
         uses: actions/cache@v3
         with:
           path: cache
-          key: compile-${{ github.ref }}-${{ github.sha }}
+          key: compile-${{ env.branch_name_for_cache }}-${{ github.sha }}
           restore-keys: |
-            compile-${{ github.ref }}-
+            compile-${{ env.branch_name_for_cache }}-
             compile-
-      - name: Checkout everest-framework
+      - name: Checkout everest-core
         uses: actions/checkout@v3
         with:
           path: source
@@ -36,7 +37,7 @@ jobs:
         run: |
           docker pull --quiet ghcr.io/everest/build-kit-debian:latest
           docker image tag ghcr.io/everest/build-kit-debian:latest build-kit
-      - name: Compile
+      - name: Compile and Test
         run: |
           docker run \
           --volume "$(pwd):/ext" \
