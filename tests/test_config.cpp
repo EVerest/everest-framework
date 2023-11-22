@@ -20,7 +20,7 @@ SCENARIO("Check RuntimeSetting Constructor", "[!throws]") {
     GIVEN("A valid prefix, but a non existing config file") {
         THEN("It should throw BootException") {
             CHECK_THROWS_AS(Everest::RuntimeSettings(bin_dir + "valid_config/", bin_dir + "non-existing-config.yaml"),
-                            Everest::BootException);
+                Everest::BootException);
         }
     }
     GIVEN("A valid prefix and a valid config file") {
@@ -28,10 +28,30 @@ SCENARIO("Check RuntimeSetting Constructor", "[!throws]") {
             CHECK_NOTHROW(Everest::RuntimeSettings(bin_dir + "valid_config/", bin_dir + "valid_config/config.yaml"));
         }
     }
-    GIVEN("A broken config file") {
+    GIVEN("A broken yaml file") {
+        THEN("It should throw") {
+            CHECK_THROWS(Everest::RuntimeSettings(bin_dir + "broken_yaml/", bin_dir + "broken_yaml/config.yaml"));
+        }
+    }
+    GIVEN("A empty yaml file") {
+        THEN("It shouldn't throw") {
+            CHECK_NOTHROW(Everest::RuntimeSettings(bin_dir + "empty_yaml/", bin_dir + "empty_yaml/config.yaml"));
+        }
+    }
+    GIVEN("A empty yaml object file") {
+        THEN("It shouldn't throw") {
+            CHECK_NOTHROW(Everest::RuntimeSettings(bin_dir + "empty_yaml_object/", bin_dir + "empty_yaml_object/config.yaml"));
+        }
+    }
+    GIVEN("A null yaml file") {
+        THEN("It shouldn't throw") {
+            CHECK_NOTHROW(Everest::RuntimeSettings(bin_dir + "null_yaml/", bin_dir + "null_yaml/config.yaml"));
+        }
+    }
+    GIVEN("A string yaml file") {
         THEN("It should throw Everest::EverestConfigError") {
-            CHECK_THROWS_AS(Everest::RuntimeSettings(bin_dir + "broken_config/", bin_dir + "broken_config/config.yaml"),
-                            Everest::EverestConfigError);
+            CHECK_THROWS_AS(Everest::RuntimeSettings(bin_dir + "string_yaml/", bin_dir + "string_yaml/config.yaml"),
+                            Everest::BootException);
         }
     }
 }

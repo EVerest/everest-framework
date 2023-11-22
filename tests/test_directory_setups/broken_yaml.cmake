@@ -1,4 +1,4 @@
-set(SETUP_NAME "broken_config")
+set(SETUP_NAME "broken_yaml")
 set(PREFIX_DIR ${CMAKE_CURRENT_BINARY_DIR}/${SETUP_NAME})
 
 configure_file(test_configs/${SETUP_NAME}_config.yaml ${SETUP_NAME}/config.yaml COPYONLY)
