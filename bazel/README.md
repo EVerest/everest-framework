@@ -1,7 +1,7 @@
-# using everst-framework from bazel workspace.
+# Using everst-framework from bazel workspace
 
 Add the following to your WORKSPACE file:
-```
+```python
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 EVEREST_FRAMEWORK_REVISION = "4c0488de5eca3a9bc7c9258fc3715c5d6aab8c10"
