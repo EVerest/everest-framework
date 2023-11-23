@@ -1,0 +1,56 @@
+genrule(
+  name = "compile_time_settings",
+  outs = ["include/everest/compile_time_settings.hpp"],
+  cmd = """
+    echo "#define EVEREST_INSTALL_PREFIX \\"/usr\\"" > $@
+    echo "#define EVEREST_NAMESPACE (\\"everest\\")" >> $@
+  """,
+)
+
+cc_library(
+  name = "framework",
+  hdrs = glob(["include/**/*.hpp"]) + [":compile_time_settings"],
+  srcs = glob(["lib/*.cpp"]),
+  deps = [
+    "@com_github_everest_liblog//:liblog",
+    "@com_github_HowardHinnant_date//:date",
+    "@com_github_nlohmann_json//:json",
+    "@com_github_fmtlib_fmt//:fmt",
+    "@com_github_biojppm_rapidyaml//:ryml",
+    "@com_github_pboettch_json-schema-validator//:json-schema-validator",
+    "@com_github_LiamBindle_mqtt-c//:libmqtt",
+    "@boost//:uuid",
+    "@boost//:program_options",
+  ],
+  strip_include_prefix = "include",
+)
+
+cc_library(
+  name = "controller-ipc",
+  srcs = glob(["src/controller/*.cpp"]),
+  hdrs = glob(["src/controller/*.hpp"]),
+  deps = [
+    "@com_github_nlohmann_json//:json",
+    "@com_github_fmtlib_fmt//:fmt",
+    "@com_github_biojppm_rapidyaml//:ryml",
+    "@com_github_everest_liblog//:liblog",
+    ":framework",
+    "@com_github_warmcatt_libwebsockets//:libwebsockets",
+  ],
+  strip_include_prefix = "src",
+)
+
+cc_binary(
+  name = "manager",
+  srcs = [
+    "src/manager.cpp"
+  ],
+  deps = [
+    "@com_github_everest_liblog//:liblog",
+    "@com_github_fmtlib_fmt//:fmt",
+    ":framework",
+    "@com_github_pboettch_json-schema-validator//:json-schema-validator",
+    ":controller-ipc",
+    "@boost//:program_options",
+  ]
+)

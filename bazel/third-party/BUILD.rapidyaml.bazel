@@ -1,0 +1,12 @@
+cc_library(
+  name = "ryml",
+  srcs = glob(["src/**/*.cpp"]),
+  hdrs = glob(["src/**/*.hpp"]),
+  visibility = [
+    "//visibility:public",
+  ],
+  strip_include_prefix = "src",
+  deps = [
+    "@com_github_biojppm_c4core//:c4",
+  ]
+)

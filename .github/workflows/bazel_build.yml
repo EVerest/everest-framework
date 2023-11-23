@@ -1,0 +1,21 @@
+name: Bazel Build
+run-name: ${{ github.actor }} is building with bazel
+on: [push]
+jobs:
+  bazel-build:
+    runs-on: ubuntu-22.04
+    steps:
+      - run: echo branch name is ${{ github.ref }}
+      - name: Checkout
+        uses: actions/checkout@v4.1.0
+      - name: Mount bazel cache
+        uses: actions/cache@v3
+        with:
+          path: "~/.cache/bazel"
+          key: "bazel-cache"
+      - name: Build all
+        run: >
+          bazel build //...
+      - name: Try to run something
+        run: >
+          bazel run //:manager -- --help
