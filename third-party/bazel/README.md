@@ -25,7 +25,7 @@ EVEREST_FRAMEWORK_REVISION = "..."
 http_archive(
   name = "com_github_everest_everest-framework",
   url = "https://github.com/EVerest/everest-framework/archive/{}.tar.gz".format(EVEREST_FRAMEWORK_REVISION),
-  strip_prefix = "everest-framework-{}".format(EVEREST_FRAMEWORK),
+  strip_prefix = "everest-framework-{}".format(EVEREST_FRAMEWORK_REVISION),
 )
 
 # This load some definitions need to load dependencies on the next step

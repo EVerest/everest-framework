@@ -13,6 +13,7 @@ cc_library(
     hdrs = glob(["include/**/*.hpp"]) + [":compile_time_settings"],
     copts = ["-std=c++17"],
     strip_include_prefix = "include",
+    visibility = ["//visibility:public"],
     deps = [
         "@boost//:program_options",
         "@boost//:uuid",
@@ -70,6 +71,7 @@ cc_binary(
     srcs = [
         "src/manager.cpp",
     ],
+    visibility = ["//visibility:public"],
     deps = [
         ":controller-ipc",
         ":framework",
