@@ -12,10 +12,10 @@ jobs:
         uses: actions/cache@v3
         with:
           path: "~/.cache/bazel"
-          key: "bazel-cache"
+          key: ${{ runner.os }}-bazel-${{ hashFiles('.bazelversion', '.bazelrc', 'WORKSPACE.bazel', 'third-party/bazel/*') }}
       - name: Build all
         run: >
-          bazel build //...
+          bazelisk build //...
       - name: Try to run something
         run: >
-          bazel run //:manager -- --help
+          bazelisk run //:manager -- --help

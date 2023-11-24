@@ -23,6 +23,7 @@ cc_library(
     "@boost//:program_options",
   ],
   strip_include_prefix = "include",
+  copts = ["-std=c++17"],
 )
 
 cc_library(
@@ -38,6 +39,24 @@ cc_library(
     "@com_github_warmcatt_libwebsockets//:libwebsockets",
   ],
   strip_include_prefix = "src",
+  copts = ["-std=c++17"],
+)
+
+cc_binary(
+  name = "controller",
+  srcs = glob(
+    ["src/controller/*.cpp", "src/controller/*.hpp"],
+    exclude = ["src/controller/ipc.cpp", "src/controller/ipc.hpp"]
+  ),
+  deps = [
+    ":controller-ipc",
+    "@com_github_fmtlib_fmt//:fmt",
+    "@com_github_biojppm_rapidyaml//:ryml",
+    "@com_github_everest_liblog//:liblog",
+    ":framework",
+    "@com_github_warmcatt_libwebsockets//:libwebsockets",
+  ],
+  copts = ["-std=c++17"],
 )
 
 cc_binary(
