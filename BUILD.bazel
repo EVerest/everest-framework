@@ -1,75 +1,81 @@
 genrule(
-  name = "compile_time_settings",
-  outs = ["include/everest/compile_time_settings.hpp"],
-  cmd = """
+    name = "compile_time_settings",
+    outs = ["include/everest/compile_time_settings.hpp"],
+    cmd = """
     echo "#define EVEREST_INSTALL_PREFIX \\"/usr\\"" > $@
     echo "#define EVEREST_NAMESPACE (\\"everest\\")" >> $@
   """,
 )
 
 cc_library(
-  name = "framework",
-  hdrs = glob(["include/**/*.hpp"]) + [":compile_time_settings"],
-  srcs = glob(["lib/*.cpp"]),
-  deps = [
-    "@com_github_everest_liblog//:liblog",
-    "@com_github_HowardHinnant_date//:date",
-    "@com_github_nlohmann_json//:json",
-    "@com_github_fmtlib_fmt//:fmt",
-    "@com_github_biojppm_rapidyaml//:ryml",
-    "@com_github_pboettch_json-schema-validator//:json-schema-validator",
-    "@com_github_LiamBindle_mqtt-c//:libmqtt",
-    "@boost//:uuid",
-    "@boost//:program_options",
-  ],
-  strip_include_prefix = "include",
-  copts = ["-std=c++17"],
+    name = "framework",
+    srcs = glob(["lib/*.cpp"]),
+    hdrs = glob(["include/**/*.hpp"]) + [":compile_time_settings"],
+    copts = ["-std=c++17"],
+    strip_include_prefix = "include",
+    deps = [
+        "@boost//:program_options",
+        "@boost//:uuid",
+        "@com_github_HowardHinnant_date//:date",
+        "@com_github_LiamBindle_mqtt-c//:libmqtt",
+        "@com_github_biojppm_rapidyaml//:ryml",
+        "@com_github_everest_liblog//:liblog",
+        "@com_github_fmtlib_fmt//:fmt",
+        "@com_github_nlohmann_json//:json",
+        "@com_github_pboettch_json-schema-validator//:json-schema-validator",
+    ],
 )
 
 cc_library(
-  name = "controller-ipc",
-  srcs = glob(["src/controller/*.cpp"]),
-  hdrs = glob(["src/controller/*.hpp"]),
-  deps = [
-    "@com_github_nlohmann_json//:json",
-    "@com_github_fmtlib_fmt//:fmt",
-    "@com_github_biojppm_rapidyaml//:ryml",
-    "@com_github_everest_liblog//:liblog",
-    ":framework",
-    "@com_github_warmcatt_libwebsockets//:libwebsockets",
-  ],
-  strip_include_prefix = "src",
-  copts = ["-std=c++17"],
+    name = "controller-ipc",
+    srcs = glob(["src/controller/*.cpp"]),
+    hdrs = glob(["src/controller/*.hpp"]),
+    copts = ["-std=c++17"],
+    strip_include_prefix = "src",
+    deps = [
+        ":framework",
+        "@com_github_biojppm_rapidyaml//:ryml",
+        "@com_github_everest_liblog//:liblog",
+        "@com_github_fmtlib_fmt//:fmt",
+        "@com_github_nlohmann_json//:json",
+        "@com_github_warmcatt_libwebsockets//:libwebsockets",
+    ],
 )
 
 cc_binary(
-  name = "controller",
-  srcs = glob(
-    ["src/controller/*.cpp", "src/controller/*.hpp"],
-    exclude = ["src/controller/ipc.cpp", "src/controller/ipc.hpp"]
-  ),
-  deps = [
-    ":controller-ipc",
-    "@com_github_fmtlib_fmt//:fmt",
-    "@com_github_biojppm_rapidyaml//:ryml",
-    "@com_github_everest_liblog//:liblog",
-    ":framework",
-    "@com_github_warmcatt_libwebsockets//:libwebsockets",
-  ],
-  copts = ["-std=c++17"],
+    name = "controller",
+    srcs = glob(
+        [
+            "src/controller/*.cpp",
+            "src/controller/*.hpp",
+        ],
+        exclude = [
+            "src/controller/ipc.cpp",
+            "src/controller/ipc.hpp",
+        ],
+    ),
+    copts = ["-std=c++17"],
+    deps = [
+        ":controller-ipc",
+        ":framework",
+        "@com_github_biojppm_rapidyaml//:ryml",
+        "@com_github_everest_liblog//:liblog",
+        "@com_github_fmtlib_fmt//:fmt",
+        "@com_github_warmcatt_libwebsockets//:libwebsockets",
+    ],
 )
 
 cc_binary(
-  name = "manager",
-  srcs = [
-    "src/manager.cpp"
-  ],
-  deps = [
-    "@com_github_everest_liblog//:liblog",
-    "@com_github_fmtlib_fmt//:fmt",
-    ":framework",
-    "@com_github_pboettch_json-schema-validator//:json-schema-validator",
-    ":controller-ipc",
-    "@boost//:program_options",
-  ]
+    name = "manager",
+    srcs = [
+        "src/manager.cpp",
+    ],
+    deps = [
+        ":controller-ipc",
+        ":framework",
+        "@boost//:program_options",
+        "@com_github_everest_liblog//:liblog",
+        "@com_github_fmtlib_fmt//:fmt",
+        "@com_github_pboettch_json-schema-validator//:json-schema-validator",
+    ],
 )

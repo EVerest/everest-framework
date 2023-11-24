@@ -1,6 +1,5 @@
 load("@rules_foreign_cc//foreign_cc:defs.bzl", "cmake")
 
-
 filegroup(
     name = "all_srcs",
     srcs = glob(["**"]),
@@ -9,14 +8,14 @@ filegroup(
 
 cmake(
     name = "date",
+    cache_entries = {
+        "BUILD_TZ_LIB": "ON",
+        "HAS_REMOTE_API": "0",
+        "USE_AUTOLOAD": "0",
+        "USE_SYSTEM_TZ_DB": "ON",
+    },
     lib_source = ":all_srcs",
     out_static_libs = ["libdate-tz.a"],
-    cache_entries = {
-      "BUILD_TZ_LIB": "ON",
-      "HAS_REMOTE_API": "0",
-      "USE_AUTOLOAD": "0",
-      "USE_SYSTEM_TZ_DB": "ON",
-    },
     visibility = [
         "//visibility:public",
     ],
