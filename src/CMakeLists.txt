@@ -1,7 +1,16 @@
 add_executable(manager)
+
+IF (APPLE) 
+    set (SYSTEM_UNIX_CPP system_unix.macos.cpp)
+    set (SYSTEM_UNIX_LIBS "")
+ELSE()
+    set (SYSTEM_UNIX_CPP system_unix.cpp)
+    set (SYSTEM_UNIX_LIBS PkgConfig::libcap)
+ENDIF()
+
 target_sources(manager
     PRIVATE
-        system_unix.cpp
+        ${SYSTEM_UNIX_CPP}
         manager.cpp
 )
 
@@ -9,7 +18,7 @@ target_link_libraries(manager
     PRIVATE
         everest::framework
         Boost::program_options
-        PkgConfig::libcap
+        ${SYSTEM_UNIX_LIBS}
 )
 
 if (EVEREST_ENABLE_ADMIN_PANEL_BACKEND)

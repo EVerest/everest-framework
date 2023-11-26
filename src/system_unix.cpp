@@ -25,7 +25,8 @@ struct GetPasswdEntryResult {
     explicit GetPasswdEntryResult(const std::string& error_) : error(error_) {
     }
 
-    GetPasswdEntryResult(uid_t uid_, gid_t gid_, const std::vector<gid_t>& groups_) : uid(uid_), gid(gid_), groups(groups_) {
+    GetPasswdEntryResult(uid_t uid_, gid_t gid_, const std::vector<gid_t>& groups_) :
+        uid(uid_), gid(gid_), groups(groups_) {
     }
 
     std::string error;
