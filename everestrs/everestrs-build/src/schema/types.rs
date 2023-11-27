@@ -33,7 +33,11 @@ impl<'de> Deserialize<'de> for TypeBase {
             return Err(serde::de::Error::custom("Variable must be a mapping"));
         };
 
-        let arg_type = map.get("type").expect("The `type` tag is missing");
+        let arg_type = map
+            .get("type")
+            .ok_or("The `type` tag is missing")
+            .map_err(|e| serde::de::Error::custom(e.to_string()))?;
+
         let arg = match arg_type {
             serde_yaml::Value::String(_) => {
                 let t: TypeEnum = serde_yaml::from_value(serde_yaml::Value::Mapping(map))
