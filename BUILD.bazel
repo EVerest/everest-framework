@@ -29,17 +29,12 @@ cc_library(
 
 cc_library(
     name = "controller-ipc",
-    srcs = glob(["src/controller/*.cpp"]),
-    hdrs = glob(["src/controller/*.hpp"]),
+    srcs = ["src/controller/ipc.cpp"],
+    hdrs = ["src/controller/ipc.hpp"],
     copts = ["-std=c++17"],
     strip_include_prefix = "src",
     deps = [
-        "@everest-framework//:framework",
-        "@com_github_biojppm_rapidyaml//:ryml",
-        "@com_github_everest_liblog//:liblog",
-        "@com_github_fmtlib_fmt//:fmt",
         "@com_github_nlohmann_json//:json",
-        "@com_github_warmcatt_libwebsockets//:libwebsockets",
     ],
 )
 
@@ -57,12 +52,12 @@ cc_binary(
     ),
     copts = ["-std=c++17"],
     deps = [
-        "@everest-framework//:controller-ipc",
-        "@everest-framework//:framework",
         "@com_github_biojppm_rapidyaml//:ryml",
         "@com_github_everest_liblog//:liblog",
         "@com_github_fmtlib_fmt//:fmt",
         "@com_github_warmcatt_libwebsockets//:libwebsockets",
+        "@everest-framework//:controller-ipc",
+        "@everest-framework//:framework",
     ],
 )
 
@@ -74,11 +69,11 @@ cc_binary(
     copts = ["-std=c++17"],
     visibility = ["//visibility:public"],
     deps = [
-        "@everest-framework//:controller-ipc",
-        "@everest-framework//:framework",
         "@//third-party/bazel:boost_program_options",
         "@com_github_everest_liblog//:liblog",
         "@com_github_fmtlib_fmt//:fmt",
         "@com_github_pboettch_json-schema-validator//:json-schema-validator",
+        "@everest-framework//:controller-ipc",
+        "@everest-framework//:framework",
     ],
 )
