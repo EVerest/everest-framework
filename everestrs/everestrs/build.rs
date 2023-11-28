@@ -95,6 +95,13 @@ fn find_libs(root: &Path) -> Libraries {
 }
 
 fn main() {
+    // See https://doc.rust-lang.org/cargo/reference/features.html#build-scripts
+    // for details.
+    if env::var("CARGO_FEATURE_BUILD_BAZEL").is_ok() {
+        println!("Skipping due to bazel");
+        return;
+    }
+
     let root = find_everest_workspace_root();
     let libs = find_libs(&root);
 

@@ -15,8 +15,8 @@ cc_library(
     strip_include_prefix = "include",
     visibility = ["//visibility:public"],
     deps = [
-        "@boost//:program_options",
-        "@boost//:uuid",
+        "@//third-party/bazel:boost_program_options",
+        "@//third-party/bazel:boost_uuid",
         "@com_github_HowardHinnant_date//:date",
         "@com_github_LiamBindle_mqtt-c//:libmqtt",
         "@com_github_biojppm_rapidyaml//:ryml",
@@ -34,7 +34,7 @@ cc_library(
     copts = ["-std=c++17"],
     strip_include_prefix = "src",
     deps = [
-        ":framework",
+        "@everest-framework//:framework",
         "@com_github_biojppm_rapidyaml//:ryml",
         "@com_github_everest_liblog//:liblog",
         "@com_github_fmtlib_fmt//:fmt",
@@ -57,8 +57,8 @@ cc_binary(
     ),
     copts = ["-std=c++17"],
     deps = [
-        ":controller-ipc",
-        ":framework",
+        "@everest-framework//:controller-ipc",
+        "@everest-framework//:framework",
         "@com_github_biojppm_rapidyaml//:ryml",
         "@com_github_everest_liblog//:liblog",
         "@com_github_fmtlib_fmt//:fmt",
@@ -71,11 +71,12 @@ cc_binary(
     srcs = [
         "src/manager.cpp",
     ],
+    copts = ["-std=c++17"],
     visibility = ["//visibility:public"],
     deps = [
-        ":controller-ipc",
-        ":framework",
-        "@boost//:program_options",
+        "@everest-framework//:controller-ipc",
+        "@everest-framework//:framework",
+        "@//third-party/bazel:boost_program_options",
         "@com_github_everest_liblog//:liblog",
         "@com_github_fmtlib_fmt//:fmt",
         "@com_github_pboettch_json-schema-validator//:json-schema-validator",
