@@ -69,7 +69,6 @@ SubProcess SubProcess::create(bool set_pdeathsig) {
 
     if (pipe(pipefd)) {
         throw std::runtime_error(fmt::format("Syscall pipe2() failed ({}), exiting", strerror(errno)));
-
     }
 
     const auto reading_end_fd = pipefd[0];
