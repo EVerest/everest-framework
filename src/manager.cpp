@@ -44,7 +44,6 @@ const auto PARENT_DIED_SIGNAL = SIGTERM;
 const int CONTROLLER_IPC_READ_TIMEOUT_MS = 50;
 auto complete_start_time = std::chrono::system_clock::now();
 
-
 #ifdef ENABLE_ADMIN_PANEL
 class ControllerHandle {
 public:
