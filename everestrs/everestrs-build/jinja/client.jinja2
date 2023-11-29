@@ -41,9 +41,9 @@ impl {{trait.name | title }}ClientPublisher {
    ///
    /// Returns: {{cmd.result.description | replace("\n", " ")}}
    {% endif %}
-   pub(crate) fn {{cmd.name | snake}}(&self,
+   pub(crate) fn {{cmd.name | identifier}}(&self,
    {%- for arg in cmd.arguments %}
-      {{arg.name | snake }}: {{arg.data_type.name}},
+      {{arg.name | identifier }}: {{arg.data_type.name}},
    {%- endfor %}
    ) -> ::everestrs::Result<{%- if cmd.result -%}
       {{cmd.result.data_type.name}}
@@ -53,7 +53,7 @@ impl {{trait.name | title }}ClientPublisher {
       > {
         let args = serde_json::json!({
 {%- for arg in cmd.arguments %}
-            "{{arg.name}}": {{arg.name | snake}},
+            "{{arg.name}}": {{arg.name | identifier}},
 {%- endfor %}
         });
         let blob = self.runtime.call_command(self.implementation_id, "{{ cmd.name }}", &args);
