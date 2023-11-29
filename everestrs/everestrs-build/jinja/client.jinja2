@@ -16,7 +16,7 @@ fn dispatch_variable_to_{{ trait.name | snake }}(
    "{{ var.name }}" => {
    let v: {{ var.data_type.name }} = ::serde_json::from_value(value)
          .map_err(|_| ::everestrs::Error::InvalidArgument("{{ var.name }}"))?;
-         client_subscriber.on_{{ var.name }}(publishers, v);
+         client_subscriber.on_{{ var.name | snake }}(publishers, v);
                 Ok(())
     },
 {%- endfor %}
