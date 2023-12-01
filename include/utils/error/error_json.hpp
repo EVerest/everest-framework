@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
-// Copyright 2020 - 2023 Pionix GmbH and Contributors to EVerest
+// Copyright Pionix GmbH and Contributors to EVerest
 #ifndef UTILS_ERROR_JSON_HPP
 #define UTILS_ERROR_JSON_HPP
 
-#include <utils/error.hpp>
+#include <utils/error/error.hpp>
 
 namespace Everest {
 namespace error {

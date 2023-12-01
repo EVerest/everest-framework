@@ -15,7 +15,8 @@
 #include <nlohmann/json-schema.hpp>
 
 #include <utils/config_cache.hpp>
-#include <utils/error.hpp>
+#include <utils/error/error.hpp>
+#include <utils/error/error_type_map.hpp>
 #include <utils/types.hpp>
 
 namespace Everest {

@@ -7,7 +7,7 @@
 #include <everest/logging.hpp>
 #include <utils/conversions.hpp>
 #include <utils/date.hpp>
-#include <utils/error.hpp>
+#include <utils/error/error.hpp>
 
 #include <iomanip>
 #include <iostream>
