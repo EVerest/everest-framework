@@ -636,8 +636,8 @@ int boot(const po::variables_map& vm) {
     int wstatus;
 
     // switch to system user
-#warning "need to add this back"
-    // set_user_and_capabilities(rs->run_as_user, "");
+#warning "allow manager to switch back to root user to restart modules if needed"
+    Everest::system::set_real_user(rs->run_as_user);
 
     while (true) {
         // check if anyone died
@@ -677,8 +677,10 @@ int boot(const po::variables_map& vm) {
         }
 
         if (module_handles.size() == 0 && restart_modules) {
+            // FIXME: switch to root user
             module_handles = start_modules(*config, mqtt_abstraction, ignored_modules, standalone_modules, rs,
                                            status_fifo, err_manager);
+            // FIXME: switch to regular user again
             restart_modules = false;
             modules_started = true;
         }
