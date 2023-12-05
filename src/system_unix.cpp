@@ -25,7 +25,8 @@ struct GetPasswdEntryResult {
     explicit GetPasswdEntryResult(const std::string& error_) : error(error_) {
     }
 
-    GetPasswdEntryResult(uid_t uid_, gid_t gid_, const std::vector<gid_t>& groups_) : uid(uid_), gid(gid_), groups(groups_) {
+    GetPasswdEntryResult(uid_t uid_, gid_t gid_, const std::vector<gid_t>& groups_) :
+        uid(uid_), gid(gid_), groups(groups_) {
     }
 
     std::string error;
@@ -146,7 +147,7 @@ pid_t SubProcess::check_child_executed() {
     return pid;
 }
 
-SubProcess SubProcess::create(bool set_pdeathsig) {
+SubProcess SubProcess::create(const std::string& run_as_user, const std::vector<std::string>& capabilities) {
     int pipefd[2];
 
     if (pipe2(pipefd, O_CLOEXEC | O_DIRECT)) {
@@ -170,26 +171,37 @@ SubProcess SubProcess::create(bool set_pdeathsig) {
 
         SubProcess handle{writing_end_fd, pid};
 
-        // if (not capabilities.empty()) {
-        //     set_caps(capabilities);
-        // }
-
-        // if (not effective_user.empty()) {
-        //     set_user(effective_user);
-        // }
-
-        if (set_pdeathsig) {
-            // FIXME (aw): how does the the forked process does cleanup when receiving PARENT_DIED_SIGNAL compared to
-            //             _exit() before exec() has been called?
-            if (prctl(PR_SET_PDEATHSIG, PARENT_DIED_SIGNAL)) {
-                handle.send_error_and_exit(fmt::format("Syscall prctl() failed ({}), exiting", strerror(errno)));
+        if (not capabilities.empty()) {
+            // we need to keep caps, otherwise, we'll loose all our capabilities (except inherited)
+            if (system::keep_caps() == false) {
+                throw std::runtime_error("Keeping capabilities (SECBIT_KEEP_CAPS) failed");
             }
+        }
 
-            if (getppid() != parent_pid) {
-                // kill ourself, with the same handler as we would have
-                // happened when the parent process died
-                kill(getpid(), PARENT_DIED_SIGNAL);
+        // Set real user for child process
+        auto error = system::set_real_user(run_as_user);
+        if (not error.empty()) {
+            throw std::runtime_error(fmt::format("Failed to set real user to: {}", run_as_user));
+        }
+
+        // Set capabilities for child process
+        if (not capabilities.empty()) {
+            error = system::set_caps(capabilities);
+            if (not error.empty()) {
+                throw std::runtime_error(fmt::format("Failed to set capabilities: {}", error));
             }
+        }
+
+        // FIXME (aw): how does the the forked process does cleanup when receiving PARENT_DIED_SIGNAL compared to
+        //             _exit() before exec() has been called?
+        if (prctl(PR_SET_PDEATHSIG, PARENT_DIED_SIGNAL)) {
+            handle.send_error_and_exit(fmt::format("Syscall prctl() failed ({}), exiting", strerror(errno)));
+        }
+
+        if (getppid() != parent_pid) {
+            // kill ourself, with the same handler as we would have
+            // happened when the parent process died
+            kill(getpid(), PARENT_DIED_SIGNAL);
         }
 
         return handle;

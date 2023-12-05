@@ -12,7 +12,7 @@ namespace Everest::system {
 
 class SubProcess {
 public:
-    static SubProcess create(bool set_pdeathsig = true);
+    static SubProcess create(const std::string& run_as_user, const std::vector<std::string>& capabilities = {});
     bool is_child() const {
         return this->pid == 0;
     }
