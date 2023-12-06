@@ -47,8 +47,15 @@ jobs:
         run: |
           docker pull --quiet ghcr.io/everest/build-kit-alpine:latest
           docker image tag ghcr.io/everest/build-kit-alpine:latest build-kit
-      - name: Compile and Test
+      - name: Compile
         run: |
           docker run \
           --volume "$(pwd):/ext" \
+          --name compile-container \
           build-kit run-script compile
+      - name: Run unit tests
+        run: |
+          docker commit compile-container build-image
+          docker run \
+          --volume "$(pwd):/ext" \
+          build-image run-script test

@@ -13,4 +13,4 @@ cmake \
     -DBUILD_TESTING=ON \
     -DEVEREST_ENABLE_RS_SUPPORT=ON
 
-ninja -j$(nproc) -C build && ninja test -C build
+ninja -j$(nproc) -C build
