@@ -635,20 +635,16 @@ int boot(const po::variables_map& vm) {
 
     int wstatus;
 
-#ifdef ENABLE_ADMIN_PANEL
-    // If admin panel and controller is used, we need SETUID and SETGID capabilties to switch back to root user when
-    // restarting modules
-    Everest::system::set_caps({"CAP_SETUID", "CAP_SETGID"});
-#endif
-
+#ifndef ENABLE_ADMIN_PANEL
     // switch to low privilege user if configured
     if (not rs->run_as_user.empty()) {
         auto err_set_user = Everest::system::set_real_user(rs->run_as_user);
-        if (not err_set_user) {
+        if (not err_set_user.empty()) {
             EVLOG_error << "Error switching manager to user " << rs->run_as_user << ": " << err_set_user;
             return EXIT_FAILURE;
         }
     }
+#endif
 
     while (true) {
         // check if anyone died
@@ -688,14 +684,8 @@ int boot(const po::variables_map& vm) {
         }
 
         if (module_handles.size() == 0 && restart_modules) {
-#ifdef ENABLE_ADMIN_PANEL
-            Everest::system::set_real_user("root");
-#endif
             module_handles = start_modules(*config, mqtt_abstraction, ignored_modules, standalone_modules, rs,
                                            status_fifo, err_manager);
-#ifdef ENABLE_ADMIN_PANEL
-            Everest::system::set_real_user(rs->run_as_user);
-#endif
             restart_modules = false;
             modules_started = true;
         }
