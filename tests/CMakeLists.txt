@@ -1,3 +1,4 @@
+include(CTest)
 include(Catch)
 
 set(TEST_TARGET_NAME ${PROJECT_NAME}_tests)
