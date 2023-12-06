@@ -1,9 +1,6 @@
 #!/bin/bash
 set -e
 
-# Install coverage dependencies
-apt update && apt install -y gcovr lcov
-
 # Install Rust
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 source "$HOME/.cargo/env"
