@@ -1,0 +1,55 @@
+name: Linux Build
+on:
+  pull_request: {}
+  workflow_dispatch:
+    inputs:
+      runner:
+        description: Which runner to use
+        type: choice
+        default: 'ubuntu-22.04'
+        required: true
+        options:
+          - 'ubuntu-22.04'
+          - 'large-ubuntu-22.04-xxl'
+
+jobs:
+  build:
+    name: Build
+    runs-on: ${{ inputs.runner || 'ubuntu-22.04' }}
+    steps:
+      - name: Format branch name for cache key
+        run: |
+          BRANCH_NAME_FOR_CACHE="${GITHUB_REF_NAME//-/_}"
+          echo "branch_name_for_cache=${BRANCH_NAME_FOR_CACHE}" >> "$GITHUB_ENV"
+      - name: Setup cache
+        uses: actions/cache@v3
+        with:
+          path: cache
+          key: compile-${{ env.branch_name_for_cache }}-${{ github.sha }}
+          restore-keys: |
+            compile-${{ env.branch_name_for_cache }}-
+            compile-
+      - name: Checkout everest-core
+        uses: actions/checkout@v3
+        with:
+          path: source
+      - name: Run clang-format
+        uses: everest/everest-ci/github-actions/run-clang-format@v1.0.0
+        with:
+          source-dir: source
+          extensions: hpp,cpp
+          exclude: cache
+      - name: Setup run scripts
+        run: |
+          mkdir scripts
+          rsync -a source/.ci/build-kit/ scripts
+      # Run on debian since alpine 3.17 does not ship lcov.
+      - name: Pull docker container
+        run: |
+          docker pull --quiet ghcr.io/everest/build-kit-debian:latest
+          docker image tag ghcr.io/everest/build-kit-debian:latest build-kit
+      - name: Compile and Test
+        run: |
+          docker run \
+          --volume "$(pwd):/ext" \
+          build-kit run-script compile
