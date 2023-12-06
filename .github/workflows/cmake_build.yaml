@@ -1,4 +1,4 @@
-name: Linux Build
+name: CMake Build, Lint and Test
 on:
   pull_request: {}
   workflow_dispatch:
@@ -14,7 +14,7 @@ on:
 
 jobs:
   build:
-    name: Build
+    name: Build, Lint and Test
     runs-on: ${{ inputs.runner || 'ubuntu-22.04' }}
     steps:
       - name: Format branch name for cache key
@@ -43,7 +43,7 @@ jobs:
         run: |
           mkdir scripts
           rsync -a source/.ci/build-kit/ scripts
-      - name: Pull docker container
+      - name: Pull build-kit docker image
         run: |
           docker pull --quiet ghcr.io/everest/build-kit-alpine:latest
           docker image tag ghcr.io/everest/build-kit-alpine:latest build-kit
@@ -53,7 +53,7 @@ jobs:
           --volume "$(pwd):/ext" \
           --name compile-container \
           build-kit run-script compile
-      - name: Run unit tests
+      - name: Test
         run: |
           docker commit compile-container build-image
           docker run \
