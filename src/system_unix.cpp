@@ -81,12 +81,22 @@ std::string set_caps(const std::vector<std::string>& capabilities) {
 
     // FIXME (aw): error handling!
     auto cap_ctx = cap_get_proc();
-    cap_set_flag(cap_ctx, CAP_INHERITABLE, capability_values.size(), capability_values.data(), CAP_SET);
-    cap_set_proc(cap_ctx);
-    cap_free(cap_ctx);
+    if (cap_set_flag(cap_ctx, CAP_INHERITABLE, capability_values.size(), capability_values.data(), CAP_SET) != 0) {
+        return "Failed to add capability flags to CAP_INHERITABLE";
+    }
+
+    if (cap_set_proc(cap_ctx) != 0) {
+        return "Failed to set capabilities for process";
+    };
+
+    if (cap_free(cap_ctx) != 0) {
+        return "Failed free memory for capability flags";
+    };
 
     for (const auto cap_value : capability_values) {
-        cap_set_ambient(cap_value, CAP_SET);
+        if (cap_set_ambient(cap_value, CAP_SET) != 0) {
+            return "Failed to add capabilities to ambient set";
+        }
     }
 
     return {};

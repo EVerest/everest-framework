@@ -235,7 +235,6 @@ static std::map<pid_t, std::string> spawn_modules(const std::vector<ModuleStartI
             try {
                 exec_module(rs, module, proc_handle);
             } catch (const std::exception& err) {
-                // FIXME (aw): seems like other processes don't get killed, when this happens
                 proc_handle.send_error_and_exit(err.what());
             }
         }
