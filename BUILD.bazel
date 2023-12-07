@@ -68,10 +68,12 @@ cc_binary(
 
 cc_binary(
     name = "manager",
-    srcs = [
-        "src/manager.cpp",
-        "src/system_unix.hpp",
-    ],
+    srcs = glob(
+        [
+            "src/*.cpp",
+            "src/*.hpp",
+        ],
+    ),
     visibility = ["//visibility:public"],
     deps = [
         ":controller-ipc",
