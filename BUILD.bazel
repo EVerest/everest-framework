@@ -70,7 +70,7 @@ cc_binary(
     name = "manager",
     srcs = [
         "src/manager.cpp",
-        "src/*.hpp",
+        "src/system_unix.hpp",
     ],
     visibility = ["//visibility:public"],
     deps = [
