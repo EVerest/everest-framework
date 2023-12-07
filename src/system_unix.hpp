@@ -19,14 +19,14 @@ public:
 
     void send_error_and_exit(const std::string& message);
 
-    // FIXME (aw): this function should be callable only once
     pid_t check_child_executed();
 
 private:
     const size_t MAX_PIPE_MESSAGE_SIZE = 1024;
     SubProcess(int fd, pid_t pid) : fd(fd), pid(pid){};
     int fd{};
-    pid_t pid{};
+    pid_t pid{0};
+    bool check_child_executed_done{false};
 };
 
 bool keep_caps();

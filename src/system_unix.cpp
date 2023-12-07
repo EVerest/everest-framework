@@ -79,7 +79,6 @@ std::string set_caps(const std::vector<std::string>& capabilities) {
         }
     }
 
-    // FIXME (aw): error handling!
     auto cap_ctx = cap_get_proc();
     if (cap_set_flag(cap_ctx, CAP_INHERITABLE, capability_values.size(), capability_values.data(), CAP_SET) != 0) {
         return "Failed to add capability flags to CAP_INHERITABLE";
@@ -141,6 +140,11 @@ void SubProcess::send_error_and_exit(const std::string& message) {
 // FIXME (aw): this function should be callable only once
 pid_t SubProcess::check_child_executed() {
     assert(pid != 0);
+
+    if (check_child_executed_done) {
+        return pid;
+    }
+    check_child_executed_done = true;
 
     std::string message(MAX_PIPE_MESSAGE_SIZE, 0);
 
