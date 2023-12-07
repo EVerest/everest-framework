@@ -159,7 +159,7 @@ SubProcess SubProcess::create(const std::string& run_as_user, const std::vector<
 
     const auto parent_pid = getpid();
 
-    pid_t pid = fork();
+    const auto pid = fork();
 
     if (pid == -1) {
         throw std::runtime_error(fmt::format("Syscall fork() failed ({}), exiting", strerror(errno)));
@@ -170,28 +170,31 @@ SubProcess SubProcess::create(const std::string& run_as_user, const std::vector<
         close(reading_end_fd);
 
         SubProcess handle{writing_end_fd, pid};
-
-        if (not capabilities.empty()) {
-            // we need to keep caps, otherwise, we'll loose all our capabilities (except inherited)
-            if (system::keep_caps() == false) {
-                throw std::runtime_error("Keeping capabilities (SECBIT_KEEP_CAPS) failed");
+        try {
+            if (not capabilities.empty()) {
+                // we need to keep caps, otherwise, we'll loose all our capabilities (except inherited)
+                if (system::keep_caps() == false) {
+                    throw std::runtime_error("Keeping capabilities (SECBIT_KEEP_CAPS) failed");
+                }
             }
-        }
 
-        // Set real user for child process
-        auto error = system::set_real_user(run_as_user);
-        if (not error.empty()) {
-            throw std::runtime_error(fmt::format("Failed to set real user to: {}", run_as_user));
-        }
-
-        // Set capabilities for child process
-        if (not capabilities.empty()) {
-            error = system::set_caps(capabilities);
+            // Set real user for child process
+            auto error = system::set_real_user(run_as_user);
             if (not error.empty()) {
-                throw std::runtime_error(fmt::format("Failed to set capabilities: {}", error));
+                throw std::runtime_error(fmt::format("Failed to set real user to: {}", run_as_user));
             }
-        }
 
+            // Set capabilities for child process
+            if (not capabilities.empty()) {
+                error = system::set_caps(capabilities);
+                if (not error.empty()) {
+                    throw std::runtime_error(fmt::format("Failed to set capabilities: {}", error));
+                }
+            }
+        } catch (const std::exception& e) {
+            handle.send_error_and_exit(e.what());
+            exit(EXIT_FAILURE);
+        }
         // FIXME (aw): how does the the forked process does cleanup when receiving PARENT_DIED_SIGNAL compared to
         //             _exit() before exec() has been called?
         if (prctl(PR_SET_PDEATHSIG, PARENT_DIED_SIGNAL)) {
