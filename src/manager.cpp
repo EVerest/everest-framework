@@ -514,6 +514,8 @@ int boot(const po::variables_map& vm) {
         EVLOG_info << "EVerest will run as system user: " << rs->run_as_user;
     }
 
+    auto controller_handle = start_controller(rs);
+
     EVLOG_verbose << fmt::format("EVerest prefix was set to {}", rs->prefix.string());
 
     // dump all manifests if requested and terminate afterwards
@@ -624,10 +626,10 @@ int boot(const po::variables_map& vm) {
         mqtt_abstraction.register_handler(rs->mqtt_everest_prefix + topic, token, QOS::QOS2);
     };
     std::string request_clear_error_topic = "request-clear-error";
+
     error::ErrorManager err_manager = error::ErrorManager(send_json_message, register_call_handler,
                                                           register_error_handler, request_clear_error_topic);
 
-    auto controller_handle = start_controller(rs);
     auto module_handles =
         start_modules(*config, mqtt_abstraction, ignored_modules, standalone_modules, rs, status_fifo, err_manager);
     bool modules_started = true;
