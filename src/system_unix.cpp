@@ -179,9 +179,12 @@ SubProcess SubProcess::create(const std::string& run_as_user, const std::vector<
             }
 
             // Set real user for child process
-            auto error = system::set_real_user(run_as_user);
-            if (not error.empty()) {
-                throw std::runtime_error(fmt::format("Failed to set real user to: {}", run_as_user));
+            std::string error;
+            if (not run_as_user.empty()) {
+                error = system::set_real_user(run_as_user);
+                if (not error.empty()) {
+                    throw std::runtime_error(fmt::format("Failed to set real user to: {}", run_as_user));
+                }
             }
 
             // Set capabilities for child process
