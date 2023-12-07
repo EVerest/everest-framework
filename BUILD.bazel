@@ -10,7 +10,7 @@ genrule(
 cc_library(
     name = "framework",
     srcs = glob(["lib/*.cpp"]),
-    hdrs = glob(["include/**/*.hpp"]) + [":compile_time_settings"],
+    hdrs = glob(["include/**/*.hpp"]) + [":compile_time_settings"] + glob(["src/*.hpp"]),
     copts = ["-std=c++17"],
     strip_include_prefix = "include",
     visibility = ["//visibility:public"],
