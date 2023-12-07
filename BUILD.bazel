@@ -10,7 +10,7 @@ genrule(
 cc_library(
     name = "framework",
     srcs = glob(["lib/*.cpp"]),
-    hdrs = glob(["include/**/*.hpp"]) + [":compile_time_settings"] + glob(["src/*.hpp"]),
+    hdrs = glob(["include/**/*.hpp"]) + [":compile_time_settings"],
     copts = ["-std=c++17"],
     strip_include_prefix = "include",
     visibility = ["//visibility:public"],
@@ -70,6 +70,7 @@ cc_binary(
     name = "manager",
     srcs = [
         "src/manager.cpp",
+        "src/*.hpp",
     ],
     visibility = ["//visibility:public"],
     deps = [
