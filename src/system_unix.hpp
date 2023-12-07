@@ -35,4 +35,6 @@ std::string set_caps(const std::vector<std::string>& capabilities);
 
 std::string set_real_user(const std::string& user_name);
 
+std::string set_user_and_capabilities(const std::string& run_as_user, const std::vector<std::string>& capabilities);
+
 } // namespace Everest::system

@@ -157,6 +157,34 @@ pid_t SubProcess::check_child_executed() {
     return pid;
 }
 
+std::string set_user_and_capabilities(const std::string& run_as_user, const std::vector<std::string>& capabilities) {
+    if (not capabilities.empty()) {
+        // we need to keep caps, otherwise, we'll loose all our capabilities (except inherited)
+        if (system::keep_caps() == false) {
+            return "Keeping capabilities (SECBIT_KEEP_CAPS) failed";
+        }
+    }
+
+    // Set real user for child process
+    std::string error;
+    if (not run_as_user.empty()) {
+        error = system::set_real_user(run_as_user);
+        if (not error.empty()) {
+            return fmt::format("Failed to set real user to: {}", run_as_user);
+        }
+    }
+
+    // Set capabilities for child process
+    if (not capabilities.empty()) {
+        error = system::set_caps(capabilities);
+        if (not error.empty()) {
+            return fmt::format("Failed to set capabilities: {}", error);
+        }
+    }
+
+    return {};
+}
+
 SubProcess SubProcess::create(const std::string& run_as_user, const std::vector<std::string>& capabilities) {
     int pipefd[2];
 
@@ -180,34 +208,12 @@ SubProcess SubProcess::create(const std::string& run_as_user, const std::vector<
         close(reading_end_fd);
 
         SubProcess handle{writing_end_fd, pid};
-        try {
-            if (not capabilities.empty()) {
-                // we need to keep caps, otherwise, we'll loose all our capabilities (except inherited)
-                if (system::keep_caps() == false) {
-                    throw std::runtime_error("Keeping capabilities (SECBIT_KEEP_CAPS) failed");
-                }
-            }
+        auto error = set_user_and_capabilities(run_as_user, capabilities);
 
-            // Set real user for child process
-            std::string error;
-            if (not run_as_user.empty()) {
-                error = system::set_real_user(run_as_user);
-                if (not error.empty()) {
-                    throw std::runtime_error(fmt::format("Failed to set real user to: {}", run_as_user));
-                }
-            }
-
-            // Set capabilities for child process
-            if (not capabilities.empty()) {
-                error = system::set_caps(capabilities);
-                if (not error.empty()) {
-                    throw std::runtime_error(fmt::format("Failed to set capabilities: {}", error));
-                }
-            }
-        } catch (const std::exception& e) {
-            handle.send_error_and_exit(e.what());
-            exit(EXIT_FAILURE);
+        if (not error.empty()) {
+            handle.send_error_and_exit(error);
         }
+
         // FIXME (aw): how does the the forked process does cleanup when receiving PARENT_DIED_SIGNAL compared to
         //             _exit() before exec() has been called?
         if (prctl(PR_SET_PDEATHSIG, PARENT_DIED_SIGNAL)) {
