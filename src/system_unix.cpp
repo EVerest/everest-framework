@@ -129,7 +129,6 @@ std::string set_real_user(const std::string& user_name) {
 }
 
 void SubProcess::send_error_and_exit(const std::string& message) {
-    // FIXME (aw): howto do asserts?
     assert(pid == 0);
 
     write(fd, message.c_str(), std::min(message.size(), MAX_PIPE_MESSAGE_SIZE - 1));
@@ -137,7 +136,6 @@ void SubProcess::send_error_and_exit(const std::string& message) {
     _exit(EXIT_FAILURE);
 }
 
-// FIXME (aw): this function should be callable only once
 pid_t SubProcess::check_child_executed() {
     assert(pid != 0);
 
