@@ -44,8 +44,8 @@ pub(crate) struct Module {
 }
 
 /// The context structure.
-pub struct Context<'a> {
-    pub publisher: &'a ModulePublisher,
+pub(crate) struct Context<'a> {
+    pub(crate) publisher: &'a ModulePublisher,
     {# TODO(ddo) Clarify the naming. #}
     pub name: &'a str,
 }
