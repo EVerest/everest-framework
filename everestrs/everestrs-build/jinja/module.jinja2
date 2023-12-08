@@ -43,6 +43,13 @@ pub(crate) struct Module {
     publisher: ModulePublisher,
 }
 
+/// The context structure.
+pub struct Context<'a> {
+    pub publisher: &'a ModulePublisher,
+    {# TODO(ddo) Clarify the naming. #}
+    pub name: &'a str,
+}
+
 impl Module {
     #[must_use]
     pub(crate) fn new(
@@ -91,11 +98,15 @@ impl ::everestrs::Subscriber for Module {
         name: &str,
         parameters: ::std::collections::HashMap<String, serde_json::Value>,
     ) -> ::everestrs::Result<serde_json::Value> {
+        let context = Context {
+            publisher: &self.publisher,
+            name: &implementation_id,
+        };
         match implementation_id {
 {% for provide in provides %}
-   "{{ provide.implementation_id }}" => {
-   dispatch_command_to_{{ provide.interface | snake }}(&self.publisher, self.{{ provide.implementation_id | identifier }}.as_ref(), name, parameters)
-},
+    "{{ provide.implementation_id }}" => {
+        dispatch_command_to_{{ provide.interface | snake }}(&context, self.{{ provide.implementation_id | identifier }}.as_ref(), name, parameters)
+    },
 {% endfor %}
             _ => Err(::everestrs::Error::InvalidArgument(
                 "Unknown implementation_id called.",
@@ -109,12 +120,16 @@ impl ::everestrs::Subscriber for Module {
         name: &str,
         value: serde_json::Value,
     ) -> ::everestrs::Result<()> {
+        let context = Context {
+            publisher: &self.publisher,
+            name: &implementation_id,
+        };
         match implementation_id {
 {% for req in requires %}
-         "{{ req.implementation_id }}" => {
-         dispatch_variable_to_{{ req.interface | snake }}(&self.publisher, self.{{ req.implementation_id  | identifier }}.as_ref(), name, value)
-      },
-      {% endfor %}
+    "{{ req.implementation_id }}" => {
+         dispatch_variable_to_{{ req.interface | snake }}(&context, self.{{ req.implementation_id  | identifier }}.as_ref(), name, value)
+    },
+{% endfor %}
       _ => Err(::everestrs::Error::InvalidArgument(
                   "Unknown variable received.",
               ))
