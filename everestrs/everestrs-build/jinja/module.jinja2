@@ -1,6 +1,15 @@
 mod generated {
 
-#![allow(clippy::let_unit_value, clippy::useless_conversion, clippy::match_single_binding, dead_code, unused_mut, unused_variables, clippy::upper_case_acronyms)]
+#![allow(
+    clippy::let_unit_value,
+    clippy::match_single_binding,
+    clippy::upper_case_acronyms,
+    clippy::useless_conversion,
+    dead_code,
+    non_camel_case_types
+    unused_mut,
+    unused_variables,
+)]
 
 pub mod types {
 {% include "types" %}
