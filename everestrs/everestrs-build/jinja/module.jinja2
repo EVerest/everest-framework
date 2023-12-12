@@ -1,6 +1,6 @@
 mod generated {
 
-#![allow(clippy::let_unit_value, clippy::useless_conversion, clippy::match_single_binding, dead_code, unused_mut, unused_variables)]
+#![allow(clippy::let_unit_value, clippy::useless_conversion, clippy::match_single_binding, dead_code, unused_mut, unused_variables, clippy::upper_case_acronyms)]
 
 pub mod types {
 {% include "types" %}
@@ -100,7 +100,7 @@ impl ::everestrs::Subscriber for Module {
     ) -> ::everestrs::Result<serde_json::Value> {
         let context = Context {
             publisher: &self.publisher,
-            name: &implementation_id,
+            name: implementation_id,
         };
         match implementation_id {
 {% for provide in provides %}
@@ -122,7 +122,7 @@ impl ::everestrs::Subscriber for Module {
     ) -> ::everestrs::Result<()> {
         let context = Context {
             publisher: &self.publisher,
-            name: &implementation_id,
+            name: implementation_id,
         };
         match implementation_id {
 {% for req in requires %}
