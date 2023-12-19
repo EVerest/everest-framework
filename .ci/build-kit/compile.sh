@@ -12,6 +12,6 @@ cmake \
     -G Ninja \
     -DEVC_ENABLE_CCACHE=1 \
     -DBUILD_TESTING=ON \
-    -DEVEREST_ENABLE_RS_SUPPORT=ON
+    -DEVEREST_ENABLE_RS_SUPPORT=OFF # Turn off rust support until we can properly support Rust.
 
 ninja -j$(nproc) -C build
