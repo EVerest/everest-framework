@@ -8,6 +8,7 @@
 
 #include <fcntl.h>
 #include <netdb.h>
+#include <netinet/tcp.h>
 #include <poll.h>
 #include <sys/eventfd.h>
 #include <sys/socket.h>
@@ -393,6 +394,11 @@ bool MQTTAbstractionImpl::connectBroker(const char* host, const char* port) {
         EVLOG_error << "Could not setup eventfd for mqttc io";
         return false;
     }
+
+    // Set TCP_NODELAY option. To take full advantage, this should also be set in mosquitto config.
+    // This avoids about 40ms latency on small MQTT publishes
+    int enable = 1;
+    setsockopt(mqtt_socket_fd, IPPROTO_TCP, TCP_NODELAY, &enable, sizeof(enable));
 
     mqtt_init(&this->mqtt_client, mqtt_socket_fd, static_cast<uint8_t*>(this->sendbuf), sizeof(this->sendbuf),
               static_cast<uint8_t*>(this->recvbuf), sizeof(this->recvbuf), MQTTAbstractionImpl::publish_callback);
