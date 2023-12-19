@@ -164,7 +164,6 @@ if(BUILD_TESTING)
 
     add_subdirectory(tests)
 
-# Is tests here going to need to be named after the test target's new name?
     setup_target_for_coverage_gcovr_html(
         NAME gcovr_coverage
         EXECUTABLE ctest --output-on-failure
