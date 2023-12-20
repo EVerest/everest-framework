@@ -1,7 +1,7 @@
 include(Catch)
 
 set(TEST_TARGET_NAME ${PROJECT_NAME}_tests)
-add_executable(${PROJECT_NAME})
+add_executable(${TEST_TARGET_NAME})
 
 target_include_directories(${TEST_TARGET_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
