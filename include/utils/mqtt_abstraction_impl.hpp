@@ -104,7 +104,7 @@ public:
     static void publish_callback(void** unused, struct mqtt_response_publish* published);
 
 private:
-    static constexpr int mqtt_poll_timeout_ms{100}; 
+    static constexpr int mqtt_poll_timeout_ms{100};
     bool mqtt_is_connected;
     std::map<std::string, MessageHandler> message_handlers;
     std::mutex handlers_mutex;
