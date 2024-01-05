@@ -151,7 +151,7 @@ endif ()
 
 # testing
 # FIXME (aw): move testing logic into tests/CMakeLists.txt
-if(BUILD_TESTING)
+if((CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME OR ${PROJECT_NAME}_BUILD_TESTING) AND BUILD_TESTING)
     if(NOT DISABLE_EDM)
         list(APPEND CMAKE_MODULE_PATH ${CPM_PACKAGE_catch2_SOURCE_DIR}/extras)
     endif()
