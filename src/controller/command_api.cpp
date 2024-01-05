@@ -86,11 +86,13 @@ nlohmann::json CommandApi::handle(const std::string& cmd, const json& params) {
             throw CommandApiParamsError("The save_config needs a 'name' parameter for the config file of type string");
         }
 
+        const name = params.at("name").get<std::string>();
+
         json config_json = params.value("config", json::object());
         auto ryml_deserialized = transpile_config(config_json);
 
         const auto configs_path = fs::path(this->config.configs_dir);
-        auto check_config_file_path = configs_path / fmt::format("_{}.yaml", params.at("name"));
+        auto check_config_file_path = configs_path / fmt::format("_{}.yaml", name);
 
         std::ofstream(check_config_file_path.string()) << ryml_deserialized;
 
@@ -101,7 +103,7 @@ nlohmann::json CommandApi::handle(const std::string& cmd, const json& params) {
             throw CommandApiParamsError(result);
         }
 
-        fs::rename(check_config_file_path, configs_path / fmt::format("{}.yaml", params.at("name")));
+        fs::rename(check_config_file_path, configs_path / fmt::format("{}.yaml", name));
 
         return true;
     } else if (cmd == "restart_modules") {
