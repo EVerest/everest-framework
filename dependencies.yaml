@@ -70,6 +70,8 @@ catch2:
 pybind11:
   git: https://github.com/pybind/pybind11.git
   git_tag: v2.11.1
+  cmake_condition: "EVEREST_ENABLE_PY_SUPPORT"
 pybind11_json:
   git: https://github.com/pybind/pybind11_json.git
   git_tag: 0.2.13
+  cmake_condition: "EVEREST_ENABLE_PY_SUPPORT"
