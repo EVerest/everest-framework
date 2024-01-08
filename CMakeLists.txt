@@ -61,7 +61,9 @@ if(NOT DISABLE_EDM)
     set_property(TARGET nlohmann_json_schema_validator PROPERTY POSITION_INDEPENDENT_CODE ON)
 
     # FIXME (aw): add catch2's cmake folder
-    list(APPEND CMAKE_MODULE_PATH "${Catch2_SOURCE_DIR}/contrib")
+    if (BUILD_TESTING)
+        list(APPEND CMAKE_MODULE_PATH "${Catch2_SOURCE_DIR}/contrib")
+    endif()
 else()
     find_package(date REQUIRED)
     find_package(ryml REQUIRED)
