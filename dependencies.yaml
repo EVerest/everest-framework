@@ -6,6 +6,7 @@ ryml:
 libwebsockets:
   git: https://github.com/warmcat/libwebsockets.git
   git_tag: v4.3.2
+  cmake_condition: "EVEREST_ENABLE_ADMIN_PANEL_BACKEND"
   options:
     - CMAKE_POLICY_DEFAULT_CMP0077 NEW
     - LWS_ROLE_RAW_FILE OFF
