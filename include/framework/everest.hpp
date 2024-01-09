@@ -115,6 +115,12 @@ public:
                             const std::string& severity);
 
     ///
+    /// \brief Raises an given \p error of the given \p impl_id. Returns the uuid of the
+    /// raised error
+    ///
+    std::string raise_error(const std::string& impl_id, const error::Error& error);
+
+    ///
     /// \brief publishes the given \p data on the given \p topic
     ///
     void external_mqtt_publish(const std::string& topic, const std::string& data);

@@ -439,6 +439,10 @@ int ModuleLoader::initialize() {
             return error::ErrorHandle(everest.raise_error(impl_id, type, message, error::severity_to_string(severity)));
         };
 
+        module_adapter.raise_error_object = [&everest](const std::string& impl_id, const error::Error& error) {
+            return error::ErrorHandle(everest.raise_error(impl_id, error));
+        };
+
         module_adapter.request_clear_all_errors_of_module = [&everest](const std::string& impl_id) {
             return everest.request_clear_error(error::RequestClearErrorOption::ClearAllOfModule, impl_id, "", "");
         };

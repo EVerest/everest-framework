@@ -58,7 +58,7 @@ std::string UUID::to_string() const {
 
 Error::Error(const std::string& type_, const std::string& message_, const std::string& description_,
              const ImplementationIdentifier& from_, const bool persistent_, const Severity& severity_,
-             const time_point& timestamp_, const UUID& uuid_) :
+             const time_point& timestamp_, const UUID& uuid_, const std::list<std::shared_ptr<Error>>& caused_by_) :
     type(type_),
     message(message_),
     description(description_),
@@ -66,12 +66,13 @@ Error::Error(const std::string& type_, const std::string& message_, const std::s
     persistent(persistent_),
     severity(severity_),
     timestamp(timestamp_),
-    uuid(uuid_) {
+    uuid(uuid_),
+    caused_by(caused_by_) {
 }
 
 Error::Error(const std::string& type_, const std::string& message_, const std::string& description_,
              const ImplementationIdentifier& from_, const Severity& severity_) :
-    Error(type_, message_, description_, from_, false, severity_, date::utc_clock::now(), UUID()) {
+    Error(type_, message_, description_, from_, false, severity_, date::utc_clock::now(), UUID(), {}) {
 }
 
 Error::Error(const std::string& type_, const std::string& message_, const std::string& description_,
@@ -91,8 +92,14 @@ Error json_to_error(const json& j) {
     Severity severity = string_to_severity(j.at("severity"));
     Error::time_point timestamp = Date::from_rfc3339(j.at("timestamp"));
     UUID uuid(j.at("uuid"));
+    std::list<std::shared_ptr<Error>> caused_by;
+    if (j.contains("caused_by")) {
+        for (const auto& error : j.at("caused_by")) {
+            caused_by.push_back(std::make_shared<Error>(json_to_error(error)));
+        }
+    }
 
-    return Error(type, message, description, from, persistent, severity, timestamp, uuid);
+    return Error(type, message, description, from, persistent, severity, timestamp, uuid, caused_by);
 }
 
 json error_to_json(const Error& e) {
@@ -106,6 +113,10 @@ json error_to_json(const Error& e) {
     j["severity"] = severity_to_string(e.severity);
     j["timestamp"] = Date::to_rfc3339(e.timestamp);
     j["uuid"] = e.uuid.uuid;
+    j["caused_by"] = json::array();
+    for (const auto& error : e.caused_by) {
+        j["caused_by"].push_back(error_to_json(*error));
+    }
     return j;
 }
 

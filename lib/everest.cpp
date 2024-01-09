@@ -554,6 +554,18 @@ void Everest::subscribe_all_errors_cleared(const JsonCallback& callback) {
     }
 }
 
+std::string Everest::raise_error(const std::string& impl_id, const error::Error& error) {
+    BOOST_LOG_FUNCTION();
+
+    json data = error::error_to_json(error);
+
+    const auto error_topic = fmt::format("{}/error/{}", this->config.mqtt_prefix(this->module_id, impl_id),
+                                         error.type);
+
+    this-> mqtt_abstraction.publish(error_topic, data, QOS::QOS2);
+    return error.uuid.uuid;
+}
+
 std::string Everest::raise_error(const std::string& impl_id, const std::string& error_type, const std::string& message,
                                  const std::string& severity) {
     BOOST_LOG_FUNCTION();
@@ -563,12 +575,7 @@ std::string Everest::raise_error(const std::string& impl_id, const std::string& 
 
     error::Error error(error_type, message, description, this->module_id, impl_id, severity_enum);
 
-    json data = error::error_to_json(error);
-
-    const auto error_topic = fmt::format("{}/error/{}", this->config.mqtt_prefix(this->module_id, impl_id), error_type);
-
-    this->mqtt_abstraction.publish(error_topic, data, QOS::QOS2);
-    return error.uuid.uuid;
+    return this->raise_error(impl_id, error);
 }
 
 json Everest::request_clear_error(const error::RequestClearErrorOption request_type, const std::string& impl_id,

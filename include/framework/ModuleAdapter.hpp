@@ -78,6 +78,7 @@ struct ModuleAdapter {
     using SubscribeAllErrorsClearedFunc = SubscribeAllErrorsFunc;
     using RaiseErrorFunc = std::function<error::ErrorHandle(const std::string&, const std::string&, const std::string&,
                                                             const error::Severity&)>;
+    using RaiseErrorObjectFunc = std::function<error::ErrorHandle(const std::string&, const error::Error&)>;
     using RequestClearErrorUUIDFunc = std::function<Result(const std::string&, const error::ErrorHandle&)>;
     using RequestClearAllErrorsOfMouduleFunc = std::function<Result(const std::string&)>;
     using RequestClearAllErrorsOfTypeOfModuleFunc = std::function<Result(const std::string&, const std::string&)>;
@@ -94,6 +95,7 @@ struct ModuleAdapter {
     SubscribeErrorClearedFunc subscribe_error_cleared;
     SubscribeAllErrorsClearedFunc subscribe_all_errors_cleared;
     RaiseErrorFunc raise_error;
+    RaiseErrorObjectFunc raise_error_object;
     RequestClearErrorUUIDFunc request_clear_error_uuid;
     RequestClearAllErrorsOfMouduleFunc request_clear_all_errors_of_module;
     RequestClearAllErrorsOfTypeOfModuleFunc request_clear_all_errors_of_type_of_module;

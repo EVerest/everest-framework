@@ -7,6 +7,7 @@
 #include <fmt/format.h>
 #include <map>
 #include <string>
+#include <list>
 
 #include <utils/date.hpp>
 #include <utils/types.hpp>
@@ -57,7 +58,7 @@ struct Error {
     using time_point = date::utc_clock::time_point;
     Error(const std::string& type, const std::string& message, const std::string& description,
           const ImplementationIdentifier& from, const bool persistent, const Severity& severity,
-          const time_point& timestamp, const UUID& uuid);
+          const time_point& timestamp, const UUID& uuid, const std::list<std::shared_ptr<Error>>& caused_by);
     Error(const std::string& type, const std::string& message, const std::string& description,
           const ImplementationIdentifier& from, const Severity& severity = Severity::Low);
     Error(const std::string& type, const std::string& message, const std::string& description,
@@ -72,6 +73,7 @@ struct Error {
     ImplementationIdentifier from;
     time_point timestamp;
     UUID uuid;
+    std::list<std::shared_ptr<Error>> caused_by;
 };
 
 class ErrorTypeMap {
