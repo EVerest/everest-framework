@@ -16,7 +16,7 @@ namespace everest::formatting {
 // NOTE (aw): this is only for backward compatibility, once finally
 // switching to version 10, this function could be removed again
 void throw_format_error(const char* message);
-}
+} // namespace everest::formatting
 
 template <> struct fmt::formatter<nlohmann::json> {
     constexpr auto parse(fmt::format_parse_context& ctx) -> fmt::format_parse_context::iterator {
