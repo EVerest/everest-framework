@@ -63,10 +63,12 @@ cc_binary(
 
 cc_binary(
     name = "manager",
-    srcs = [
-        "src/manager.cpp",
-    ],
-    copts = ["-std=c++17"],
+    srcs = glob(
+        [
+            "src/*.cpp",
+            "src/*.hpp",
+        ],
+    ),
     visibility = ["//visibility:public"],
     deps = [
         "@//third-party/bazel:boost_program_options",
