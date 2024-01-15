@@ -61,6 +61,12 @@ cc_binary(
     ],
 )
 
+cc_library(
+    name = "libcap",
+    hdrs = [],
+    linkopts = ["-lcap"],
+)
+
 cc_binary(
     name = "manager",
     srcs = glob(
@@ -77,5 +83,6 @@ cc_binary(
         "@com_github_pboettch_json-schema-validator//:json-schema-validator",
         "@everest-framework//:controller-ipc",
         "@everest-framework//:framework",
+        "@everest-framework//:libcap",
     ],
 )
