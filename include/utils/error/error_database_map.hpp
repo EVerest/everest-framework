@@ -5,7 +5,7 @@
 #define ERROR_DATABASE_MAP_HPP
 
 #include <list>
-#include <utils/error/error.hpp>
+#include <utils/error.hpp>
 #include <utils/error/error_database.hpp>
 
 namespace Everest {

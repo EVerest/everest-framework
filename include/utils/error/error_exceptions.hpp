@@ -7,7 +7,7 @@
 #include <everest/exceptions.hpp>
 #include <string>
 
-#include <utils/error/error.hpp>
+#include <utils/error.hpp>
 namespace Everest {
 namespace error {
 

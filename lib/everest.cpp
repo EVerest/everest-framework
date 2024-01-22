@@ -16,7 +16,7 @@
 #include <framework/everest.hpp>
 #include <utils/conversions.hpp>
 #include <utils/date.hpp>
-#include <utils/error/error.hpp>
+#include <utils/error.hpp>
 #include <utils/error/error_exceptions.hpp>
 #include <utils/error/error_json.hpp>
 #include <utils/error/error_manager.hpp>

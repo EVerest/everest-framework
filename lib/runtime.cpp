@@ -2,7 +2,7 @@
 // Copyright 2020 - 2023 Pionix GmbH and Contributors to EVerest
 
 #include <framework/runtime.hpp>
-#include <utils/error/error.hpp>
+#include <utils/error.hpp>
 #include <utils/error/error_json.hpp>
 #include <utils/error/error_manager.hpp>
 

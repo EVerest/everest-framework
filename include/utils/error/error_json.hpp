@@ -3,7 +3,7 @@
 #ifndef UTILS_ERROR_JSON_HPP
 #define UTILS_ERROR_JSON_HPP
 
-#include <utils/error/error.hpp>
+#include <utils/error.hpp>
 
 namespace Everest {
 namespace error {

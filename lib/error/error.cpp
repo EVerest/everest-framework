@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Pionix GmbH and Contributors to EVerest
-#include <utils/error/error.hpp>
+#include <utils/error.hpp>
 
 #include <boost/uuid/random_generator.hpp>
 #include <boost/uuid/uuid.hpp>

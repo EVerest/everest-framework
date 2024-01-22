@@ -6,7 +6,7 @@
 
 #include <filesystem>
 
-#include <utils/error/error.hpp>
+#include <utils/error.hpp>
 
 namespace Everest {
 namespace error {

@@ -4,7 +4,7 @@
 #ifndef UTILS_ERROR_FILTER_HPP
 #define UTILS_ERROR_FILTER_HPP
 
-#include <utils/error/error.hpp>
+#include <utils/error.hpp>
 #include <utils/types.hpp>
 
 #include <variant>

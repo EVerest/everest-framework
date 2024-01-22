@@ -4,7 +4,7 @@
 #include <utils/error/error_database_map.hpp>
 
 #include <everest/logging.hpp>
-#include <utils/error/error.hpp>
+#include <utils/error.hpp>
 #include <utils/error/error_exceptions.hpp>
 #include <utils/error/error_json.hpp>
 
