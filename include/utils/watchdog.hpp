@@ -26,37 +26,9 @@ namespace Everest {
 
 class WatchdogSupervisor {
 public:
-    WatchdogSupervisor() {
-        // Thread that monitors all registered watchdogs
-        timeout_detection_thread = std::thread([this]() {
-            while (not should_stop) {
-                std::this_thread::sleep_for(check_interval);
+    WatchdogSupervisor();
 
-                // check if any watchdog timed out
-                for (const auto& dog : dogs) {
-                    std::chrono::steady_clock::time_point last_seen = dog.last_seen;
-                    if (std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - last_seen) >
-                        dog.timeout) {
-                        // Throw exception
-                        EVLOG_AND_THROW(EverestTimeoutError("Module internal watchdog timeout: " + dog.description));
-                    }
-                }
-
-                // check if we need to send an MQTT feed to manager
-                if (--feed_manager_via_mqtt_countdown == 0) {
-                    feed_manager_via_mqtt_countdown = feed_manager_via_mqtt_counts_max;
-                    // send MQTT feed to manager
-                }
-            }
-        });
-    }
-
-    ~WatchdogSupervisor() {
-        should_stop = true;
-        if (timeout_detection_thread.joinable()) {
-            timeout_detection_thread.join();
-        }
-    }
+    ~WatchdogSupervisor();
 
     auto register_watchdog(const std::string& description, std::chrono::seconds timeout) {
         std::scoped_lock lock(dogs_lock);
@@ -66,6 +38,8 @@ public:
     }
 
 private:
+    void feed_manager_mqtt();
+    
     struct WatchdogData {
         WatchdogData(const std::string& _description, std::chrono::seconds _timeout) :
             description(_description), timeout(_timeout) {
