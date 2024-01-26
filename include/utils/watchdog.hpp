@@ -39,7 +39,7 @@ public:
 
 private:
     void feed_manager_mqtt();
-    
+
     struct WatchdogData {
         WatchdogData(const std::string& _description, std::chrono::seconds _timeout) :
             description(_description), timeout(_timeout) {
@@ -58,7 +58,7 @@ private:
 
     constexpr static std::chrono::seconds check_interval{1};
     constexpr static std::chrono::seconds feed_manager_via_mqtt_interval{15};
-    constexpr static int feed_manager_via_mqtt_counts_max = feed_manager_via_mqtt_interval / check_interval;
+    std::chrono::steady_clock::time_point next_manager_feed_due;
 };
 
 } // namespace Everest

@@ -6,6 +6,9 @@
 namespace Everest {
 
 WatchdogSupervisor::WatchdogSupervisor() {
+
+    next_manager_feed_due = std::chrono::steady_clock::now();
+
     // Thread that monitors all registered watchdogs
     timeout_detection_thread = std::thread([this]() {
         while (not should_stop) {
@@ -22,8 +25,9 @@ WatchdogSupervisor::WatchdogSupervisor() {
             }
 
             // check if we need to send an MQTT feed to manager
-            if (--feed_manager_via_mqtt_countdown == 0) {
-                feed_manager_via_mqtt_countdown = feed_manager_via_mqtt_counts_max;
+            const auto now = std::chrono::steady_clock::now();
+            if (next_manager_feed_due < now) {
+                next_manager_feed_due = now + feed_manager_via_mqtt_interval;
                 // send MQTT feed to manager
                 feed_manager_mqtt();
             }
