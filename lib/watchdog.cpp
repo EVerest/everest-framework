@@ -5,7 +5,7 @@
 
 namespace Everest {
 
-WatchdogSupervisor::WatchdogSupervisor() {
+WatchdogSupervisor::WatchdogSupervisor(ModuleAdapter& ev) : ev(ev) {
 
     next_manager_feed_due = std::chrono::steady_clock::now();
 
@@ -29,7 +29,7 @@ WatchdogSupervisor::WatchdogSupervisor() {
             if (next_manager_feed_due < now) {
                 next_manager_feed_due = now + feed_manager_via_mqtt_interval;
                 // send MQTT feed to manager
-                feed_manager_mqtt();
+                this->ev.watchdog_feed_publish();
             }
         }
     });
@@ -40,9 +40,6 @@ WatchdogSupervisor::~WatchdogSupervisor() {
     if (timeout_detection_thread.joinable()) {
         timeout_detection_thread.join();
     }
-}
-
-void WatchdogSupervisor::feed_manager_mqtt() {
 }
 
 } // namespace Everest

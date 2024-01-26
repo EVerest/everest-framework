@@ -140,6 +140,11 @@ public:
     bool is_telemetry_enabled();
 
     ///
+    /// \brief publishes a watchdog feed
+    ///
+    void watchdog_feed_publish();
+
+    ///
     /// \brief Chccks if all commands of a module that are listed in its manifest are available
     ///
     void check_code();
@@ -183,7 +188,6 @@ private:
     std::chrono::seconds remote_cmd_res_timeout;
     bool validate_data_with_schema;
     std::unique_ptr<std::function<void()>> on_ready;
-    std::thread heartbeat_thread;
     std::string module_name;
     std::future<void> main_loop_end{};
     json module_manifest;
@@ -195,8 +199,6 @@ private:
     bool telemetry_enabled;
 
     void handle_ready(json data);
-
-    void heartbeat();
 
     void publish_metadata();
 

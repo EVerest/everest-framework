@@ -21,12 +21,13 @@
 #include <thread>
 
 #include <everest/logging.hpp>
+#include <framework/ModuleAdapter.hpp>
 
 namespace Everest {
 
 class WatchdogSupervisor {
 public:
-    WatchdogSupervisor();
+    WatchdogSupervisor(ModuleAdapter& ev);
 
     ~WatchdogSupervisor();
 
@@ -38,8 +39,6 @@ public:
     }
 
 private:
-    void feed_manager_mqtt();
-
     struct WatchdogData {
         WatchdogData(const std::string& _description, std::chrono::seconds _timeout) :
             description(_description), timeout(_timeout) {
@@ -59,6 +58,8 @@ private:
     constexpr static std::chrono::seconds check_interval{1};
     constexpr static std::chrono::seconds feed_manager_via_mqtt_interval{15};
     std::chrono::steady_clock::time_point next_manager_feed_due;
+
+    ModuleAdapter& ev;
 };
 
 } // namespace Everest
