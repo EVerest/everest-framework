@@ -36,7 +36,7 @@ void ErrorTypeMap::load_error_types(std::filesystem::path error_types_dir) {
             EVLOG_warning << "Error type file '" << entry.path().string() << "' does not contain 'errors' key.";
             continue;
         }
-        if (!error_type_file["errors"].is_array()) {
+        if (!error_type_file.at("errors").is_array()) {
             throw EverestParseError(fmt::format("Error type file '{}' does not contain an array with key 'errors'.",
                                                 entry.path().string()));
         }
