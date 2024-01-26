@@ -58,15 +58,19 @@ cc_binary(
         "@com_github_warmcatt_libwebsockets//:libwebsockets",
         "@everest-framework//:controller-ipc",
         "@everest-framework//:framework",
+        "@libcap//:libcap",
     ],
 )
 
 cc_binary(
     name = "manager",
-    srcs = [
-        "src/manager.cpp",
-    ],
     copts = ["-std=c++17"],
+    srcs = glob(
+        [
+            "src/*.cpp",
+            "src/*.hpp",
+        ],
+    ),
     visibility = ["//visibility:public"],
     deps = [
         "@//third-party/bazel:boost_program_options",
@@ -75,5 +79,6 @@ cc_binary(
         "@com_github_pboettch_json-schema-validator//:json-schema-validator",
         "@everest-framework//:controller-ipc",
         "@everest-framework//:framework",
+        "@libcap//:libcap",
     ],
 )

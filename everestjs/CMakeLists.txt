@@ -25,7 +25,7 @@ find_program(
 # FIXME (aw): we want this as an requirement, not implicitely install it by ourself
 execute_process(
     COMMAND
-        ${NPM} list -p node-addon-api
+        ${NPM} list -p node-addon-api --loglevel=error | grep node-addon-api
     WORKING_DIRECTORY
         ${CMAKE_CURRENT_BINARY_DIR}
     OUTPUT_VARIABLE
@@ -65,6 +65,7 @@ find_path(NODEJS_INCLUDE_DIR "node_api.h"
         "node18"
         "node19"
         "node20"
+        "node21"
         "nodejs/src"
     HINTS
         "$ENV{HOME}/.nvm/versions/node/${NODE_VERSION}/include"
