@@ -12,6 +12,13 @@ target_link_libraries(manager
         PkgConfig::libcap
 )
 
+if (CMAKE_COMPILER_IS_GNUCC AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9)
+target_link_libraries(manager
+    PRIVATE
+        stdc++fs
+)
+endif()
+
 if (EVEREST_ENABLE_ADMIN_PANEL_BACKEND)
     target_link_libraries(manager
         PRIVATE

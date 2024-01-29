@@ -65,3 +65,10 @@ target_link_libraries(framework
         mqttc
         ryml::ryml
 )
+
+if (CMAKE_COMPILER_IS_GNUCC AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9)
+target_link_libraries(framework
+    PRIVATE
+        stdc++fs
+)
+endif()
