@@ -79,6 +79,6 @@ cc_binary(
         "@com_github_pboettch_json-schema-validator//:json-schema-validator",
         "@everest-framework//:controller-ipc",
         "@everest-framework//:framework",
-        "@libcap//:libcap",
+        "@//third-party/bazel:libcap",
     ],
 )
