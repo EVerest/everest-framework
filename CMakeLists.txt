@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.14)
 
 project(everest-framework
-    VERSION 0.9
+    VERSION 0.10
     DESCRIPTION "The open operating system for e-mobility charging stations"
 	LANGUAGES CXX C
 )
@@ -46,31 +46,37 @@ if(NOT DISABLE_EDM)
     # In EDM mode, we can't install exports (because the dependencies usually do not install their exports)
     set(FRAMEWORK_INSTALL OFF)
 
-    # FIXME (aw): libwebsockets/ninja clean doesn't delete recursivly ..
-    set_property(
-        TARGET websockets_shared
-        APPEND
-        PROPERTY ADDITIONAL_CLEAN_FILES "${libwebsockets_BINARY_DIR}/include/libwebsockets"
-    )
+    if (EVEREST_ENABLE_ADMIN_PANEL_BACKEND)
+        # FIXME (aw): libwebsockets/ninja clean doesn't delete recursivly ..
+        set_property(
+            TARGET websockets_shared
+            APPEND
+            PROPERTY ADDITIONAL_CLEAN_FILES "${libwebsockets_BINARY_DIR}/include/libwebsockets"
+        )
 
-    # FIXME (aw): libwebsockets enum-int-mismatch FIX
-    # see https://github.com/warmcat/libwebsockets/pull/2824
-    if (CMAKE_COMPILER_IS_GNUCC AND CMAKE_C_COMPILER_VERSION VERSION_GREATER 13.0)
-        target_compile_options(websockets_shared PRIVATE -Wno-error=enum-int-mismatch)
+        # FIXME (aw): libwebsockets enum-int-mismatch FIX
+        # see https://github.com/warmcat/libwebsockets/pull/2824
+        if (CMAKE_COMPILER_IS_GNUCC AND CMAKE_C_COMPILER_VERSION VERSION_GREATER 13.0)
+            target_compile_options(websockets_shared PRIVATE -Wno-error=enum-int-mismatch)
+        endif()
     endif()
-
     set_property(TARGET nlohmann_json_schema_validator PROPERTY POSITION_INDEPENDENT_CODE ON)
 
     # FIXME (aw): add catch2's cmake folder
-    list(APPEND CMAKE_MODULE_PATH "${Catch2_SOURCE_DIR}/contrib")
+    if (BUILD_TESTING)
+        list(APPEND CMAKE_MODULE_PATH "${Catch2_SOURCE_DIR}/contrib")
+    endif()
 else()
     find_package(date REQUIRED)
     find_package(ryml REQUIRED)
     find_package(nlohmann_json REQUIRED)
     find_package(nlohmann_json_schema_validator REQUIRED)
-    find_package(libwebsockets REQUIRED)
     find_package(fmt REQUIRED)
     find_package(everest-log REQUIRED)
+
+    if (EVEREST_ENABLE_ADMIN_PANEL_BACKEND)
+        find_package(libwebsockets REQUIRED)
+    endif()
 
     if (BUILD_TESTING)
         find_package(Catch2 REQUIRED)
@@ -147,6 +153,7 @@ endif ()
 # testing
 # FIXME (aw): move testing logic into tests/CMakeLists.txt
 if((${CMAKE_PROJECT_NAME} STREQUAL ${PROJECT_NAME} OR ${PROJECT_NAME}_BUILD_TESTING) AND BUILD_TESTING)
+if((CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME OR ${PROJECT_NAME}_BUILD_TESTING) AND BUILD_TESTING)
     if(NOT DISABLE_EDM)
         list(APPEND CMAKE_MODULE_PATH ${CPM_PACKAGE_catch2_SOURCE_DIR}/extras)
     endif()

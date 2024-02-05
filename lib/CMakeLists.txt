@@ -15,10 +15,15 @@ set_target_properties(framework PROPERTIES SOVERSION ${PROJECT_VERSION})
 target_sources(framework
     PRIVATE
         config.cpp
-        error.cpp
-        error_database.cpp
-        error_manager.cpp
+        error/error.cpp
+        error/error_comm_bridge.cpp
+        error/error_database_map.cpp
+        error/error_filter.cpp
+        error/error_json.cpp
+        error/error_manager.cpp
+        error/error_type_map.cpp
         everest.cpp
+        formatter.cpp
         message_queue.cpp
         mqtt_abstraction.cpp
         mqtt_abstraction_impl.cpp
