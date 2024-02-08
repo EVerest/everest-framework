@@ -1,5 +1,4 @@
 #!/bin/bash
 set -e
 
-cd build
-ninja test
+ninja -j$(nproc) -C build test
