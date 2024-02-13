@@ -224,7 +224,7 @@ fn as_typename(arg: &TypeBase, type_refs: &mut BTreeSet<TypeRef>) -> Result<Stri
         Single(Integer(_)) => "i64".to_string(),
         Single(Object(args)) => {
             if args.object_reference.is_none() {
-                "::serde_json::Value".to_string()
+                "__serde_json::Value".to_string()
             } else {
                 let t = TypeRef::from_object(args)?;
                 let name = t.absolute_type_path();
@@ -233,13 +233,13 @@ fn as_typename(arg: &TypeBase, type_refs: &mut BTreeSet<TypeRef>) -> Result<Stri
             }
         }
         Single(Array(args)) => match args.items {
-            None => "Vec<::serde_json::Value>".to_string(),
+            None => "Vec<__serde_json::Value>".to_string(),
             Some(ref v) => {
                 let item_type = as_typename(&v.arg, type_refs)?;
                 format!("Vec<{item_type}>")
             }
         },
-        Multiple(_) => "::serde_json::Value".to_string(),
+        Multiple(_) => "__serde_json::Value".to_string(),
     })
 }
 

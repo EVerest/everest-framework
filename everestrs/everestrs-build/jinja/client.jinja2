@@ -9,12 +9,12 @@ fn dispatch_variable_to_{{ trait.name | snake }}(
    context: &Context,
    client_subscriber: &dyn {{trait.name | title}}ClientSubscriber,
    name: &str,
-   value: ::serde_json::Value,
+   value: __serde_json::Value,
 ) -> ::everestrs::Result<()> {
    match name {
 {%- for var in trait.vars %}
    "{{ var.name }}" => {
-   let v: {{ var.data_type.name }} = ::serde_json::from_value(value)
+   let v: {{ var.data_type.name }} = __serde_json::from_value(value)
          .map_err(|_| ::everestrs::Error::InvalidArgument("{{ var.name }}"))?;
          client_subscriber.on_{{ var.name | snake }}(context, v);
                 Ok(())
@@ -51,13 +51,13 @@ impl {{trait.name | title }}ClientPublisher {
       ()
    {%- endif -%}
       > {
-        let args = serde_json::json!({
+        let args = __serde_json::json!({
 {%- for arg in cmd.arguments %}
             "{{arg.name}}": {{arg.name | identifier}},
 {%- endfor %}
         });
         let blob = self.runtime.call_command(self.implementation_id, "{{ cmd.name }}", &args);
-        ::serde_json::from_value(blob).map_err(|_| ::everestrs::Error::InvalidArgument("return_value"))
+        __serde_json::from_value(blob).map_err(|_| ::everestrs::Error::InvalidArgument("return_value"))
 
       }
 {% endfor %}

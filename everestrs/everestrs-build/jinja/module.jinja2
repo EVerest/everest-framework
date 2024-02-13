@@ -9,7 +9,10 @@ mod generated {
     non_camel_case_types,
     unused_mut,
     unused_variables,
+    unused_imports,
 )]
+
+use everestrs::serde_json as __serde_json;
 
 pub mod types {
 {% include "types" %}
@@ -105,8 +108,8 @@ impl ::everestrs::Subscriber for Module {
         &self,
         implementation_id: &str,
         name: &str,
-        parameters: ::std::collections::HashMap<String, serde_json::Value>,
-    ) -> ::everestrs::Result<serde_json::Value> {
+        parameters: ::std::collections::HashMap<String, __serde_json::Value>,
+    ) -> ::everestrs::Result<__serde_json::Value> {
         let context = Context {
             publisher: &self.publisher,
             name: implementation_id,
@@ -127,7 +130,7 @@ impl ::everestrs::Subscriber for Module {
         &self,
         implementation_id: &str,
         name: &str,
-        value: serde_json::Value,
+        value: __serde_json::Value,
     ) -> ::everestrs::Result<()> {
         let context = Context {
             publisher: &self.publisher,
