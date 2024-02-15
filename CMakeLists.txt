@@ -20,6 +20,7 @@ option(EVEREST_ENABLE_PY_SUPPORT "Enable everestpy for Python modules" ON)
 option(EVEREST_ENABLE_RS_SUPPORT "Enable everestrs for Rust modules" OFF)
 option(EVEREST_ENABLE_ADMIN_PANEL_BACKEND "Enable everest admin panel backend" ON)
 option(EVEREST_INSTALL_ADMIN_PANEL "Download and install everest admin panel" ON)
+option(EVEREST_ENABLE_USER_AND_CAPABILITIES "Enable user and capabilities support using libcap" ON)
 
 # make own cmake modules available
 list(INSERT CMAKE_MODULE_PATH 0 "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
@@ -33,12 +34,14 @@ find_package(Boost
     REQUIRED
 )
 
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(libcap
-    REQUIRED
-    IMPORTED_TARGET
-    libcap
-)
+if (EVEREST_ENABLE_USER_AND_CAPABILITIES)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(libcap
+        REQUIRED
+        IMPORTED_TARGET
+        libcap
+    )
+endif ()
 
 # Make sure stdc++fs is linked for GCC < 9
 if (CMAKE_COMPILER_IS_GNUCC AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9)

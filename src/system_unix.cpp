@@ -7,11 +7,15 @@
 #include <stdexcept>
 
 #include <fcntl.h>
+#ifdef ENABLE_USER_AND_CAPABILITIES
 #include <grp.h>
 #include <linux/securebits.h>
+#endif
 #include <pwd.h>
 #include <signal.h>
+#ifdef ENABLE_USER_AND_CAPABILITIES
 #include <sys/capability.h>
+#endif
 #include <sys/prctl.h>
 #include <unistd.h>
 
@@ -21,6 +25,7 @@ namespace Everest::system {
 
 const auto PARENT_DIED_SIGNAL = SIGTERM;
 
+#ifdef ENABLE_USER_AND_CAPABILITIES
 struct GetPasswdEntryResult {
     explicit GetPasswdEntryResult(const std::string& error_) : error(error_) {
     }
@@ -60,13 +65,18 @@ static GetPasswdEntryResult get_passwd_entry(const std::string& user_name) {
 
     return GetPasswdEntryResult(entry->pw_uid, entry->pw_gid, std::vector<gid_t>(groups, groups + ngroups));
 }
+#endif
 
 bool keep_caps() {
+#ifdef ENABLE_USER_AND_CAPABILITIES
     return (0 == cap_set_secbits(SECBIT_KEEP_CAPS));
+#else
+    return true;
+#endif
 }
 
 std::string set_caps(const std::vector<std::string>& capabilities) {
-
+#ifdef ENABLE_USER_AND_CAPABILITIES
     std::vector<cap_value_t> capability_values;
     capability_values.resize(capabilities.size());
 
@@ -97,13 +107,13 @@ std::string set_caps(const std::vector<std::string>& capabilities) {
             return "Failed to add capabilities to ambient set";
         }
     }
-
+#endif
     return {};
 }
 
 std::string set_real_user(const std::string& user_name) {
     // Set special capabilities if required by module
-
+#ifdef ENABLE_USER_AND_CAPABILITIES
     const auto entry = get_passwd_entry(user_name);
 
     if (not entry) {
@@ -124,7 +134,7 @@ std::string set_real_user(const std::string& user_name) {
     if (set_uid_failed) {
         return "setuid failed";
     }
-
+#endif
     return {};
 }
 
@@ -160,6 +170,7 @@ pid_t SubProcess::check_child_executed() {
 }
 
 std::string set_user_and_capabilities(const std::string& run_as_user, const std::vector<std::string>& capabilities) {
+#ifdef ENABLE_USER_AND_CAPABILITIES
     if (not capabilities.empty()) {
         // we need to keep caps, otherwise, we'll loose all our capabilities (except inherited)
         if (system::keep_caps() == false) {
@@ -183,7 +194,7 @@ std::string set_user_and_capabilities(const std::string& run_as_user, const std:
             return fmt::format("Failed to set capabilities: {}", error);
         }
     }
-
+#endif
     return {};
 }
 
