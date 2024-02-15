@@ -24,12 +24,17 @@ fn dispatch_variable_to_{{ trait.name | snake }}(
    }
 }
 
+pub(crate) mod __mockall_{{trait.name | snake }}_client {
+
+use super::__serde_json;
+
 #[derive(Clone)]
 pub(crate) struct {{trait.name | title }}ClientPublisher {
-    implementation_id: &'static str,
-    runtime: ::std::pin::Pin<::std::sync::Arc<::everestrs::Runtime>>,
+   pub(super) implementation_id: &'static str,
+   pub(super) runtime: ::std::pin::Pin<::std::sync::Arc<::everestrs::Runtime>>,
 }
 
+#[cfg_attr(feature="mockall", mockall::automock)]
 impl {{trait.name | title }}ClientPublisher {
 {%- for cmd in trait.cmds %}
    /// {{cmd.description | replace("\n", " ")}}
@@ -61,4 +66,9 @@ impl {{trait.name | title }}ClientPublisher {
 
       }
 {% endfor %}
+
 }
+
+}
+#[cfg_attr(feature="mockall", mockall_double::double)]
+pub(crate) use __mockall_{{trait.name | snake }}_client::{{trait.name | title }}ClientPublisher;

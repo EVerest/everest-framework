@@ -33,7 +33,8 @@ pub(crate) trait OnReadySubscriber: Sync + Send {
 {% include "client" %}
 {% endfor %}
 
-#[derive(Clone)]
+#[cfg_attr(any(not(test), not(feature = "mockall")), derive(Clone))]
+#[cfg_attr(all(test, feature = "mockall"), derive(Default))]
 pub(crate) struct ModulePublisher {
 {% for provide in provides %}
    pub(crate) {{ provide.implementation_id | identifier }}: {{provide.interface | title}}ServicePublisher,
@@ -82,6 +83,7 @@ impl Module {
 {% for require in requires %}
             {{ require.implementation_id | identifier }},
 {% endfor %}
+            #[cfg(any(not(test), not(feature = "mockall")))]
             publisher: ModulePublisher {
 {% for provide in provides %}
    {{ provide.implementation_id | identifier }}: {{provide.interface | title}}ServicePublisher {
@@ -96,6 +98,8 @@ impl Module {
       },
 {% endfor %}
             },
+            #[cfg(all(test, feature = "mockall"))]
+            publisher: ModulePublisher::default(),
         });
 
         runtime.as_ref().set_subscriber(::std::sync::Arc::<Module>::downgrade(&this));

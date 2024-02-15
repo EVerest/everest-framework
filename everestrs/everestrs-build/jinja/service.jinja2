@@ -51,12 +51,15 @@ fn dispatch_command_to_{{ trait.name | snake }}(
    }
 }
 
+pub(crate) mod __mockall_{{trait.name | snake }}_service {
+
 #[derive(Clone)]
 pub(crate) struct {{trait.name | title }}ServicePublisher {
-    implementation_id: &'static str,
-    runtime: ::std::pin::Pin<::std::sync::Arc<::everestrs::Runtime>>,
+   pub(super) implementation_id: &'static str,
+   pub(super) runtime: ::std::pin::Pin<::std::sync::Arc<::everestrs::Runtime>>,
 }
 
+#[cfg_attr(feature="mockall", mockall::automock)]
 impl {{trait.name | title }}ServicePublisher {
 {% for var in trait.vars %}
    pub(crate) fn {{ var.name | identifier }}(&self, value: {{ var.data_type.name }}) -> ::everestrs::Result<()> {
@@ -65,3 +68,7 @@ impl {{trait.name | title }}ServicePublisher {
    }
 {% endfor %}
 }
+
+}
+#[cfg_attr(feature="mockall", mockall_double::double)]
+pub(crate) use __mockall_{{trait.name | snake }}_service::{{trait.name | title }}ServicePublisher;
