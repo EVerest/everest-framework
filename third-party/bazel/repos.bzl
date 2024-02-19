@@ -1,8 +1,16 @@
-load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+"""Macroses for fetching third-party dependencies."""
+
 load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 load("@bazel_tools//tools/build_defs/repo:utils.bzl", "maybe")
 
 def everest_framework_repos(repo_mapping = {}):
+    """Fetches third-party dependencies for Everest Framework.
+    
+    Args:
+        repo_mapping: A dictionary of repository mappings to use for the
+            third-party dependencies.
+    """
     maybe(
         http_archive,
         name = "com_github_nelhage_rules_boost",
@@ -191,3 +199,34 @@ make(
 """,    
     )
 
+    maybe(
+        http_archive,
+        name = "pybind11_bazel",
+        strip_prefix = "pybind11_bazel-8889d39b2b925b2a47519ae09402a96f00ccf2b4",
+        urls = ["https://github.com/pybind/pybind11_bazel/archive/8889d39b2b925b2a47519ae09402a96f00ccf2b4.zip"],
+    )
+
+    maybe(
+        http_archive,
+        name = "pybind11",
+        build_file = "@pybind11_bazel//:pybind11.BUILD",
+        strip_prefix = "pybind11-2.11.1",
+        urls = ["https://github.com/pybind/pybind11/archive/refs/tags/v2.11.1.tar.gz"],
+    )
+
+    maybe(
+        http_archive,
+        name = "pybind11_json",
+        strip_prefix = "pybind11_json-b02a2ad597d224c3faee1f05a56d81d4c4453092",
+        urls = ["https://github.com/pybind/pybind11_json/archive/b02a2ad597d224c3faee1f05a56d81d4c4453092.zip"],
+        build_file_content = """
+cc_library(
+    name = "pybind11_json",
+    hdrs = glob(["include/**/*.hpp"]),
+    visibility = [
+        "//visibility:public",
+    ],
+    includes = ["include"]
+)
+""",
+    )
