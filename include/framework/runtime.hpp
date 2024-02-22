@@ -74,7 +74,7 @@ inline constexpr auto WWW_DIR = "www";
 
 inline constexpr auto CONTROLLER_PORT = 8849;
 inline constexpr auto CONTROLLER_RPC_TIMEOUT_MS = 2000;
-inline constexpr auto MQTT_BROKER_SOCKET_PATH = "/tmp/mqtt_brocker.sock";
+inline constexpr auto MQTT_BROKER_SOCKET_PATH = "/tmp/mqtt_broker.sock";
 inline constexpr auto MQTT_BROKER_HOST = "localhost";
 inline constexpr auto MQTT_BROKER_PORT = 1883;
 inline constexpr auto MQTT_EVEREST_PREFIX = "everest";
