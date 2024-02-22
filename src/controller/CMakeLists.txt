@@ -38,14 +38,9 @@ target_link_libraries(controller
         everest::log
 
         ryml::ryml
-)
 
-if (CMAKE_COMPILER_IS_GNUCC AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9)
-target_link_libraries(controller
-    PRIVATE
-        stdc++fs
+        ${STD_FILESYSTEM_COMPAT_LIB}
 )
-endif()
 
 target_compile_features(controller PRIVATE cxx_std_17)
 
