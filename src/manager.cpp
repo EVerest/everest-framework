@@ -492,7 +492,11 @@ int boot(const po::variables_map& vm) {
     EVLOG_info << fmt::format(TERMINAL_STYLE_BLUE, " |______|   \\/ \\___|_|  \\___||___/\\__|");
     EVLOG_info << "";
 
-    EVLOG_info << "Using MQTT broker " << rs->mqtt_broker_host << ":" << rs->mqtt_broker_port;
+    if (rs->mqtt_broker_socket_path.empty()) {
+        EVLOG_info << "Using MQTT broker " << rs->mqtt_broker_host << ":" << rs->mqtt_broker_port;
+    } else {
+        EVLOG_info << "Using MQTT broker unix domain sockets:" << rs->mqtt_broker_socket_path;
+    }
     if (rs->telemetry_enabled) {
         EVLOG_info << "Telemetry enabled";
     }
