@@ -34,6 +34,7 @@ target_sources(framework
         date.cpp
         runtime.cpp
         yaml_loader.cpp
+        watchdog.cpp
 )
 
 # FIXME (aw): c++17 doesn't need necessarily to be public, but our
