@@ -33,6 +33,7 @@
 
 #include "controller/ipc.hpp"
 #include "system_unix.hpp"
+#include "cmake-vars.h"
 
 namespace po = boost::program_options;
 namespace fs = std::filesystem;
@@ -715,6 +716,7 @@ int boot(const po::variables_map& vm) {
 
 int main(int argc, char* argv[]) {
     po::options_description desc("EVerest manager");
+    desc.add_options()("version", "Print version and exit");
     desc.add_options()("help,h", "produce help message");
     desc.add_options()("check", "Check and validate all config files and exit (0=success)");
     desc.add_options()("dump", po::value<std::string>(),
@@ -743,6 +745,11 @@ int main(int argc, char* argv[]) {
 
         if (vm.count("help") != 0) {
             desc.print(std::cout);
+            return EXIT_SUCCESS;
+        }
+
+        if (vm.count("version") != 0) {
+            std::cout << argv[0] << " (" << PROJECT_NAME << " " << PROJECT_VERSION << ")" << std::endl;
             return EXIT_SUCCESS;
         }
 
