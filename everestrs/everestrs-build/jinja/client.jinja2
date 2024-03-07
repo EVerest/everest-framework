@@ -34,7 +34,6 @@ pub(crate) struct {{trait.name | title }}ClientPublisher {
    pub(super) runtime: ::std::pin::Pin<::std::sync::Arc<::everestrs::Runtime>>,
 }
 
-#[cfg_attr(feature="mockall", mockall::automock)]
 impl {{trait.name | title }}ClientPublisher {
 {%- for cmd in trait.cmds %}
    /// {{cmd.description | replace("\n", " ")}}
@@ -67,6 +66,28 @@ impl {{trait.name | title }}ClientPublisher {
       }
 {% endfor %}
 
+}
+
+#[cfg(feature="mockall")]
+mockall::mock!{
+   pub(crate) {{trait.name | title }}ClientPublisher {
+{%- for cmd in trait.cmds %}
+   pub(crate) fn {{cmd.name | identifier}}(&self,
+   {%- for arg in cmd.arguments %}
+      {{arg.name | identifier }}: {{arg.data_type.name}},
+   {%- endfor %}
+   ) -> ::everestrs::Result<{%- if cmd.result -%}
+      {{cmd.result.data_type.name}}
+   {%- else -%}
+      ()
+   {%- endif -%}
+      >;
+{% endfor %}
+   }
+
+   impl Clone for {{trait.name | title }}ClientPublisher {
+      fn clone(&self) -> Self;
+   }
 }
 
 }
