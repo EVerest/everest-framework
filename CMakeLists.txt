@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.14)
 
 project(everest-framework
-    VERSION 0.9
+    VERSION 0.10.1
     DESCRIPTION "The open operating system for e-mobility charging stations"
 	LANGUAGES CXX C
 )
@@ -11,7 +11,8 @@ find_package(everest-cmake 0.1 REQUIRED
 )
 
 # options
-option(BUILD_TESTING "Run unit tests" OFF)
+option(${PROJECT_NAME}_BUILD_TESTING "Build unit tests, used if included as dependency" OFF)
+option(BUILD_TESTING "Build unit tests, used if standalone project" OFF)
 option(FRAMEWORK_INSTALL "Install the library (shared data might be installed anyway)" ${EVC_MAIN_PROJECT})
 option(CMAKE_RUN_CLANG_TIDY "Run clang-tidy" OFF)
 option(EVEREST_ENABLE_JS_SUPPORT "Enable everestjs for JavaScript modules" ON)
@@ -39,37 +40,50 @@ pkg_check_modules(libcap
     libcap
 )
 
+# Make sure stdc++fs is linked for GCC < 9
+if (CMAKE_COMPILER_IS_GNUCC AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9)
+    set(STD_FILESYSTEM_COMPAT_LIB "stdc++fs")
+else()
+    set(STD_FILESYSTEM_COMPAT_LIB "")
+endif()
+
 if(NOT DISABLE_EDM)
     evc_setup_edm()
 
     # In EDM mode, we can't install exports (because the dependencies usually do not install their exports)
     set(FRAMEWORK_INSTALL OFF)
 
-    # FIXME (aw): libwebsockets/ninja clean doesn't delete recursivly ..
-    set_property(
-        TARGET websockets_shared
-        APPEND
-        PROPERTY ADDITIONAL_CLEAN_FILES "${libwebsockets_BINARY_DIR}/include/libwebsockets"
-    )
+    if (EVEREST_ENABLE_ADMIN_PANEL_BACKEND)
+        # FIXME (aw): libwebsockets/ninja clean doesn't delete recursivly ..
+        set_property(
+            TARGET websockets_shared
+            APPEND
+            PROPERTY ADDITIONAL_CLEAN_FILES "${libwebsockets_BINARY_DIR}/include/libwebsockets"
+        )
 
-    # FIXME (aw): libwebsockets enum-int-mismatch FIX
-    # see https://github.com/warmcat/libwebsockets/pull/2824
-    if (CMAKE_COMPILER_IS_GNUCC AND CMAKE_C_COMPILER_VERSION VERSION_GREATER 13.0)
-        target_compile_options(websockets_shared PRIVATE -Wno-error=enum-int-mismatch)
+        # FIXME (aw): libwebsockets enum-int-mismatch FIX
+        # see https://github.com/warmcat/libwebsockets/pull/2824
+        if (CMAKE_COMPILER_IS_GNUCC AND CMAKE_C_COMPILER_VERSION VERSION_GREATER 13.0)
+            target_compile_options(websockets_shared PRIVATE -Wno-error=enum-int-mismatch)
+        endif()
     endif()
-
     set_property(TARGET nlohmann_json_schema_validator PROPERTY POSITION_INDEPENDENT_CODE ON)
 
     # FIXME (aw): add catch2's cmake folder
-    list(APPEND CMAKE_MODULE_PATH "${Catch2_SOURCE_DIR}/contrib")
+    if (BUILD_TESTING)
+        list(APPEND CMAKE_MODULE_PATH "${Catch2_SOURCE_DIR}/contrib")
+    endif()
 else()
     find_package(date REQUIRED)
     find_package(ryml REQUIRED)
     find_package(nlohmann_json REQUIRED)
     find_package(nlohmann_json_schema_validator REQUIRED)
-    find_package(libwebsockets REQUIRED)
     find_package(fmt REQUIRED)
     find_package(everest-log REQUIRED)
+
+    if (EVEREST_ENABLE_ADMIN_PANEL_BACKEND)
+        find_package(libwebsockets REQUIRED)
+    endif()
 
     if (BUILD_TESTING)
         find_package(Catch2 REQUIRED)
@@ -145,7 +159,7 @@ endif ()
 
 # testing
 # FIXME (aw): move testing logic into tests/CMakeLists.txt
-if(BUILD_TESTING)
+if((${CMAKE_PROJECT_NAME} STREQUAL ${PROJECT_NAME} OR ${PROJECT_NAME}_BUILD_TESTING) AND BUILD_TESTING)
     if(NOT DISABLE_EDM)
         list(APPEND CMAKE_MODULE_PATH ${CPM_PACKAGE_catch2_SOURCE_DIR}/extras)
     endif()
@@ -159,14 +173,14 @@ if(BUILD_TESTING)
     add_subdirectory(tests)
 
     setup_target_for_coverage_gcovr_html(
-        NAME gcovr_coverage
+        NAME ${PROJECT_NAME}_gcovr_coverage
         EXECUTABLE ctest --output-on-failure
         EXCLUDE "${CMAKE_SOURCE_DIR}/tests" "${CMAKE_BINARY_DIR}"
         DEPENDENCIES tests everest
     )
 
     setup_target_for_coverage_lcov(
-        NAME lcov_coverage
+        NAME ${PROJECT_NAME}_lcov_coverage
         EXECUTABLE ctest --output-on-failure
         EXCLUDE "${CMAKE_SOURCE_DIR}/tests" "${CMAKE_BINARY_DIR}"
         DEPENDENCIES tests everest

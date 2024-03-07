@@ -14,6 +14,7 @@
 
 #include <utils/config.hpp>
 #include <utils/error.hpp>
+#include <utils/error/error_manager.hpp>
 #include <utils/mqtt_abstraction.hpp>
 #include <utils/types.hpp>
 
@@ -31,6 +32,7 @@ struct cmd {
 
 using TelemetryEntry = std::variant<std::string, const char*, bool, int32_t, uint32_t, int64_t, uint64_t, double>;
 using TelemetryMap = std::map<std::string, TelemetryEntry>;
+using UnsubscribeToken = std::function<void()>;
 
 ///
 /// \brief Contains the EVerest framework that provides convenience functionality for implementing EVerest modules
@@ -38,8 +40,9 @@ using TelemetryMap = std::map<std::string, TelemetryEntry>;
 class Everest {
 public:
     Everest(std::string module_id, const Config& config, bool validate_data_with_schema,
-            const std::string& mqtt_server_address, int mqtt_server_port, const std::string& mqtt_everest_prefix,
-            const std::string& mqtt_external_prefix, const std::string& telemetry_prefix, bool telemetry_enabled);
+            const std::string& mqtt_server_socket_path, const std::string& mqtt_server_address, int mqtt_server_port,
+            const std::string& mqtt_everest_prefix, const std::string& mqtt_external_prefix,
+            const std::string& telemetry_prefix, bool telemetry_enabled);
 
     // forbid copy assignment and copy construction
     // NOTE (aw): move assignment and construction are also not supported because we're creating explicit references to
@@ -105,7 +108,7 @@ public:
     /// of the cleared errors
     ///
     json request_clear_error(const error::RequestClearErrorOption request_type, const std::string& impl_id,
-                             const std::string& uuid, const std::string& error_type);
+                             const std::optional<std::string>& uuid, const std::optional<std::string>& error_type);
 
     ///
     /// \brief Raises an given \p error of the given \p impl_id, with the given \p error_type. Returns the uuid of the
@@ -122,7 +125,7 @@ public:
     ///
     /// \brief Allows a module to indicate that it provides a external mqtt \p handler at the given \p topic
     ///
-    void provide_external_mqtt_handler(const std::string& topic, const StringHandler& handler);
+    UnsubscribeToken provide_external_mqtt_handler(const std::string& topic, const StringHandler& handler);
 
     ///
     /// \brief publishes the given telemetry \p data on the given \p topic
