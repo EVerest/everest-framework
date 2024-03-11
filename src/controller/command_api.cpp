@@ -86,7 +86,7 @@ nlohmann::json CommandApi::handle(const std::string& cmd, const json& params) {
             throw CommandApiParamsError("The save_config needs a 'name' parameter for the config file of type string");
         }
 
-        const name = params.at("name").get<std::string>();
+        const auto name = params.at("name").get<std::string>();
 
         json config_json = params.value("config", json::object());
         auto ryml_deserialized = transpile_config(config_json);
