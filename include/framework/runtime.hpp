@@ -150,11 +150,13 @@ private:
     std::string module_id;
     std::string original_process_name;
     ModuleCallbacks callbacks;
+    const std::string project_name;
+    const std::string project_version;
 
     bool parse_command_line(int argc, char* argv[]);
 
 public:
-    explicit ModuleLoader(int argc, char* argv[], ModuleCallbacks callbacks);
+    explicit ModuleLoader(int argc, char* argv[], ModuleCallbacks callbacks, const char* project_name, const char* project_version);
 
     int initialize();
 };
