@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.14)
 
 project(everest-framework
-    VERSION 0.10
+    VERSION 0.10.1
     DESCRIPTION "The open operating system for e-mobility charging stations"
 	LANGUAGES CXX C
 )
@@ -39,6 +39,13 @@ pkg_check_modules(libcap
     IMPORTED_TARGET
     libcap
 )
+
+# Make sure stdc++fs is linked for GCC < 9
+if (CMAKE_COMPILER_IS_GNUCC AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9)
+    set(STD_FILESYSTEM_COMPAT_LIB "stdc++fs")
+else()
+    set(STD_FILESYSTEM_COMPAT_LIB "")
+endif()
 
 if(NOT DISABLE_EDM)
     evc_setup_edm()
@@ -158,10 +165,6 @@ if((${CMAKE_PROJECT_NAME} STREQUAL ${PROJECT_NAME} OR ${PROJECT_NAME}_BUILD_TEST
     endif()
     include(CTest)
     set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type" FORCE)
-
-    evc_include(CodeCoverage)
-
-    append_coverage_compiler_flags()
 
     add_subdirectory(tests)
 

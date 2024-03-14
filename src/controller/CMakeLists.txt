@@ -16,6 +16,7 @@ add_executable(controller
     command_api.cpp
     rpc.cpp
     server.cpp
+    transpile_config.cpp
     ${PROJECT_SOURCE_DIR}/lib/formatter.cpp
     ${PROJECT_SOURCE_DIR}/lib/yaml_loader.cpp
 )
@@ -38,6 +39,8 @@ target_link_libraries(controller
         everest::log
 
         ryml::ryml
+
+        ${STD_FILESYSTEM_COMPAT_LIB}
 )
 
 target_compile_features(controller PRIVATE cxx_std_17)
