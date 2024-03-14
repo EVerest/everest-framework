@@ -77,8 +77,8 @@ properties:
         required:
           - module
         properties:
-          detach:
-            description: true to detach a module from manager window if started with tmux script
+          standalone:
+            description: Indicates to the manager that the module will be started standalone
             type: boolean
           module:
             description: Module name (e.g. directory name in the modules subdirectory)
