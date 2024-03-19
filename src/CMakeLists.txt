@@ -9,7 +9,6 @@ target_link_libraries(manager
     PRIVATE
         everest::framework
         Boost::program_options
-        PkgConfig::libcap
 )
 
 if (EVEREST_ENABLE_ADMIN_PANEL_BACKEND)
@@ -21,6 +20,14 @@ if (EVEREST_ENABLE_ADMIN_PANEL_BACKEND)
     target_compile_definitions(manager PRIVATE ENABLE_ADMIN_PANEL)
 
     add_subdirectory(controller)
+endif ()
+
+if (EVEREST_ENABLE_USER_AND_CAPABILITIES)
+    target_compile_definitions(manager PRIVATE ENABLE_USER_AND_CAPABILITIES)
+    target_link_libraries(manager
+        PRIVATE
+            PkgConfig::libcap
+    )
 endif ()
 
 target_compile_options(manager PRIVATE ${COMPILER_WARNING_OPTIONS})
