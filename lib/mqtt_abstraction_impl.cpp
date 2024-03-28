@@ -212,7 +212,9 @@ std::future<void> MQTTAbstractionImpl::spawn_main_loop_thread() {
 
                 eventfd_t eventfd_buffer;
                 const int nfds = 3;
-                struct pollfd pollfds[nfds] = {{this->mqtt_socket_fd, POLLIN, 0}, {this->event_fd, POLLIN, 0}, {this->disconnect_event_fd, POLLIN, 0}};
+                struct pollfd pollfds[nfds] = {{this->mqtt_socket_fd, POLLIN, 0},
+                                               {this->event_fd, POLLIN, 0},
+                                               {this->disconnect_event_fd, POLLIN, 0}};
                 auto retval = ::poll(pollfds, nfds, mqtt_poll_timeout_ms);
 
                 if (retval >= 0) {
