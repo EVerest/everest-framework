@@ -40,7 +40,13 @@ pub(crate) struct ModulePublisher {
    pub(crate) {{ provide.implementation_id | identifier }}: {{provide.interface | title}}ServicePublisher,
 {% endfor %}
 {% for require in requires %}
+    {% if require.min_connections == 1 and require.max_connections == 1 %}
    pub(crate) {{ require.implementation_id | identifier }}: {{require.interface | title}}ClientPublisher,
+    {% elif require.min_connections == require.max_connections %}
+   pub(crate) {{ require.implementation_id | identifier }}_slots: [{{ require.interface | title}}ClientPublisher; {{require.min_connections}}],
+    {% else %}
+   pub(crate) {{ require.implementation_id | identifier }}_slots: Vec<{{require.interface | title}}ClientPublisher>,
+    {% endif %}
 {% endfor %}
 }
 
@@ -60,7 +66,10 @@ pub(crate) struct Module {
 pub(crate) struct Context<'a> {
     pub(crate) publisher: &'a ModulePublisher,
     {# TODO(ddo) Clarify the naming. #}
+    /// The name as in `implementation_id`.
     pub name: &'a str,
+    /// The index of the slot.
+    pub index: usize,
 }
 
 impl Module {
@@ -84,19 +93,37 @@ impl Module {
             {{ require.implementation_id | identifier }},
 {% endfor %}
             #[cfg(any(not(test), not(feature = "mockall")))]
-            publisher: ModulePublisher {
+            publisher: {
+                let connections = ::everestrs::get_module_connections();
+                ModulePublisher {
 {% for provide in provides %}
    {{ provide.implementation_id | identifier }}: {{provide.interface | title}}ServicePublisher {
       implementation_id: "{{ provide.implementation_id }}",
       runtime: runtime.clone(),
-      },
+    },
 {% endfor %}
 {% for require in requires %}
+    {% if require.min_connections == 1 and require.max_connections == 1 %}
         {{ require.implementation_id | identifier }}: {{require.interface | title}}ClientPublisher {
-      implementation_id: "{{ require.implementation_id }}",
-      runtime: runtime.clone(),
-      },
+            implementation_id: "{{ require.implementation_id }}",
+            runtime: runtime.clone(),
+            index: 0,
+        },
+    {% elif require.min_connections == require.max_connections %}
+        {{ require.implementation_id | identifier }}_slots: ::core::array::from_fn(|i| {{require.interface | title}}ClientPublisher{
+            implementation_id: "{{ require.implementation_id }}",
+            runtime: runtime.clone(),
+            index: i,
+        }),
+    {% else %}
+        {{ require.implementation_id | identifier }}_slots: (0..connections.get("{{require.implementation_id}}").cloned().unwrap_or(0)).map(|i| {{require.interface | title}}ClientPublisher{
+            implementation_id: "{{ require.implementation_id }}",
+            runtime: runtime.clone(),
+            index: i,
+        }).collect(),
+    {% endif %}
 {% endfor %}
+                }
             },
             #[cfg(all(test, feature = "mockall"))]
             publisher: ModulePublisher::default(),
@@ -117,6 +144,7 @@ impl ::everestrs::Subscriber for Module {
         let context = Context {
             publisher: &self.publisher,
             name: implementation_id,
+            index: 0,
         };
         match implementation_id {
 {% for provide in provides %}
@@ -133,12 +161,14 @@ impl ::everestrs::Subscriber for Module {
     fn handle_variable(
         &self,
         implementation_id: &str,
+        index: usize,
         name: &str,
         value: __serde_json::Value,
     ) -> ::everestrs::Result<()> {
         let context = Context {
             publisher: &self.publisher,
             name: implementation_id,
+            index,
         };
         match implementation_id {
 {% for req in requires %}
