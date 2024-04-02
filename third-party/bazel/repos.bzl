@@ -4,15 +4,11 @@ load("@bazel_tools//tools/build_defs/repo:utils.bzl", "maybe")
 
 def everest_framework_repos(repo_mapping = {}):
     maybe(
-        http_archive,
+        git_repository,
         name = "com_github_nelhage_rules_boost",
-
-        # Replace the commit hash in both places (below) with the latest, rather than using the stale one here.
-        # Even better, set up Renovate and let it do the work for you (see "Suggestion: Updates" in the README).
-        url = "https://github.com/nelhage/rules_boost/archive/4ab574f9a84b42b1809978114a4664184716f4bf.tar.gz",
-        sha256 = "2215e6910eb763a971b1f63f53c45c0f2b7607df38c96287666d94d954da8cdc",
-        strip_prefix = "rules_boost-4ab574f9a84b42b1809978114a4664184716f4bf",
-        # When you first run this tool, it'll recommend a sha256 hash to put here with a message like: "DEBUG: Rule 'com_github_nelhage_rules_boost' indicated that a canonical reproducible form can be obtained by modifying arguments sha256 = ..."
+        remote = "https://github.com/nelhage/rules_boost",
+        commit = "f02f84fac7673c56bbcfe69dea68044e6e40f92b",
+        repo_mapping = repo_mapping,
     )
 
     maybe(
