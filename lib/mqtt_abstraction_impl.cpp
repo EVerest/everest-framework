@@ -160,7 +160,7 @@ void MQTTAbstractionImpl::publish(const std::string& topic, const std::string& d
     }
     notify_write_data();
 
-    EVLOG_debug << fmt::format("publishing to {}", topic);
+    EVLOG_verbose << fmt::format("publishing to {}", topic);
 }
 
 void MQTTAbstractionImpl::subscribe(const std::string& topic) {
@@ -277,7 +277,7 @@ void MQTTAbstractionImpl::on_mqtt_message(std::shared_ptr<Message> message) {
         std::shared_ptr<json> data;
         bool is_everest_topic = false;
         if (topic.find(mqtt_everest_prefix) == 0) {
-            EVLOG_debug << fmt::format("topic {} starts with {}", topic, mqtt_everest_prefix);
+            EVLOG_verbose << fmt::format("topic {} starts with {}", topic, mqtt_everest_prefix);
             is_everest_topic = true;
             try {
                 data = std::make_shared<json>(json::parse(payload));
