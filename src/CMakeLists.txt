@@ -1,14 +1,15 @@
-# make some cmake variables available as defines
-configure_file(cmake-vars.h.in cmake-vars.h @ONLY)
-
 add_executable(manager)
 target_sources(manager
     PRIVATE
         system_unix.cpp
         manager.cpp
 )
-
-target_include_directories(manager PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+# generate version information header
+evc_generate_version_information()
+target_include_directories(manager
+    PRIVATE
+        ${CMAKE_CURRENT_BINARY_DIR}/generated/include
+)
 
 target_link_libraries(manager
     PRIVATE

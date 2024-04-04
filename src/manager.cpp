@@ -33,7 +33,7 @@
 
 #include "controller/ipc.hpp"
 #include "system_unix.hpp"
-#include "cmake-vars.h"
+#include <generated/version_information.hpp>
 
 namespace po = boost::program_options;
 namespace fs = std::filesystem;
@@ -472,6 +472,8 @@ int boot(const po::variables_map& vm) {
     EVLOG_info << fmt::format(TERMINAL_STYLE_BLUE, " | |____   \\  /  __/ | |  __/\\__ \\ |_ ");
     EVLOG_info << fmt::format(TERMINAL_STYLE_BLUE, " |______|   \\/ \\___|_|  \\___||___/\\__|");
     EVLOG_info << "";
+    EVLOG_info << PROJECT_NAME << " " << PROJECT_VERSION << " " << GIT_VERSION;
+    EVLOG_info << "";
 
     if (rs->mqtt_broker_socket_path.empty()) {
         EVLOG_info << "Using MQTT broker " << rs->mqtt_broker_host << ":" << rs->mqtt_broker_port;
@@ -749,7 +751,8 @@ int main(int argc, char* argv[]) {
         }
 
         if (vm.count("version") != 0) {
-            std::cout << argv[0] << " (" << PROJECT_NAME << " " << PROJECT_VERSION << ")" << std::endl;
+            std::cout << argv[0] << " (" << PROJECT_NAME << " " << PROJECT_VERSION << " " << GIT_VERSION << ") "
+                      << std::endl;
             return EXIT_SUCCESS;
         }
 
