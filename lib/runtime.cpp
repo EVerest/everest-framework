@@ -377,8 +377,9 @@ ModuleCallbacks::ModuleCallbacks(const std::function<void(ModuleAdapter module_a
     register_module_adapter(register_module_adapter), everest_register(everest_register), init(init), ready(ready) {
 }
 
-ModuleLoader::ModuleLoader(int argc, char* argv[], ModuleCallbacks callbacks, const char* project_name, const char* project_version) :
-    runtime_settings(nullptr), callbacks(callbacks), project_name(project_name), project_version(project_version) {
+ModuleLoader::ModuleLoader(int argc, char* argv[], ModuleCallbacks callbacks,
+                           const VersionInformation version_information) :
+    runtime_settings(nullptr), callbacks(callbacks), version_information(version_information) {
     if (!this->parse_command_line(argc, argv)) {
         return;
     }
@@ -542,7 +543,9 @@ bool ModuleLoader::parse_command_line(int argc, char* argv[]) {
     }
 
     if (vm.count("version") != 0) {
-        std::cout << argv[0] << " (" << project_name << " " << project_version << ")" << std::endl;
+        std::cout << argv[0] << " (" << this->version_information.project_name << " "
+                  << this->version_information.project_version << " " << this->version_information.git_version << ")"
+                  << std::endl;
         return false;
     }
 
