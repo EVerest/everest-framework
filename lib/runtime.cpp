@@ -11,6 +11,7 @@
 
 #include <algorithm>
 #include <cstdlib>
+#include <fstream>
 
 #include <boost/program_options.hpp>
 
@@ -368,6 +369,13 @@ RuntimeSettings::RuntimeSettings(const std::string& prefix_, const std::string& 
         validate_schema = defaults::VALIDATE_SCHEMA;
     }
     run_as_user = settings.value("run_as_user", "");
+    auto version_information_path = data_dir / "version_information.txt";
+    if (fs::exists(version_information_path)) {
+        std::ifstream ifs(version_information_path.string());
+        version_information = std::string(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
+    } else {
+        version_information = "unknown";
+    }
 }
 
 ModuleCallbacks::ModuleCallbacks(const std::function<void(ModuleAdapter module_adapter)>& register_module_adapter,

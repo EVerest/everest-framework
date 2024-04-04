@@ -473,6 +473,7 @@ int boot(const po::variables_map& vm) {
     EVLOG_info << fmt::format(TERMINAL_STYLE_BLUE, " |______|   \\/ \\___|_|  \\___||___/\\__|");
     EVLOG_info << "";
     EVLOG_info << PROJECT_NAME << " " << PROJECT_VERSION << " " << GIT_VERSION;
+    EVLOG_info << rs->version_information;
     EVLOG_info << "";
 
     if (rs->mqtt_broker_socket_path.empty()) {
