@@ -81,7 +81,7 @@ pub(crate) struct Context<'a> {
 impl Module {
     #[must_use]
     pub(crate) fn new
-{% if any((require.min_connections != 1 or require.max_connections != 1 for require in requires)) %}
+{% if requires_with_generics %}
     <
     {% for require in requires %}
         {% if require.min_connections != 1 or require.max_connections != 1 %}
@@ -116,7 +116,7 @@ impl Module {
     {% elif require.min_connections == require.max_connections %}
             {{ require.implementation_id | identifier }}_slots: ::core::array::from_fn({{ require.implementation_id | identifier }}_cb),  
     {% else %}
-            {{ require.implementation_id | identifier }}_slots: (0..connections.get("{{require.implementation_id}}").cloned().unwrap_or(0)).map({{ require.implementation_id | identifier }}_cb),
+            {{ require.implementation_id | identifier }}_slots: (0..connections.get("{{require.implementation_id}}").cloned().unwrap_or(0)).map({{ require.implementation_id | identifier }}_cb).collect(),
     {% endif %}
 {% endfor %}
             #[cfg(any(not(test), not(feature = "mockall")))]
@@ -197,7 +197,11 @@ impl ::everestrs::Subscriber for Module {
         match implementation_id {
 {% for req in requires %}
     "{{ req.implementation_id }}" => {
-         dispatch_variable_to_{{ req.interface | snake }}(&context, self.{{ req.implementation_id  | identifier }}.as_ref(), name, value)
+    {% if req.min_connections == 1 and req.max_connections == 1 %}
+        dispatch_variable_to_{{ req.interface | snake }}(&context, self.{{ req.implementation_id  | identifier }}.as_ref(), name, value)
+    {% else %}
+        dispatch_variable_to_{{ req.interface | snake }}(&context, self.{{ req.implementation_id  | identifier }}_slots[index].as_ref(), name, value)
+    {% endif %}
     },
 {% endfor %}
       _ => Err(::everestrs::Error::InvalidArgument(

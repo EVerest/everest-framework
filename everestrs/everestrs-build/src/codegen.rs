@@ -483,6 +483,7 @@ struct RenderContext {
     required_interfaces: Vec<InterfaceContext>,
     provides: Vec<SlotContext>,
     requires: Vec<SlotContext>,
+    requires_with_generics: bool,
     types: TypeModuleContext,
     module_config: Vec<ArgumentContext>,
     provided_config: Vec<ConfigContext>,
@@ -633,12 +634,16 @@ pub fn emit(manifest_path: PathBuf, everest_core: Vec<PathBuf>) -> Result<String
     }
 
     let module_config = emit_config(manifest.config);
+    let requires_with_generics = requires
+        .iter()
+        .any(|elem| elem.min_connections != 0 || elem.max_connections != 1);
 
     let context = RenderContext {
         provided_interfaces: provided_interfaces.values().cloned().collect(),
         required_interfaces: required_interfaces.values().cloned().collect(),
         provides,
         requires,
+        requires_with_generics,
         types: type_module_root,
         module_config,
         provided_config,
