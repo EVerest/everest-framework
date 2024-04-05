@@ -9,7 +9,7 @@ genrule(
 
 genrule(
     name = "version_information",
-    outs = ["include/generated/include/version_information.hpp"],
+    outs = ["include/generated/version_information.hpp"],
     cmd = """
     echo "#pragma once" > $@
     echo "#define PROJECT_NAME \\"everest-framework\\"" >> $@
