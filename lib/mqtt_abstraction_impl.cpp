@@ -220,6 +220,7 @@ std::future<void> MQTTAbstractionImpl::spawn_main_loop_thread() {
                 if (retval >= 0) {
                     // data available to send (the notifier writes, we should be ready to read)
                     if (retval > 0) {
+                        // check for disconnect event
                         if (pollfds[2].revents & POLLIN) {
                             break;
                         }
