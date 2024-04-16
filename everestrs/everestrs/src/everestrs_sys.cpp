@@ -174,6 +174,7 @@ rust::Vec<RsModuleConnections> get_module_connections(rust::Str module_id, rust:
         out.emplace_back(RsModuleConnections{rust::String{connection.key()}, connection.value().size()});
     };
     return out;
+}
 
 int Module::get_log_level() const {
     // Below is something really ugly. Boost's log filter rules may actually be
