@@ -6,7 +6,7 @@ project(everest-framework
 	LANGUAGES CXX C
 )
 
-find_package(everest-cmake 0.1 REQUIRED
+find_package(everest-cmake 0.3 REQUIRED
     PATHS ../everest-cmake
 )
 
@@ -92,7 +92,6 @@ else()
     include(find-mqttc)
 endif()
 
-include(ev-version-information)
 evc_generate_version_information()
 
 set(EVEREST_FRAMEWORK_GENERATED_INC_DIR ${PROJECT_BINARY_DIR}/generated)
