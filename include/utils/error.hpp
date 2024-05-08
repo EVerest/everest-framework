@@ -3,7 +3,6 @@
 #ifndef UTILS_ERROR_HPP
 #define UTILS_ERROR_HPP
 
-#include <optional>
 #include <string>
 
 #include <utils/date.hpp>
