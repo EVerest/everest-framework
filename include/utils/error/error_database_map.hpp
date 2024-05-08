@@ -15,8 +15,9 @@ class ErrorDatabaseMap : public ErrorDatabase {
 public:
     ErrorDatabaseMap() = default;
 
-    void add_error(ErrorPtr error) override;
     std::list<ErrorPtr> get_errors(const std::list<ErrorFilter>& filters) const override;
+
+    void add_error(ErrorPtr error) override;
     std::list<ErrorPtr> edit_errors(const std::list<ErrorFilter>& filters, EditErrorFunc edit_func) override;
     std::list<ErrorPtr> remove_errors(const std::list<ErrorFilter>& filters) override;
 

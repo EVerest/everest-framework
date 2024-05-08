@@ -18,8 +18,9 @@ public:
 
     ErrorDatabase() = default;
 
-    virtual void add_error(ErrorPtr error) = 0;
     virtual std::list<ErrorPtr> get_errors(const std::list<ErrorFilter>& filters) const = 0;
+
+    virtual void add_error(ErrorPtr error) = 0;
     virtual std::list<ErrorPtr> edit_errors(const std::list<ErrorFilter>& filters, EditErrorFunc edit_func) = 0;
     virtual std::list<ErrorPtr> remove_errors(const std::list<ErrorFilter>& filters) = 0;
 };
