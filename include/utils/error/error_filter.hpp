@@ -29,7 +29,7 @@ using OriginFilter = ImplementationIdentifier;
 ///
 
 struct TypeFilter {
-    TypeFilter(const ErrorType& value);
+    explicit TypeFilter(const ErrorType& value);
     ErrorType value;
 };
 
@@ -61,7 +61,7 @@ using HandleFilter = ErrorHandle;
 /// \brief This filter is used to filter errors by their sub type.
 ///
 struct SubTypeFilter {
-    SubTypeFilter(const ErrorSubType& value);
+    explicit SubTypeFilter(const ErrorSubType& value);
     ErrorSubType value;
 };
 

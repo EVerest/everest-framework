@@ -34,7 +34,7 @@ public:
     /// \brief StateMonitor constructor
     /// \param error_database The error database to monitor
     ///
-    ErrorStateMonitor(std::shared_ptr<ErrorDatabase> error_database);
+    explicit ErrorStateMonitor(std::shared_ptr<ErrorDatabase> error_database);
 
     ///
     /// \brief is_error_active checks if a certain combination of error type and sub_type is active

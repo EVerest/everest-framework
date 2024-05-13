@@ -17,7 +17,7 @@ struct ErrorTypeMap;
 
 class ErrorFactory {
 public:
-    ErrorFactory(std::shared_ptr<ErrorTypeMap> error_type_map);
+    explicit ErrorFactory(std::shared_ptr<ErrorTypeMap> error_type_map);
     ErrorFactory(std::shared_ptr<ErrorTypeMap> error_type_map, ImplementationIdentifier default_origin);
     ErrorFactory(std::shared_ptr<ErrorTypeMap> error_type_map, ImplementationIdentifier default_origin,
                  Severity default_severity);
