@@ -64,7 +64,7 @@ PYBIND11_MODULE(everestpy, m) {
         .value("ClearedByReboot", Everest::error::State::ClearedByReboot)
         .export_values();
 
-    py::class_<Everest::error::Error>(m, "Error")
+    py::class_<Everest::error::Error>(error_submodule, "Error")
         .def(py::init<>())
         .def_readwrite("type", &Everest::error::Error::type)
         .def_readwrite("sub_type", &Everest::error::Error::sub_type)

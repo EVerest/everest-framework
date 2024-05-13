@@ -18,20 +18,25 @@ ErrorManagerImpl::ErrorManagerImpl(std::shared_ptr<ErrorTypeMap> error_type_map_
                                    std::shared_ptr<ErrorDatabase> error_database_,
                                    std::list<ErrorType> allowed_error_types_,
                                    ErrorManagerImpl::PublishErrorFunc publish_raised_error_,
-                                   ErrorManagerImpl::PublishErrorFunc publish_cleared_error_) :
+                                   ErrorManagerImpl::PublishErrorFunc publish_cleared_error_,
+                                   const bool validate_error_types_) :
     error_type_map(error_type_map_),
     database(error_database_),
     allowed_error_types(allowed_error_types_),
     publish_raised_error(publish_raised_error_),
-    publish_cleared_error(publish_cleared_error_) {
+    publish_cleared_error(publish_cleared_error_),
+    validate_error_types(validate_error_types_) {
 }
 
 void ErrorManagerImpl::raise_error(const Error& error) {
-    if (std::find(allowed_error_types.begin(), allowed_error_types.end(), error.type) == allowed_error_types.end()) {
-        throw EverestArgumentError("Error type " + error.type + " is not allowed to be raised.");
-    }
-    if (!this->error_type_map->has(error.type)) {
-        throw EverestArgumentError("Error type " + error.type + " is not known.");
+    if (validate_error_types) {
+        if (std::find(allowed_error_types.begin(), allowed_error_types.end(), error.type) ==
+            allowed_error_types.end()) {
+            throw EverestArgumentError("Error type " + error.type + " is not allowed to be raised.");
+        }
+        if (!this->error_type_map->has(error.type)) {
+            throw EverestArgumentError("Error type " + error.type + " is not known.");
+        }
     }
     if (!can_be_raised(error.type, error.sub_type)) {
         throw EverestArgumentError("Error type " + error.type + " is already active.");

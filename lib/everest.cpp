@@ -508,22 +508,42 @@ void Everest::subscribe_error(const Requirement& req, const error::ErrorType& er
 }
 
 std::shared_ptr<error::ErrorManagerImpl> Everest::get_error_manager_impl(const std::string& impl_id) {
+    if (this->impl_error_managers.find(impl_id) == this->impl_error_managers.end()) {
+        EVLOG_error << fmt::format("Error manager for {} not found!", impl_id);
+        return nullptr;
+    }
     return this->impl_error_managers.at(impl_id);
 }
 
 std::shared_ptr<error::ErrorStateMonitor> Everest::get_error_state_monitor_impl(const std::string& impl_id) {
+    if (this->impl_error_state_monitors.find(impl_id) == this->impl_error_state_monitors.end()) {
+        EVLOG_error << fmt::format("Error state monitor for {} not found!", impl_id);
+        return nullptr;
+    }
     return this->impl_error_state_monitors.at(impl_id);
 }
 
 std::shared_ptr<error::ErrorFactory> Everest::get_error_factory(const std::string& impl_id) {
+    if (this->error_factories.find(impl_id) == this->error_factories.end()) {
+        EVLOG_error << fmt::format("Error factory for {} not found!", impl_id);
+        return nullptr;
+    }
     return this->error_factories.at(impl_id);
 }
 
 std::shared_ptr<error::ErrorManagerReq> Everest::get_error_manager_req(const Requirement& req) {
+    if (this->req_error_managers.find(req) == this->req_error_managers.end()) {
+        EVLOG_error << fmt::format("Error manager for {} not found!", req.id);
+        return nullptr;
+    }
     return this->req_error_managers.at(req);
 }
 
 std::shared_ptr<error::ErrorStateMonitor> Everest::get_error_state_monitor_req(const Requirement& req) {
+    if (this->req_error_state_monitors.find(req) == this->req_error_state_monitors.end()) {
+        EVLOG_error << fmt::format("Error state monitor for {} not found!", req.id);
+        return nullptr;
+    }
     return this->req_error_state_monitors.at(req);
 }
 

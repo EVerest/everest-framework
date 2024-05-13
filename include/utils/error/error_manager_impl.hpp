@@ -21,7 +21,7 @@ public:
 
     ErrorManagerImpl(std::shared_ptr<ErrorTypeMap> error_type_map, std::shared_ptr<ErrorDatabase> error_database,
                      std::list<ErrorType> allowed_error_types, PublishErrorFunc publish_raised_error,
-                     PublishErrorFunc publish_cleared_error);
+                     PublishErrorFunc publish_cleared_error, const bool validate_error_types = true);
 
     ///
     /// \brief raise_error raises an error
@@ -63,6 +63,8 @@ private:
     std::shared_ptr<ErrorDatabase> database;
     std::shared_ptr<ErrorTypeMap> error_type_map;
     std::list<ErrorType> allowed_error_types;
+
+    const bool validate_error_types;
 };
 
 } // namespace error
