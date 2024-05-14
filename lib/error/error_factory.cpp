@@ -64,7 +64,6 @@ Error ErrorFactory::create_error() const {
 Error ErrorFactory::create_error(const ErrorType& type, const ErrorSubType& sub_type,
                                  const std::string& message) const {
     Error error;
-    ;
     error.type = type;
     error.sub_type = sub_type;
     error.message = message;

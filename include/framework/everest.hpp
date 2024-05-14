@@ -109,7 +109,7 @@ public:
     std::shared_ptr<error::ErrorStateMonitor> get_error_state_monitor_req(const Requirement& req);
 
     ///
-    /// \brief Subscribes to globally all errors of all modules. The given \p callback is called when a new error is
+    /// \brief Subscribes globally to all errors of all modules. The given \p callback is called when a new error is
     /// raised. The given \p clear_callback is called when an error is cleared
     ///
     void subscribe_global_all_errors(const error::ErrorCallback& callback, const error::ErrorCallback& clear_callback);
@@ -182,7 +182,7 @@ private:
         impl_error_state_monitors;                                                             // one per implementation
     std::map<std::string, std::shared_ptr<error::ErrorFactory>> error_factories;               // one per implementation
     std::map<Requirement, std::shared_ptr<error::ErrorManagerReq>> req_error_managers;         // one per requirement
-    std::map<Requirement, std::shared_ptr<error::ErrorStateMonitor>> req_error_state_monitors; // on per requirement
+    std::map<Requirement, std::shared_ptr<error::ErrorStateMonitor>> req_error_state_monitors; // one per requirement
     std::map<std::string, std::set<std::string>> registered_cmds;
     bool ready_received;
     std::chrono::seconds remote_cmd_res_timeout;
