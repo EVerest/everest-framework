@@ -366,8 +366,8 @@ void MQTTAbstractionImpl::register_handler(const std::string& topic, std::shared
                                    fmt::ptr(&handler->handler), handler->name, topic);
         break;
     case HandlerType::Result:
-        EVLOG_debug << fmt::format("Registering result handler {} for command {} on topic {}",
-                                   fmt::ptr(&handler->handler), handler->name, topic);
+        EVLOG_verbose << fmt::format("Registering result handler {} for command {} on topic {}",
+                                     fmt::ptr(&handler->handler), handler->name, topic);
         break;
     case HandlerType::SubscribeVar:
         EVLOG_debug << fmt::format("Registering subscribe handler {} for variable {} on topic {}",
@@ -400,16 +400,16 @@ void MQTTAbstractionImpl::register_handler(const std::string& topic, std::shared
     // only subscribe for this topic if we aren't already and the mqtt client is connected
     // if we are not connected the on_mqtt_connect() callback will subscribe to the topic
     if (this->mqtt_is_connected && this->message_handlers[topic].count_handlers() == 1) {
-        EVLOG_debug << fmt::format("Subscribing to {}", topic);
+        EVLOG_verbose << fmt::format("Subscribing to {}", topic);
         this->subscribe(topic, qos);
     }
-    EVLOG_debug << fmt::format("#handler[{}] = {}", topic, this->message_handlers[topic].count_handlers());
+    EVLOG_verbose << fmt::format("#handler[{}] = {}", topic, this->message_handlers[topic].count_handlers());
 }
 
 void MQTTAbstractionImpl::unregister_handler(const std::string& topic, const Token& token) {
     BOOST_LOG_FUNCTION();
 
-    EVLOG_debug << fmt::format("Unregistering handler {} for {}", fmt::ptr(&token), topic);
+    EVLOG_verbose << fmt::format("Unregistering handler {} for {}", fmt::ptr(&token), topic);
 
     const std::lock_guard<std::mutex> lock(handlers_mutex);
     auto number_of_handlers = 0;
@@ -425,13 +425,13 @@ void MQTTAbstractionImpl::unregister_handler(const std::string& topic, const Tok
     if (number_of_handlers == 0) {
         // TODO(kai): should we throw/log an error if we are not connected?
         if (this->mqtt_is_connected) {
-            EVLOG_debug << fmt::format("Unsubscribing from {}", topic);
+            EVLOG_verbose << fmt::format("Unsubscribing from {}", topic);
             this->unsubscribe(topic);
         }
     }
 
     const std::string handler_count = (number_of_handlers == 0) ? "None" : std::to_string(number_of_handlers);
-    EVLOG_debug << fmt::format("#handler[{}] = {}", topic, handler_count);
+    EVLOG_verbose << fmt::format("#handler[{}] = {}", topic, handler_count);
 }
 
 bool MQTTAbstractionImpl::connectBroker(std::string& socket_path) {

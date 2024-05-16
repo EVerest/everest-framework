@@ -414,7 +414,7 @@ void Everest::subscribe_var(const Requirement& req, const std::string& var_name,
 
     Handler handler = [this, requirement_module_id, requirement_impl_id, requirement_manifest_vardef, var_name,
                        callback](json const& data) {
-        EVLOG_debug << fmt::format(
+        EVLOG_verbose << fmt::format(
             "Incoming {}->{}", this->config.printable_identifier(requirement_module_id, requirement_impl_id), var_name);
 
         if (this->validate_data_with_schema) {
