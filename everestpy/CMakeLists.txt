@@ -1,29 +1,21 @@
+ev_activate_python_venv(
+    PATH_TO_VENV
+        "${CMAKE_SOURCE_DIR}/../.venv"
+)
 add_subdirectory(src/everest)
 
-add_custom_target(everestpy_pip_install_dist
-    # remove build dir from pip
-    COMMAND
-        cmake -E remove_directory build
-    COMMAND
-        ${PYTHON_EXECUTABLE} -m pip install --force-reinstall .
-    WORKING_DIRECTORY
-        ${CMAKE_CURRENT_SOURCE_DIR}
-    DEPENDS
+ev_create_pip_install_targets(
+    PACKAGE_NAME
+        everestpy
+    DIST_DEPENDS
         everestpy_ln_dist
-    COMMENT
-        "Installing everestpy from distribution"
+    LOCAL_DEPENDS
+        everestpy_ln_local
 )
 
-add_custom_target(everestpy_pip_install_local
-    # remove build dir from pip
-    COMMAND
-        cmake -E remove_directory build
-    COMMAND
-        ${PYTHON_EXECUTABLE} -m pip install --force-reinstall -e .
-    WORKING_DIRECTORY
-        ${CMAKE_CURRENT_SOURCE_DIR}
+ev_create_python_wheel_targets(
+    PACKAGE_NAME
+        everestpy
     DEPENDS
-        everestpy_ln_local
-    COMMENT
-        "Installing everestpy via user-mode from build"
+        everestpy_ln_dist
 )

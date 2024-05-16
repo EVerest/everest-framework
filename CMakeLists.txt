@@ -6,7 +6,7 @@ project(everest-framework
 	LANGUAGES CXX C
 )
 
-find_package(everest-cmake 0.1 REQUIRED
+find_package(everest-cmake 0.3 REQUIRED
     PATHS ../everest-cmake
 )
 
@@ -20,6 +20,8 @@ option(EVEREST_ENABLE_PY_SUPPORT "Enable everestpy for Python modules" ON)
 option(EVEREST_ENABLE_RS_SUPPORT "Enable everestrs for Rust modules" OFF)
 option(EVEREST_ENABLE_ADMIN_PANEL_BACKEND "Enable everest admin panel backend" ON)
 option(EVEREST_INSTALL_ADMIN_PANEL "Download and install everest admin panel" ON)
+ev_setup_cmake_variables_python_wheel()
+
 
 # make own cmake modules available
 list(INSERT CMAKE_MODULE_PATH 0 "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
