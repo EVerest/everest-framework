@@ -1,9 +1,3 @@
-ev_activate_python_venv(
-    PATH_TO_VENV
-        "${CMAKE_SOURCE_DIR}/../.venv"
-)
-add_subdirectory(src/everest)
-
 ev_create_pip_install_targets(
     PACKAGE_NAME
         everestpy
