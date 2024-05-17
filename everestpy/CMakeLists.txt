@@ -13,3 +13,5 @@ ev_create_python_wheel_targets(
     DEPENDS
         everestpy_ln_dist
 )
+
+add_subdirectory(src/everest)
