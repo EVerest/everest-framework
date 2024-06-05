@@ -45,7 +45,8 @@ void ErrorManagerImpl::raise_error(const Error& error) {
     }
     database->add_error(std::make_shared<Error>(error));
     this->publish_raised_error(error);
-    EVLOG_error << "Error raised, type: " << error.type << ", sub_type: " << error.sub_type << ", message: " << error.message;
+    EVLOG_error << "Error raised, type: " << error.type << ", sub_type: " << error.sub_type
+                << ", message: " << error.message;
 }
 
 std::list<ErrorPtr> ErrorManagerImpl::clear_error(const ErrorType& type, const bool clear_all) {
