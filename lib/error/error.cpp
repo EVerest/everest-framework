@@ -101,7 +101,7 @@ std::string state_to_string(const State& s) {
     case State::ClearedByReboot:
         return "ClearedByReboot";
     }
-    EVLOG_error << "No known string conversion for provided enum of type State:" << s << ". Defaulting to Active.";
+    EVLOG_error << "No known string conversion for provided enum of type State. Defaulting to Active.";
     return "Active";
 }
 
