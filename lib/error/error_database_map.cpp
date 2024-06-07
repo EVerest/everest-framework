@@ -61,6 +61,7 @@ std::list<ErrorPtr> ErrorDatabaseMap::get_errors_no_mutex(const std::list<ErrorF
                 } break;
                 }
                 EVLOG_error << "No known condition for provided enum of type SeverityFilter.";
+                return false;
             };
         } break;
         case FilterType::TimePeriod: {
