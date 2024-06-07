@@ -21,7 +21,6 @@ namespace Everest {
 class ConfigParseException : public std::exception {
 public:
     enum ParseErrorType {
-        NOT_DEFINED,
         MISSING_ENTRY,
         SCHEMA
     };
@@ -69,7 +68,8 @@ static json parse_config_map(const json& config_map_schema, const json& config_m
                         std::inserter(unknown_config_entries, unknown_config_entries.end()));
 
     if (unknown_config_entries.size()) {
-        throw ConfigParseException(ConfigParseException::NOT_DEFINED, *unknown_config_entries.begin());
+        for (const auto& unknown_entry : unknown_config_entries)
+            EVLOG_error << "Unknown config entry ignored, please fix your config file: " << unknown_entry;
     }
 
     // validate each config entry
@@ -322,11 +322,7 @@ void Config::load_and_validate_manifest(const std::string& module_id, const json
         try {
             this->main[module_id]["config_maps"][impl_id] = parse_config_map(config_map_schema, config_map);
         } catch (const ConfigParseException& err) {
-            if (err.err_t == ConfigParseException::NOT_DEFINED) {
-                EVLOG_AND_THROW(EverestConfigError(
-                    fmt::format("Config entry '{}' of {} not defined in manifest of module '{}'!", err.entry,
-                                printable_identifier(module_id, impl_id), module_config["module"])));
-            } else if (err.err_t == ConfigParseException::MISSING_ENTRY) {
+            if (err.err_t == ConfigParseException::MISSING_ENTRY) {
                 EVLOG_AND_THROW(EverestConfigError(fmt::format("Missing mandatory config entry '{}' in {}!", err.entry,
                                                                printable_identifier(module_id, impl_id))));
             } else if (err.err_t == ConfigParseException::SCHEMA) {
@@ -347,11 +343,7 @@ void Config::load_and_validate_manifest(const std::string& module_id, const json
         try {
             this->main[module_id]["config_maps"]["!module"] = parse_config_map(config_map_schema, config_map);
         } catch (const ConfigParseException& err) {
-            if (err.err_t == ConfigParseException::NOT_DEFINED) {
-                EVLOG_AND_THROW(EverestConfigError(
-                    fmt::format("Config entry '{}' for module config not defined in manifest of module '{}'!",
-                                err.entry, module_config["module"])));
-            } else if (err.err_t == ConfigParseException::MISSING_ENTRY) {
+            if (err.err_t == ConfigParseException::MISSING_ENTRY) {
                 EVLOG_AND_THROW(
                     EverestConfigError(fmt::format("Missing mandatory config entry '{}' for module config in module {}",
                                                    err.entry, module_config["module"])));
