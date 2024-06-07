@@ -76,7 +76,7 @@ std::string severity_to_string(const Severity& s) {
     case Severity::High:
         return "High";
     }
-    EVLOG_error << "No known string conversion for provided enum of type Severity:" << s << ". Defaulting to High.";
+    EVLOG_error << "No known string conversion for provided enum of type Severity. Defaulting to High.";
     return "High";
 }
 
