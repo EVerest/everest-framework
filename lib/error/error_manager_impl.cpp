@@ -34,10 +34,12 @@ void ErrorManagerImpl::raise_error(const Error& error) {
     if (validate_error_types) {
         if (std::find(allowed_error_types.begin(), allowed_error_types.end(), error.type) ==
             allowed_error_types.end()) {
-            throw EverestArgumentError("Error type " + error.type + " is not allowed to be raised.");
+            EVLOG_error << "Error type " << error.type << " is not allowed to be raised. Ignoring.";
+            return;
         }
         if (!this->error_type_map->has(error.type)) {
-            throw EverestArgumentError("Error type " + error.type + " is not known.");
+            EVLOG_error << "Error type " << error.type << " is not known.";
+            return;
         }
     }
     if (!can_be_raised(error.type, error.sub_type)) {
@@ -81,7 +83,8 @@ std::list<ErrorPtr> ErrorManagerImpl::clear_error(const ErrorType& type, const E
     std::list<ErrorFilter> filters = {ErrorFilter(TypeFilter(type)), ErrorFilter(SubTypeFilter(sub_type))};
     std::list<ErrorPtr> res = database->remove_errors(filters);
     if (res.size() > 1) {
-        throw EverestBaseLogicError("There are more than one matching error, this is not valid");
+        EVLOG_error << "There are more than one matching error, this is not valid";
+        return {};
     }
     const ErrorPtr error = res.front();
     error->state = State::ClearedByModule;

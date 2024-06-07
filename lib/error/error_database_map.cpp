@@ -16,8 +16,8 @@ namespace error {
 void ErrorDatabaseMap::add_error(ErrorPtr error) {
     std::lock_guard<std::mutex> lock(this->errors_mutex);
     if (this->errors.find(error->uuid) != this->errors.end()) {
-        throw EverestAlreadyExistsError("Error with handle " + error->uuid.to_string() +
-                                        " already exists in ErrorDatabaseMap.");
+        EVLOG_error << "Error with handle " << error->uuid.to_string() << " already exists in ErrorDatabaseMap.";
+        return;
     }
     this->errors[error->uuid] = error;
 }
@@ -60,7 +60,7 @@ std::list<ErrorPtr> ErrorDatabaseMap::get_errors_no_mutex(const std::list<ErrorF
                     return error->severity < Severity::High;
                 } break;
                 }
-                throw std::out_of_range("No known condition for provided enum of type SeverityFilter.");
+                EVLOG_error << "No known condition for provided enum of type SeverityFilter.";
             };
         } break;
         case FilterType::TimePeriod: {
@@ -76,7 +76,8 @@ std::list<ErrorPtr> ErrorDatabaseMap::get_errors_no_mutex(const std::list<ErrorF
             pred = [&filter](const ErrorPtr& error) { return error->sub_type != filter.get_sub_type_filter().value; };
         } break;
         default:
-            throw std::out_of_range("No known pred for provided enum of type FilterType.");
+            EVLOG_error << "No known pred for provided enum of type FilterType. Ignoring.";
+            return result;
         }
         result.remove_if(pred);
     }

@@ -5,6 +5,7 @@
 #include <utils/error/error_filter.hpp>
 
 #include <everest/exceptions.hpp>
+#include <everest/logging.hpp>
 
 namespace Everest {
 namespace error {
@@ -26,7 +27,8 @@ std::string severity_filter_to_string(const SeverityFilter& f) {
     case SeverityFilter::HIGH_GE:
         return "HIGH_GE";
     }
-    throw std::out_of_range("No known string conversion for provided enum of type SeverityFilter.");
+    EVLOG_error << "No known string conversion for provided enum of type SeverityFilter. Defaulting to HIGH_GE";
+    return "HIGH_GE";
 }
 
 SeverityFilter string_to_severity_filter(const std::string& s) {
@@ -37,7 +39,9 @@ SeverityFilter string_to_severity_filter(const std::string& s) {
     } else if (s == "HIGH_GE") {
         return SeverityFilter::HIGH_GE;
     }
-    throw std::out_of_range("Provided string " + s + " could not be converted to enum of type SeverityFilter.");
+    EVLOG_error << "Provided string " << s
+                << " could not be converted to enum of type SeverityFilter. Defaulting to HIGH_GE";
+    return SeverityFilter::HIGH_GE;
 }
 
 TypeFilter::TypeFilter(const ErrorType& value_) : value(value_) {
@@ -61,7 +65,8 @@ std::string filter_type_to_string(const FilterType& f) {
     case FilterType::Handle:
         return "Handle";
     }
-    throw std::out_of_range("No known string conversion for provided enum of type FilterType.");
+    EVLOG_error << "No known string conversion for provided enum of type FilterType. Defaulting to Type";
+    return "Type";
 }
 
 FilterType string_to_filter_type(const std::string& s) {
@@ -78,7 +83,8 @@ FilterType string_to_filter_type(const std::string& s) {
     } else if (s == "Handle") {
         return FilterType::Handle;
     }
-    throw std::out_of_range("Provided string " + s + " could not be converted to enum of type FilterType.");
+    EVLOG_error << "Provided string " << s << " could not be converted to enum of type FilterType. Deafulting to Type.";
+    return FilterType::Type;
 }
 
 ErrorFilter::ErrorFilter() = default;

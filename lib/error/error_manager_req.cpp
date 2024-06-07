@@ -50,11 +50,13 @@ void ErrorManagerReq::subscribe_all_errors(const ErrorCallback& callback, const 
 
 void ErrorManagerReq::on_error_raised(const Error& error) {
     if (std::find(allowed_error_types.begin(), allowed_error_types.end(), error.type) == allowed_error_types.end()) {
-        throw EverestBaseLogicError("Error can't be raised by module_id " + error.origin.module_id +
-                                    " and implemenetation_id " + error.origin.implementation_id);
+        EVLOG_error << "Error can't be raised by module_id " << error.origin.module_id << " and implemenetation_id "
+                    << error.origin.implementation_id << ", ignored.";
+        return;
     }
     if (!error_type_map->has(error.type)) {
-        throw EverestBaseLogicError("Error type '" + error.type + "' is not defined");
+        EVLOG_error << "Error type '" << error.type << "' is not defined, ignored.";
+        return;
     }
     database->add_error(std::make_shared<Error>(error));
     on_error(error, true);
@@ -64,11 +66,13 @@ void ErrorManagerReq::on_error_cleared(const Error& error) {
     std::list<ErrorFilter> filters = {ErrorFilter(TypeFilter(error.type)), ErrorFilter(SubTypeFilter(error.sub_type))};
     std::list<ErrorPtr> res = database->remove_errors(filters);
     if (res.size() < 1) {
-        throw EverestBaseLogicError("Error wasn't raised, type: " + error.type + ", sub_type: " + error.sub_type);
+        EVLOG_error << "Error wasn't raised, type: " << error.type << ", sub_type: " << error.sub_type << ", ignored.";
+        return;
     }
     if (res.size() > 1) {
-        throw EverestBaseLogicError("More than one error is cleared, type: " + error.type +
-                                    ", sub_type: " + error.sub_type);
+        EVLOG_error << "More than one error is cleared, type: " << error.type << ", sub_type: " << error.sub_type
+                    << ", ignored.";
+        return;
     }
 
     on_error(error, false);
