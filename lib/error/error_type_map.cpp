@@ -62,13 +62,14 @@ void ErrorTypeMap::load_error_types(std::filesystem::path error_types_dir) {
 }
 
 std::string ErrorTypeMap::get_description(const ErrorType& error_type) const {
-    std::string type;
+    std::string description;
     try {
-        type = error_types.at(error_type);
+        description = error_types.at(error_type);
     } catch (...) {
-        type = "No description found";
+        EVLOG_error << "Error type '" << error_type << "' is not defined, returning default description.";
+        description = "No description found";
     }
-    return type;
+    return description;
 }
 
 bool ErrorTypeMap::has(const ErrorType& error_type) const {
