@@ -28,6 +28,13 @@ ErrorManagerImpl::ErrorManagerImpl(std::shared_ptr<ErrorTypeMap> error_type_map_
     publish_raised_error(publish_raised_error_),
     publish_cleared_error(publish_cleared_error_),
     validate_error_types(validate_error_types_) {
+    if (validate_error_types) {
+        for (const ErrorType& type : allowed_error_types) {
+            if (!error_type_map->has(type)) {
+                EVLOG_error << "Error type '" << type << "' in allowed_error_types is not defined, ignored.";
+            }
+        }
+    }
 }
 
 void ErrorManagerImpl::raise_error(const Error& error) {
@@ -35,10 +42,6 @@ void ErrorManagerImpl::raise_error(const Error& error) {
         if (std::find(allowed_error_types.begin(), allowed_error_types.end(), error.type) ==
             allowed_error_types.end()) {
             EVLOG_error << "Error type " << error.type << " is not allowed to be raised. Ignoring.";
-            return;
-        }
-        if (!this->error_type_map->has(error.type)) {
-            EVLOG_error << "Error type " << error.type << " is not known.";
             return;
         }
     }

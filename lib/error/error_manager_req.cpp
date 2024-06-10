@@ -22,6 +22,12 @@ ErrorManagerReq::ErrorManagerReq(std::shared_ptr<ErrorTypeMap> error_type_map_,
     database(error_database_),
     allowed_error_types(allowed_error_types_),
     subscribe_error_func(subscribe_error_func_) {
+
+    for (const ErrorType& type : allowed_error_types) {
+        if (!error_type_map->has(type)) {
+            EVLOG_error << "Error type '" << type << "' in allowed_error_types is not defined, ignored.";
+        }
+    }
     ErrorCallback on_raise = [this](const Error& error) { this->on_error_raised(error); };
     ErrorCallback on_clear = [this](const Error& error) { this->on_error_cleared(error); };
     for (const ErrorType& type : allowed_error_types) {
