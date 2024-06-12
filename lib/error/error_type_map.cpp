@@ -47,7 +47,7 @@ void ErrorTypeMap::load_error_types(std::filesystem::path error_types_dir) {
                             << "' contains an error without a 'name' key, skipped.";
                 continue;
             }
-            std::description description;
+            std::string description;
             if (!error.contains("description")) {
                 EVLOG_error << "Error type file '" << entry.path().string()
                             << "' contains an error without a 'description' key, using default description";
