@@ -93,56 +93,64 @@ ErrorFilter::ErrorFilter(const FilterVariant& filter_) : filter(filter_) {
 
 FilterType ErrorFilter::get_filter_type() const {
     if (filter.index() == 0) {
-        throw EverestBaseLogicError("Filter type is not set.");
+        EVLOG_error << "Filter type is not set. Defaulting to 'FilterType::State'.";
+        return FilterType::State;
     }
     return static_cast<FilterType>(filter.index());
 }
 
 StateFilter ErrorFilter::get_state_filter() const {
     if (this->get_filter_type() != FilterType::State) {
-        throw EverestBaseLogicError("Filter type is not StateFilter.");
+        EVLOG_error << "Filter type is not StateFilter. Defaulting to 'StateFilter::Active'.";
+        return StateFilter::Active;
     }
     return std::get<StateFilter>(filter);
 }
 
 OriginFilter ErrorFilter::get_origin_filter() const {
     if (this->get_filter_type() != FilterType::Origin) {
-        throw EverestBaseLogicError("Filter type is not OriginFilter.");
+        EVLOG_error << "Filter type is not OriginFilter. Defaulting to 'OriginFilter::ImplementationIdentifier(\"no-module-id-provided\", \"no-implementation-id-provided\")'.";
+        return OriginFilter(ImplementationIdentifier("no-module-id-provided", "no-implementation-id-provided"));
     }
     return std::get<OriginFilter>(filter);
 }
 
 TypeFilter ErrorFilter::get_type_filter() const {
     if (this->get_filter_type() != FilterType::Type) {
-        throw EverestBaseLogicError("Filter type is not TypeFilter.");
+        EVLOG_error << "Filter type is not TypeFilter. Defaulting to 'TypeFilter(\"no-type-provided\")'.";
+        return TypeFilter("no-type-provided");
     }
     return std::get<TypeFilter>(filter);
 }
 
 SeverityFilter ErrorFilter::get_severity_filter() const {
     if (this->get_filter_type() != FilterType::Severity) {
-        throw EverestBaseLogicError("Filter type is not SeverityFilter.");
+        EVLOG_error << "Filter type is not SeverityFilter. Defaulting to 'SeverityFilter::HIGH_GE'.";
+        return SeverityFilter::HIGH_GE;
     }
     return std::get<SeverityFilter>(filter);
 }
 
 TimePeriodFilter ErrorFilter::get_time_period_filter() const {
     if (this->get_filter_type() != FilterType::TimePeriod) {
-        throw EverestBaseLogicError("Filter type is not TimePeriodFilter.");
+        EVLOG_error << "Filter type is not TimePeriodFilter. Defaulting to 'TimePeriodFilter{Error::time_point(), Error::time_point()}'.";
+        return TimePeriodFilter{Error::time_point(), Error::time_point()};
     }
     return std::get<TimePeriodFilter>(filter);
 }
 
 HandleFilter ErrorFilter::get_handle_filter() const {
     if (this->get_filter_type() != FilterType::Handle) {
-        throw EverestBaseLogicError("Filter type is not HandleFilter.");
+        EVLOG_error << "Filter type is not HandleFilter. Defaulting to 'HandleFilter()'.";
+        return HandleFilter();
     }
     return std::get<HandleFilter>(filter);
 }
 
 SubTypeFilter ErrorFilter::get_sub_type_filter() const {
     if (this->get_filter_type() != FilterType::SubType) {
-        throw EverestBaseLogicError("Filter type is not SubTypeFilter.");
+        EVLOG_error << "Filter type is not SubTypeFilter. Defaulting to 'SubTypeFilter(\"no-sub-type-provided\")'.";
+        return SubTypeFilter("no-sub-type-provided");
     }
     return std::get<SubTypeFilter>(filter);
 }
