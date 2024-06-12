@@ -472,9 +472,9 @@ void Everest::subscribe_error(const Requirement& req, const error::ErrorType& er
     std::string error_type_name = error_type.substr(pos + 1);
     if (!requirement_impl_if.contains("errors") || !requirement_impl_if.at("errors").contains(error_type_namespace) ||
         !requirement_impl_if.at("errors").at(error_type_namespace).contains(error_type_name)) {
-        EVLOG_error << fmt::format(
-            "{}: Error {} not listed in interface, ignore subscription!",
-            this->config.printable_identifier(requirement_module_id, requirement_impl_id), error_type);
+        EVLOG_error << fmt::format("{}: Error {} not listed in interface, ignore subscription!",
+                                   this->config.printable_identifier(requirement_module_id, requirement_impl_id),
+                                   error_type);
         return;
     }
 

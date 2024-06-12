@@ -109,7 +109,9 @@ StateFilter ErrorFilter::get_state_filter() const {
 
 OriginFilter ErrorFilter::get_origin_filter() const {
     if (this->get_filter_type() != FilterType::Origin) {
-        EVLOG_error << "Filter type is not OriginFilter. Defaulting to 'OriginFilter::ImplementationIdentifier(\"no-module-id-provided\", \"no-implementation-id-provided\")'.";
+        EVLOG_error << "Filter type is not OriginFilter. Defaulting to "
+                       "'OriginFilter::ImplementationIdentifier(\"no-module-id-provided\", "
+                       "\"no-implementation-id-provided\")'.";
         return OriginFilter(ImplementationIdentifier("no-module-id-provided", "no-implementation-id-provided"));
     }
     return std::get<OriginFilter>(filter);
@@ -133,7 +135,8 @@ SeverityFilter ErrorFilter::get_severity_filter() const {
 
 TimePeriodFilter ErrorFilter::get_time_period_filter() const {
     if (this->get_filter_type() != FilterType::TimePeriod) {
-        EVLOG_error << "Filter type is not TimePeriodFilter. Defaulting to 'TimePeriodFilter{Error::time_point(), Error::time_point()}'.";
+        EVLOG_error << "Filter type is not TimePeriodFilter. Defaulting to 'TimePeriodFilter{Error::time_point(), "
+                       "Error::time_point()}'.";
         return TimePeriodFilter{Error::time_point(), Error::time_point()};
     }
     return std::get<TimePeriodFilter>(filter);

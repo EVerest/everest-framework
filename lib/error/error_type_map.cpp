@@ -19,7 +19,8 @@ void ErrorTypeMap::load_error_types(std::filesystem::path error_types_dir) {
     BOOST_LOG_FUNCTION();
 
     if (!std::filesystem::is_directory(error_types_dir) || !std::filesystem::exists(error_types_dir)) {
-        EVLOG_error << "Error types directory '" << error_types_dir.string() << "' does not exist, error types not loaded.";
+        EVLOG_error << "Error types directory '" << error_types_dir.string()
+                    << "' does not exist, error types not loaded.";
         return;
     }
     for (const auto& entry : std::filesystem::directory_iterator(error_types_dir)) {
@@ -36,24 +37,28 @@ void ErrorTypeMap::load_error_types(std::filesystem::path error_types_dir) {
             continue;
         }
         if (!error_type_file.at("errors").is_array()) {
-            EVLOG_error << "Error type file '" << entry.path().string() << "' does not contain an array with key 'errors', skipped.";
+            EVLOG_error << "Error type file '" << entry.path().string()
+                        << "' does not contain an array with key 'errors', skipped.";
             continue;
         }
         for (const auto& error : error_type_file["errors"]) {
             if (!error.contains("name")) {
-                EVLOG_error << "Error type file '" << entry.path().string() << "' contains an error without a 'name' key, skipped.";
+                EVLOG_error << "Error type file '" << entry.path().string()
+                            << "' contains an error without a 'name' key, skipped.";
                 continue;
             }
             std::description description;
             if (!error.contains("description")) {
-                EVLOG_error << "Error type file '" << entry.path().string() << "' contains an error without a 'description' key, using default description";
+                EVLOG_error << "Error type file '" << entry.path().string()
+                            << "' contains an error without a 'description' key, using default description";
                 description = "No description found";
             } else {
                 description = error.at("description").get<std::string>();
             }
             ErrorType complete_name = prefix + "/" + error.at("name").get<std::string>();
             if (this->has(complete_name)) {
-                EVLOG_error << "Error type file '" << entry.path().string() << "' contains an error with the name '" << complete_name << "' which is already defined, skipped.";
+                EVLOG_error << "Error type file '" << entry.path().string() << "' contains an error with the name '"
+                            << complete_name << "' which is already defined, skipped.";
                 continue;
             }
             error_types[complete_name] = description;
