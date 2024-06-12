@@ -7,7 +7,6 @@
 #include <boost/uuid/uuid_io.hpp>
 
 #include <everest/logging.hpp>
-#include <utils/error/error_exceptions.hpp>
 
 namespace Everest {
 namespace error {

@@ -5,7 +5,6 @@
 
 #include <everest/logging.hpp>
 #include <utils/error.hpp>
-#include <utils/error/error_exceptions.hpp>
 #include <utils/error/error_json.hpp>
 
 #include <algorithm>

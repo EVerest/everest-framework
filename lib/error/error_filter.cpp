@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Pionix GmbH and Contributors to EVerest
 
-#include <utils/error/error_exceptions.hpp>
 #include <utils/error/error_filter.hpp>
 
 #include <everest/exceptions.hpp>

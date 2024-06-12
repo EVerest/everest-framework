@@ -5,11 +5,9 @@
 
 #include <utils/error.hpp>
 #include <utils/error/error_database.hpp>
-#include <utils/error/error_exceptions.hpp>
 #include <utils/error/error_filter.hpp>
 #include <utils/error/error_type_map.hpp>
 
-#include <everest/exceptions.hpp>
 #include <everest/logging.hpp>
 
 namespace Everest {
