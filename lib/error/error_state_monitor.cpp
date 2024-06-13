@@ -23,7 +23,7 @@ bool ErrorStateMonitor::is_error_active(const ErrorType& type, const ErrorSubTyp
     return database->get_errors(filters).size() > 0;
 }
 
-uint ErrorStateMonitor::get_ative_error_count() const {
+int ErrorStateMonitor::get_ative_error_count() const {
     return database->get_errors({}).size();
 }
 

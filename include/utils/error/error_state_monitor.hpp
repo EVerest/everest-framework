@@ -48,7 +48,7 @@ public:
     /// \brief get_active_error_count returns the amount of active errors for this error state monitor
     /// \return Amount of active errors
     ///
-    uint get_ative_error_count() const;
+    int get_ative_error_count() const;
 
     ///
     /// \brief is_condition_satisfied checks if a certain condition is satisfied
