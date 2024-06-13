@@ -92,8 +92,6 @@ else()
     include(find-mqttc)
 endif()
 
-evc_generate_version_information()
-
 set(EVEREST_FRAMEWORK_GENERATED_INC_DIR ${PROJECT_BINARY_DIR}/generated)
 configure_file(
     include/compile_time_settings.hpp.in
