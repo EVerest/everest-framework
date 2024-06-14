@@ -49,6 +49,9 @@ TypeFilter::TypeFilter(const ErrorType& value_) : value(value_) {
 SubTypeFilter::SubTypeFilter(const ErrorSubType& value_) : value(value_) {
 }
 
+VendorIdFilter::VendorIdFilter(const std::string& value_) : value(value_) {
+}
+
 std::string filter_type_to_string(const FilterType& f) {
     switch (f) {
     case FilterType::State:
@@ -63,6 +66,10 @@ std::string filter_type_to_string(const FilterType& f) {
         return "TimePeriod";
     case FilterType::Handle:
         return "Handle";
+    case FilterType::SubType:
+        return "SubType";
+    case FilterType::VendorId:
+        return "VendorId";
     }
     EVLOG_error << "No known string conversion for provided enum of type FilterType. Defaulting to Type";
     return "Type";
@@ -81,6 +88,10 @@ FilterType string_to_filter_type(const std::string& s) {
         return FilterType::TimePeriod;
     } else if (s == "Handle") {
         return FilterType::Handle;
+    } else if (s == "SubType") {
+        return FilterType::SubType;
+    } else if (s == "VendorId") {
+        return FilterType::VendorId;
     }
     EVLOG_error << "Provided string " << s << " could not be converted to enum of type FilterType. Deafulting to Type.";
     return FilterType::Type;
@@ -156,6 +167,13 @@ SubTypeFilter ErrorFilter::get_sub_type_filter() const {
         return SubTypeFilter("no-sub-type-provided");
     }
     return std::get<SubTypeFilter>(filter);
+}
+
+VendorIdFilter ErrorFilter::get_vendor_id_filter() const {
+    if (this->get_filter_type() != FilterType::VendorId) {
+        throw EverestBaseLogicError("Filter type is not VendorIdFilter.");
+    }
+    return std::get<VendorIdFilter>(filter);
 }
 
 } // namespace error
