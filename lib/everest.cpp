@@ -19,11 +19,11 @@
 #include <utils/error.hpp>
 #include <utils/error/error_database.hpp>
 #include <utils/error/error_database_map.hpp>
-#include <utils/error/error_exceptions.hpp>
 #include <utils/error/error_factory.hpp>
 #include <utils/error/error_json.hpp>
 #include <utils/error/error_manager_impl.hpp>
 #include <utils/error/error_manager_req.hpp>
+#include <utils/error/error_manager_req_global.hpp>
 #include <utils/error/error_state_monitor.hpp>
 #include <utils/error/error_type_map.hpp>
 #include <utils/formatter.hpp>
@@ -63,6 +63,23 @@ Everest::Everest(std::string module_id_, const Config& config_, bool validate_da
 
     this->ready_received = false;
     this->on_ready = nullptr;
+
+    // setup error_manager_req_global if enabled + error_database + error_state_monitor
+    if (this->module_manifest.contains("enable_global_errors") &&
+        this->module_manifest.at("enable_global_errors").get<bool>()) {
+        std::shared_ptr<error::ErrorDatabaseMap> global_error_database = std::make_shared<error::ErrorDatabaseMap>();
+        error::ErrorManagerReqGlobal::SubscribeGlobalAllErrorsFunc subscribe_global_all_errors_func =
+            [this](const error::ErrorCallback& callback, const error::ErrorCallback& clear_callback) {
+                this->subscribe_global_all_errors(callback, clear_callback);
+            };
+        this->global_error_manager = std::make_shared<error::ErrorManagerReqGlobal>(
+            std::make_shared<error::ErrorTypeMap>(this->config.get_error_map()), global_error_database,
+            subscribe_global_all_errors_func);
+        this->global_error_state_monitor = std::make_shared<error::ErrorStateMonitor>(global_error_database);
+    } else {
+        this->global_error_manager = nullptr;
+        this->global_error_state_monitor = nullptr;
+    }
 
     // setup error_managers, error_state_monitors, error_factories and error_databases for all implementations
     for (const std::string& impl : Config::keys(this->module_manifest.at("provides"))) {
@@ -200,11 +217,12 @@ void Everest::check_code() {
     for (auto& element : module_manifest["provides"].items()) {
         auto const& impl_id = element.key();
         auto impl_manifest = element.value();
+        auto interface_definition = this->config.get_interface_definition(impl_manifest.at("interface"));
 
         std::set<std::string> cmds_not_registered;
         std::set<std::string> impl_manifest_cmds_set;
-        if (impl_manifest.contains("cmds")) {
-            impl_manifest_cmds_set = Config::keys(impl_manifest["cmds"]);
+        if (interface_definition.contains("cmds")) {
+            impl_manifest_cmds_set = Config::keys(interface_definition.at("cmds"));
         }
         std::set<std::string> registered_cmds_set = this->registered_cmds[impl_id];
 
@@ -303,7 +321,7 @@ json Everest::call_cmd(const Requirement& req, const std::string& cmd_name, json
             return;
         }
 
-        EVLOG_debug << fmt::format(
+        EVLOG_verbose << fmt::format(
             "Incoming res {} for {}->{}()", data_id,
             this->config.printable_identifier(connection["module_id"], connection["implementation_id"]), cmd_name);
 
@@ -338,7 +356,7 @@ json Everest::call_cmd(const Requirement& req, const std::string& cmd_name, json
             "Timeout while waiting for result of {}->{}()",
             this->config.printable_identifier(connection["module_id"], connection["implementation_id"]), cmd_name)));
     } else if (res_future_status == std::future_status::ready) {
-        EVLOG_debug << "res future ready";
+        EVLOG_verbose << "res future ready";
         result = res_future.get();
     }
     this->mqtt_abstraction.unregister_handler(cmd_topic, res_token);
@@ -414,7 +432,7 @@ void Everest::subscribe_var(const Requirement& req, const std::string& var_name,
 
     Handler handler = [this, requirement_module_id, requirement_impl_id, requirement_manifest_vardef, var_name,
                        callback](json const& data) {
-        EVLOG_debug << fmt::format(
+        EVLOG_verbose << fmt::format(
             "Incoming {}->{}", this->config.printable_identifier(requirement_module_id, requirement_impl_id), var_name);
 
         if (this->validate_data_with_schema) {
@@ -465,15 +483,17 @@ void Everest::subscribe_error(const Requirement& req, const error::ErrorType& er
     // split error_type at '/'
     int pos = error_type.find('/');
     if (pos == std::string::npos) {
-        throw error::EverestNotValidErrorTypeError(error_type);
+        EVLOG_error << fmt::format("Error type {} is not valid, ignore subscription", error_type);
+        return;
     }
     std::string error_type_namespace = error_type.substr(0, pos);
     std::string error_type_name = error_type.substr(pos + 1);
     if (!requirement_impl_if.contains("errors") || !requirement_impl_if.at("errors").contains(error_type_namespace) ||
         !requirement_impl_if.at("errors").at(error_type_namespace).contains(error_type_name)) {
-        throw error::EverestInterfaceMissingDeclartionError(
-            fmt::format("{}: Error {} not listed in interface!",
-                        this->config.printable_identifier(requirement_module_id, requirement_impl_id), error_type));
+        EVLOG_error << fmt::format("{}: Error {} not listed in interface, ignore subscription!",
+                                   this->config.printable_identifier(requirement_module_id, requirement_impl_id),
+                                   error_type);
+        return;
     }
 
     Handler raise_handler = [this, requirement_module_id, requirement_impl_id, error_type, callback](json const& data) {
@@ -547,6 +567,20 @@ std::shared_ptr<error::ErrorStateMonitor> Everest::get_error_state_monitor_req(c
     return this->req_error_state_monitors.at(req);
 }
 
+std::shared_ptr<error::ErrorManagerReqGlobal> Everest::get_global_error_manager() const {
+    if (this->global_error_manager == nullptr) {
+        EVLOG_warning << "This module has no global_error_manager, returning nullptr";
+    }
+    return this->global_error_manager;
+}
+
+std::shared_ptr<error::ErrorStateMonitor> Everest::get_global_error_state_monitor() const {
+    if (this->global_error_state_monitor == nullptr) {
+        EVLOG_warning << "This module has no global_error_state_monitor, returning nullptr";
+    }
+    return this->global_error_state_monitor;
+}
+
 void Everest::subscribe_global_all_errors(const error::ErrorCallback& callback,
                                           const error::ErrorCallback& clear_callback) {
     BOOST_LOG_FUNCTION();
@@ -554,8 +588,9 @@ void Everest::subscribe_global_all_errors(const error::ErrorCallback& callback,
     EVLOG_debug << fmt::format("subscribing to all errors");
 
     if (not this->config.get_module_info(this->module_id).global_errors_enabled) {
-        throw error::EverestNotAllowedError(fmt::format("Module {} is not allowed to subscribe to all errors!",
-                                                        this->config.printable_identifier(this->module_id)));
+        EVLOG_error << fmt::format("Module {} is not allowed to subscribe to all errors, ignore subscription",
+                                   this->config.printable_identifier(this->module_id));
+        return;
     }
 
     Handler raise_handler = [this, callback](json const& data) {
@@ -649,7 +684,7 @@ UnsubscribeToken Everest::provide_external_mqtt_handler(const std::string& topic
     std::string external_topic = fmt::format("{}{}", this->mqtt_external_prefix, topic);
 
     Handler external_handler = [this, handler, external_topic](json const& data) {
-        EVLOG_debug << fmt::format("Incoming external mqtt data for topic '{}'...", external_topic);
+        EVLOG_verbose << fmt::format("Incoming external mqtt data for topic '{}'...", external_topic);
         if (!data.is_string()) {
             EVLOG_AND_THROW(EverestInternalError("External mqtt result is not a string (that should never happen)"));
         }
@@ -765,9 +800,9 @@ void Everest::provide_cmd(const std::string impl_id, const std::string cmd_name,
             arg_names = Config::keys(cmd_definition["arguments"]);
         }
 
-        EVLOG_debug << fmt::format("Incoming {}->{}({}) for <handler>",
-                                   this->config.printable_identifier(this->module_id, impl_id), cmd_name,
-                                   fmt::join(arg_names, ","));
+        EVLOG_verbose << fmt::format("Incoming {}->{}({}) for <handler>",
+                                     this->config.printable_identifier(this->module_id, impl_id), cmd_name,
+                                     fmt::join(arg_names, ","));
 
         // check data and ignore it if not matching (publishing it should have
         // been prohibited already)
@@ -820,7 +855,7 @@ void Everest::provide_cmd(const std::string impl_id, const std::string cmd_name,
             }
         }
 
-        EVLOG_debug << fmt::format("RETVAL: {}", res_data["retval"].dump());
+        EVLOG_verbose << fmt::format("RETVAL: {}", res_data["retval"].dump());
         res_data["origin"] = this->module_id;
 
         json res_publish_data = json::object({{"name", cmd_name}, {"type", "result"}, {"data", res_data}});
