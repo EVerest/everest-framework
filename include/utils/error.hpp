@@ -13,7 +13,7 @@
 #define UTILS_ERROR_DEFAULTS_DESCRIPTION "no description provided"
 #define UTILS_ERROR_DEFAULTS_MESSAGE     "no message provided"
 #define UTILS_ERROR_DEFAULTS_SEVERITY    Everest::error::Severity::Low
-#define UTILS_ERROR_DEFAULTS_ORIGIN      ImplementationIdentifier("no-module-id-provided", "no-implementation-id-provided")
+#define UTILS_ERROR_DEFAULTS_ORIGIN      ImplementationIdentifier("no-module-id-provided", "no-implementation-id-provided", std::nullopt)
 #define UTILS_ERROR_DEFAULTS_TIMESTAMP   date::utc_clock::now()
 #define UTILS_ERROR_DEFAULTS_UUID        UUID()
 #define UTILS_ERROR_DEFAULTS_STATE       Everest::error::State::Active

@@ -84,6 +84,22 @@ struct TelemetryConfig {
     int id;
 };
 
+struct Mapping {
+    int evse;
+    std::optional<int> connector;
+
+    Mapping(int evse) : evse(evse) {
+    }
+
+    Mapping(int evse, int connector) : evse(evse), connector(connector) {
+    }
+};
+
+struct ModuleTierMappings {
+    std::optional<Mapping> module;
+    std::unordered_map<std::string, std::optional<Mapping>> implementations;
+};
+
 struct Requirement {
     Requirement(const std::string& requirement_id_, size_t index_);
     bool operator<(const Requirement& rhs) const;
@@ -92,13 +108,33 @@ struct Requirement {
 };
 
 struct ImplementationIdentifier {
-    ImplementationIdentifier(const std::string& module_id_, const std::string& implementation_id_);
+    ImplementationIdentifier(const std::string& module_id_, const std::string& implementation_id_,
+                             std::optional<Mapping> mapping_ = std::nullopt);
     std::string to_string() const;
     std::string module_id;
     std::string implementation_id;
+    std::optional<Mapping> mapping;
 };
 bool operator==(const ImplementationIdentifier& lhs, const ImplementationIdentifier& rhs);
 bool operator!=(const ImplementationIdentifier& lhs, const ImplementationIdentifier& rhs);
+
+NLOHMANN_JSON_NAMESPACE_BEGIN
+template <> struct adl_serializer<Mapping> {
+    static void to_json(json& j, const Mapping& m) {
+        j = {{"evse", m.evse}};
+        if (m.connector.has_value()) {
+            j["connector"] = m.connector.value();
+        }
+    }
+    static Mapping from_json(const json& j) {
+        auto m = Mapping(j.at("evse").get<int>());
+        if (j.contains("connector")) {
+            m.connector = j.at("connector").get<int>();
+        }
+        return m;
+    }
+};
+NLOHMANN_JSON_NAMESPACE_END
 
 #define EVCALLBACK(function) [](auto&& PH1) { function(std::forward<decltype(PH1)>(PH1)); }
 
