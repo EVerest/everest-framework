@@ -5,7 +5,6 @@
 
 #include <everest/logging.hpp>
 #include <utils/error.hpp>
-#include <utils/error/error_exceptions.hpp>
 #include <utils/error/error_json.hpp>
 
 #include <algorithm>
@@ -16,8 +15,8 @@ namespace error {
 void ErrorDatabaseMap::add_error(ErrorPtr error) {
     std::lock_guard<std::mutex> lock(this->errors_mutex);
     if (this->errors.find(error->uuid) != this->errors.end()) {
-        throw EverestAlreadyExistsError("Error with handle " + error->uuid.to_string() +
-                                        " already exists in ErrorDatabaseMap.");
+        EVLOG_error << "Error with handle " << error->uuid.to_string() << " already exists in ErrorDatabaseMap.";
+        return;
     }
     this->errors[error->uuid] = error;
 }
@@ -42,10 +41,10 @@ std::list<ErrorPtr> ErrorDatabaseMap::get_errors_no_mutex(const std::list<ErrorF
             EVLOG_error << "ErrorDatabaseMap does not support StateFilter. Ignoring.";
         } break;
         case FilterType::Origin: {
-            pred = [&filter](const ErrorPtr& error) { return error->from != filter.get_origin_filter(); };
+            pred = [&filter](const ErrorPtr& error) { return error->origin != filter.get_origin_filter(); };
         } break;
         case FilterType::Type: {
-            pred = [&filter](const ErrorPtr& error) { return error->type != filter.get_type_filter(); };
+            pred = [&filter](const ErrorPtr& error) { return error->type != filter.get_type_filter().value; };
         } break;
         case FilterType::Severity: {
             pred = [&filter](const ErrorPtr& error) {
@@ -60,7 +59,8 @@ std::list<ErrorPtr> ErrorDatabaseMap::get_errors_no_mutex(const std::list<ErrorF
                     return error->severity < Severity::High;
                 } break;
                 }
-                throw std::out_of_range("No known condition for provided enum of type SeverityFilter.");
+                EVLOG_error << "No known condition for provided enum of type SeverityFilter.";
+                return false;
             };
         } break;
         case FilterType::TimePeriod: {
@@ -72,8 +72,15 @@ std::list<ErrorPtr> ErrorDatabaseMap::get_errors_no_mutex(const std::list<ErrorF
         case FilterType::Handle: {
             pred = [&filter](const ErrorPtr& error) { return error->uuid != filter.get_handle_filter(); };
         } break;
+        case FilterType::SubType: {
+            pred = [&filter](const ErrorPtr& error) { return error->sub_type != filter.get_sub_type_filter().value; };
+        } break;
+        case FilterType::VendorId: {
+            pred = [&filter](const ErrorPtr& error) { return error->vendor_id != filter.get_vendor_id_filter().value; };
+        } break;
         default:
-            throw std::out_of_range("No known pred for provided enum of type FilterType.");
+            EVLOG_error << "No known pred for provided enum of type FilterType. Ignoring.";
+            return result;
         }
         result.remove_if(pred);
     }

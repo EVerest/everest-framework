@@ -3,11 +3,15 @@
 
 #include <framework/runtime.hpp>
 #include <utils/error.hpp>
+#include <utils/error/error_factory.hpp>
 #include <utils/error/error_json.hpp>
-#include <utils/error/error_manager.hpp>
+#include <utils/error/error_manager_impl.hpp>
+#include <utils/error/error_manager_req.hpp>
+#include <utils/error/error_state_monitor.hpp>
 
 #include <algorithm>
 #include <cstdlib>
+#include <fstream>
 
 #include <boost/program_options.hpp>
 
@@ -311,8 +315,13 @@ RuntimeSettings::RuntimeSettings(const std::string& prefix_, const std::string& 
     // overwrite mqtt broker port with environment variable
     // NOLINTNEXTLINE(concurrency-mt-unsafe): not problematic that this function is not threadsafe here
     const char* mqtt_server_port = std::getenv("MQTT_SERVER_PORT");
+
     if (mqtt_server_port != nullptr) {
-        mqtt_broker_port = std::stoi(mqtt_server_port);
+        try {
+            mqtt_broker_port = std::stoi(mqtt_server_port);
+        } catch (...) {
+            EVLOG_warning << "Environment variable MQTT_SERVER_PORT set, but not set to an integer. Ignoring.";
+        }
     }
 
     const auto settings_mqtt_everest_prefix_it = settings.find("mqtt_everest_prefix");
@@ -365,6 +374,13 @@ RuntimeSettings::RuntimeSettings(const std::string& prefix_, const std::string& 
         validate_schema = defaults::VALIDATE_SCHEMA;
     }
     run_as_user = settings.value("run_as_user", "");
+    auto version_information_path = data_dir / "version_information.txt";
+    if (fs::exists(version_information_path)) {
+        std::ifstream ifs(version_information_path.string());
+        version_information = std::string(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
+    } else {
+        version_information = "unknown";
+    }
 }
 
 ModuleCallbacks::ModuleCallbacks(const std::function<void(ModuleAdapter module_adapter)>& register_module_adapter,
@@ -374,8 +390,9 @@ ModuleCallbacks::ModuleCallbacks(const std::function<void(ModuleAdapter module_a
     register_module_adapter(register_module_adapter), everest_register(everest_register), init(init), ready(ready) {
 }
 
-ModuleLoader::ModuleLoader(int argc, char* argv[], ModuleCallbacks callbacks) :
-    runtime_settings(nullptr), callbacks(callbacks) {
+ModuleLoader::ModuleLoader(int argc, char* argv[], ModuleCallbacks callbacks,
+                           const VersionInformation version_information) :
+    runtime_settings(nullptr), callbacks(callbacks), version_information(version_information) {
     if (!this->parse_command_line(argc, argv)) {
         return;
     }
@@ -439,48 +456,30 @@ int ModuleLoader::initialize() {
             return everest.subscribe_var(req, var_name, callback);
         };
 
-        module_adapter.subscribe_error = [&everest](const Requirement& req, const std::string& error_type,
-                                                    const error::ErrorCallback& error_callback) {
-            JsonCallback json_callback = [error_callback](json j) { error_callback(j.get<error::Error>()); };
-            return everest.subscribe_error(req, error_type, json_callback);
+        module_adapter.get_error_manager_impl = [&everest](const std::string& impl_id) {
+            return everest.get_error_manager_impl(impl_id);
         };
 
-        module_adapter.subscribe_all_errors = [&everest](const error::ErrorCallback& error_callback) {
-            JsonCallback json_callback = [error_callback](json j) { error_callback(j.get<error::Error>()); };
-            return everest.subscribe_all_errors(json_callback);
+        module_adapter.get_error_state_monitor_impl = [&everest](const std::string& impl_id) {
+            return everest.get_error_state_monitor_impl(impl_id);
         };
 
-        module_adapter.subscribe_error_cleared = [&everest](const Requirement& req, const std::string& error_type,
-                                                            const error::ErrorCallback& error_callback) {
-            JsonCallback json_callback = [error_callback](json j) { return error_callback(j.get<error::Error>()); };
-            return everest.subscribe_error_cleared(req, error_type, json_callback);
+        module_adapter.get_error_factory = [&everest](const std::string& impl_id) {
+            return everest.get_error_factory(impl_id);
         };
 
-        module_adapter.subscribe_all_errors_cleared = [&everest](const error::ErrorCallback& error_callback) {
-            JsonCallback json_callback = [error_callback](json j) { return error_callback(j.get<error::Error>()); };
-            return everest.subscribe_all_errors_cleared(json_callback);
+        module_adapter.get_error_manager_req = [&everest](const Requirement& req) {
+            return everest.get_error_manager_req(req);
         };
 
-        module_adapter.raise_error = [&everest](const std::string& impl_id, const std::string& type,
-                                                const std::string& message, const error::Severity& severity) {
-            return error::ErrorHandle(everest.raise_error(impl_id, type, message, error::severity_to_string(severity)));
+        module_adapter.get_error_state_monitor_req = [&everest](const Requirement& req) {
+            return everest.get_error_state_monitor_req(req);
         };
 
-        module_adapter.request_clear_all_errors_of_module = [&everest](const std::string& impl_id) {
-            return everest.request_clear_error(error::RequestClearErrorOption::ClearAllOfModule, impl_id, std::nullopt,
-                                               std::nullopt);
-        };
+        module_adapter.get_global_error_manager = [&everest]() { return everest.get_global_error_manager(); };
 
-        module_adapter.request_clear_all_errors_of_type_of_module = [&everest](const std::string& impl_id,
-                                                                               const std::string& error_type) {
-            return everest.request_clear_error(error::RequestClearErrorOption::ClearAllOfTypeOfModule, impl_id,
-                                               std::nullopt, error_type);
-        };
-
-        module_adapter.request_clear_error_uuid = [&everest](const std::string& impl_id,
-                                                             const error::ErrorHandle& handle) {
-            return everest.request_clear_error(error::RequestClearErrorOption::ClearUUID, impl_id, handle.uuid,
-                                               std::nullopt);
+        module_adapter.get_global_error_state_monitor = [&everest]() {
+            return everest.get_global_error_state_monitor();
         };
 
         // NOLINTNEXTLINE(modernize-avoid-bind): prefer bind here for readability
@@ -540,6 +539,7 @@ int ModuleLoader::initialize() {
 
 bool ModuleLoader::parse_command_line(int argc, char* argv[]) {
     po::options_description desc("EVerest");
+    desc.add_options()("version", "Print version and exit");
     desc.add_options()("help,h", "produce help message");
     desc.add_options()("prefix", po::value<std::string>(), "Set main EVerest directory");
     desc.add_options()("module,m", po::value<std::string>(),
@@ -553,6 +553,13 @@ bool ModuleLoader::parse_command_line(int argc, char* argv[]) {
 
     if (vm.count("help") != 0) {
         std::cout << desc << "\n";
+        return false;
+    }
+
+    if (vm.count("version") != 0) {
+        std::cout << argv[0] << " (" << this->version_information.project_name << " "
+                  << this->version_information.project_version << " " << this->version_information.git_version << ")"
+                  << std::endl;
         return false;
     }
 

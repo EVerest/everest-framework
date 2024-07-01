@@ -16,11 +16,14 @@ target_sources(framework
     PRIVATE
         config.cpp
         error/error.cpp
-        error/error_comm_bridge.cpp
         error/error_database_map.cpp
         error/error_filter.cpp
-        error/error_manager.cpp
+        error/error_manager_impl.cpp
+        error/error_manager_req.cpp
+        error/error_manager_req_global.cpp
         error/error_type_map.cpp
+        error/error_state_monitor.cpp
+        error/error_factory.cpp
         everest.cpp
         formatter.cpp
         message_queue.cpp

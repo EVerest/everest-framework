@@ -27,7 +27,11 @@ using OriginFilter = ImplementationIdentifier;
 ///
 /// \brief This filter is used to filter errors by their type.
 ///
-using TypeFilter = ErrorType;
+
+struct TypeFilter {
+    explicit TypeFilter(const ErrorType& value);
+    ErrorType value;
+};
 
 ///
 /// \brief This filter is used to filter errors by their severity.
@@ -54,6 +58,19 @@ struct TimePeriodFilter {
 using HandleFilter = ErrorHandle;
 
 ///
+/// \brief This filter is used to filter errors by their sub type.
+///
+struct SubTypeFilter {
+    explicit SubTypeFilter(const ErrorSubType& value);
+    ErrorSubType value;
+};
+
+struct VendorIdFilter {
+    explicit VendorIdFilter(const std::string& value);
+    std::string value;
+};
+
+///
 /// \brief This enum is used to identify the different filter types.
 ///
 enum class FilterType {
@@ -62,7 +79,9 @@ enum class FilterType {
     Type = 3,
     Severity = 4,
     TimePeriod = 5,
-    Handle = 6
+    Handle = 6,
+    SubType = 7,
+    VendorId = 8
 };
 std::string filter_type_to_string(const FilterType& f);
 FilterType string_to_filter_type(const std::string& s);
@@ -70,7 +89,7 @@ FilterType string_to_filter_type(const std::string& s);
 class ErrorFilter {
 public:
     using FilterVariant = std::variant<std::monostate, StateFilter, OriginFilter, TypeFilter, SeverityFilter,
-                                       TimePeriodFilter, HandleFilter>;
+                                       TimePeriodFilter, HandleFilter, SubTypeFilter, VendorIdFilter>;
     ErrorFilter();
     explicit ErrorFilter(const FilterVariant& filter_);
 
@@ -82,6 +101,8 @@ public:
     SeverityFilter get_severity_filter() const;
     TimePeriodFilter get_time_period_filter() const;
     HandleFilter get_handle_filter() const;
+    SubTypeFilter get_sub_type_filter() const;
+    VendorIdFilter get_vendor_id_filter() const;
 
 private:
     FilterVariant filter;

@@ -28,15 +28,12 @@
 #include <framework/everest.hpp>
 #include <framework/runtime.hpp>
 #include <utils/config.hpp>
-#include <utils/error/error_comm_bridge.hpp>
-#include <utils/error/error_database.hpp>
-#include <utils/error/error_database_map.hpp>
-#include <utils/error/error_manager.hpp>
 #include <utils/mqtt_abstraction.hpp>
 #include <utils/status_fifo.hpp>
 
 #include "controller/ipc.hpp"
 #include "system_unix.hpp"
+#include <generated/version_information.hpp>
 
 namespace po = boost::program_options;
 namespace fs = std::filesystem;
@@ -250,8 +247,7 @@ std::mutex modules_ready_mutex;
 static std::map<pid_t, std::string> start_modules(Config& config, MQTTAbstraction& mqtt_abstraction,
                                                   const std::vector<std::string>& ignored_modules,
                                                   const std::vector<std::string>& standalone_modules,
-                                                  std::shared_ptr<RuntimeSettings> rs, StatusFifo& status_fifo,
-                                                  error::ErrorCommBridge& err_comm_bridge) {
+                                                  std::shared_ptr<RuntimeSettings> rs, StatusFifo& status_fifo) {
     BOOST_LOG_FUNCTION();
 
     std::vector<ModuleStartInfo> modules_to_spawn;
@@ -330,21 +326,6 @@ static std::map<pid_t, std::string> start_modules(Config& config, MQTTAbstractio
             std::make_shared<TypedHandler>(HandlerType::ExternalMQTT, std::make_shared<Handler>(module_ready_handler));
 
         mqtt_abstraction.register_handler(topic, module_it->second.token, QOS::QOS2);
-
-        for (auto& it_impl : config.get_manifests().at(module_type).at("provides").items()) {
-            std::string impl_name = it_impl.key();
-            std::string if_name = it_impl.value().at("interface");
-            auto if_def = config.get_interface_definition(if_name);
-            for (auto& it_err_list : if_def.at("errors")) {
-                for (auto& it_err : it_err_list) {
-                    std::string err_namespace = it_err.at("namespace");
-                    std::string err_name = it_err.at("name");
-                    std::string err_topic =
-                        fmt::format("{}/{}/error/{}/{}", module_name, impl_name, err_namespace, err_name);
-                    err_comm_bridge.add_error_topic(err_topic);
-                }
-            }
-        }
 
         if (std::any_of(standalone_modules.begin(), standalone_modules.end(),
                         [module_name](const auto& element) { return element == module_name; })) {
@@ -484,12 +465,34 @@ int boot(const po::variables_map& vm) {
 
     Logging::init(rs->logging_config_file.string());
 
-    EVLOG_info << fmt::format(TERMINAL_STYLE_BLUE, "  ________      __                _   ");
-    EVLOG_info << fmt::format(TERMINAL_STYLE_BLUE, " |  ____\\ \\    / /               | |  ");
-    EVLOG_info << fmt::format(TERMINAL_STYLE_BLUE, " | |__   \\ \\  / /__ _ __ ___  ___| |_ ");
-    EVLOG_info << fmt::format(TERMINAL_STYLE_BLUE, " |  __|   \\ \\/ / _ \\ '__/ _ \\/ __| __|");
-    EVLOG_info << fmt::format(TERMINAL_STYLE_BLUE, " | |____   \\  /  __/ | |  __/\\__ \\ |_ ");
-    EVLOG_info << fmt::format(TERMINAL_STYLE_BLUE, " |______|   \\/ \\___|_|  \\___||___/\\__|");
+    EVLOG_info << "  \033[0;1;35;95m_\033[0;1;31;91m__\033[0;1;33;93m__\033[0;1;32;92m__\033[0;1;36;96m_\033[0m      "
+                  "\033[0;1;31;91m_\033[0;1;33;93m_\033[0m                \033[0;1;36;96m_\033[0m   ";
+    EVLOG_info << " \033[0;1;31;91m|\033[0m  \033[0;1;33;93m_\033[0;1;32;92m__\033[0;1;36;96m_\\\033[0m "
+                  "\033[0;1;34;94m\\\033[0m    \033[0;1;33;93m/\033[0m \033[0;1;32;92m/\033[0m               "
+                  "\033[0;1;34;94m|\033[0m \033[0;1;35;95m|\033[0m";
+    EVLOG_info
+        << " \033[0;1;33;93m|\033[0m \033[0;1;32;92m|_\033[0;1;36;96m_\033[0m   \033[0;1;35;95m\\\033[0m "
+           "\033[0;1;31;91m\\\033[0m  \033[0;1;33;93m/\033[0m \033[0;1;32;92m/\033[0;1;36;96m__\033[0m "
+           "\033[0;1;34;94m_\033[0m \033[0;1;35;95m_\033[0;1;31;91m_\033[0m \033[0;1;33;93m__\033[0;1;32;92m_\033[0m  "
+           "\033[0;1;36;96m_\033[0;1;34;94m__\033[0;1;35;95m|\033[0m \033[0;1;31;91m|_\033[0m";
+    EVLOG_info << " \033[0;1;32;92m|\033[0m  \033[0;1;36;96m_\033[0;1;34;94m_|\033[0m   \033[0;1;31;91m\\\033[0m "
+                  "\033[0;1;33;93m\\\033[0;1;32;92m/\033[0m \033[0;1;36;96m/\033[0m \033[0;1;34;94m_\033[0m "
+                  "\033[0;1;35;95m\\\033[0m \033[0;1;31;91m'_\033[0;1;33;93m_/\033[0m \033[0;1;32;92m_\033[0m "
+                  "\033[0;1;36;96m\\\033[0;1;34;94m/\033[0m \033[0;1;35;95m__\033[0;1;31;91m|\033[0m "
+                  "\033[0;1;33;93m__\033[0;1;32;92m|\033[0m";
+    EVLOG_info << " \033[0;1;36;96m|\033[0m \033[0;1;34;94m|_\033[0;1;35;95m__\033[0;1;31;91m_\033[0m   "
+                  "\033[0;1;32;92m\\\033[0m  \033[0;1;36;96m/\033[0m  \033[0;1;35;95m__\033[0;1;31;91m/\033[0m "
+                  "\033[0;1;33;93m|\033[0m \033[0;1;32;92m|\033[0m  "
+                  "\033[0;1;36;96m_\033[0;1;34;94m_/\033[0;1;35;95m\\_\033[0;1;31;91m_\033[0m \033[0;1;33;93m\\\033[0m "
+                  "\033[0;1;32;92m|_\033[0m";
+    EVLOG_info << " \033[0;1;34;94m|_\033[0;1;35;95m__\033[0;1;31;91m__\033[0;1;33;93m_|\033[0m   "
+                  "\033[0;1;36;96m\\\033[0;1;34;94m/\033[0m "
+                  "\033[0;1;35;95m\\_\033[0;1;31;91m__\033[0;1;33;93m|_\033[0;1;32;92m|\033[0m  "
+                  "\033[0;1;36;96m\\\033[0;1;34;94m__\033[0;1;35;95m_|\033[0;1;31;91m|_\033[0;1;33;93m__\033[0;1;32;"
+                  "92m/\\\033[0;1;36;96m__\033[0;1;34;94m|\033[0m";
+    EVLOG_info << "";
+    EVLOG_info << PROJECT_NAME << " " << PROJECT_VERSION << " " << GIT_VERSION;
+    EVLOG_info << rs->version_information;
     EVLOG_info << "";
 
     if (rs->mqtt_broker_socket_path.empty()) {
@@ -624,30 +627,8 @@ int boot(const po::variables_map& vm) {
 
     mqtt_abstraction.spawn_main_loop_thread();
 
-    // setup error comm bridge
-    error::ErrorCommBridge::SendMessageFunc send_json_message = [&rs, &mqtt_abstraction](const std::string& topic,
-                                                                                         const json& msg) {
-        mqtt_abstraction.publish(rs->mqtt_everest_prefix + topic, msg, QOS::QOS2);
-    };
-    error::ErrorCommBridge::RegisterCallHandlerFunc register_call_handler =
-        [&rs, &mqtt_abstraction](const std::string& topic, error::ErrorCommBridge::HandlerFunc& handler) {
-            auto token = std::make_shared<TypedHandler>(topic, HandlerType::Call, std::make_shared<Handler>(handler));
-            mqtt_abstraction.register_handler(rs->mqtt_everest_prefix + topic, token, QOS::QOS2);
-        };
-    error::ErrorCommBridge::RegisterErrorHandlerFunc register_error_handler =
-        [&rs, &mqtt_abstraction](const std::string& topic, error::ErrorCommBridge::HandlerFunc& handler) {
-            auto token =
-                std::make_shared<TypedHandler>(HandlerType::SubscribeError, std::make_shared<Handler>(handler));
-            mqtt_abstraction.register_handler(rs->mqtt_everest_prefix + topic, token, QOS::QOS2);
-        };
-    std::string request_clear_error_topic = "request-clear-error";
-    std::shared_ptr<error::ErrorDatabase> err_database = std::make_shared<error::ErrorDatabaseMap>();
-    std::shared_ptr<error::ErrorManager> err_manager = std::make_shared<error::ErrorManager>(err_database);
-    error::ErrorCommBridge err_comm_bridge = error::ErrorCommBridge(
-        err_manager, send_json_message, register_call_handler, register_error_handler, request_clear_error_topic);
-
     auto module_handles =
-        start_modules(*config, mqtt_abstraction, ignored_modules, standalone_modules, rs, status_fifo, err_comm_bridge);
+        start_modules(*config, mqtt_abstraction, ignored_modules, standalone_modules, rs, status_fifo);
     bool modules_started = true;
     bool restart_modules = false;
 
@@ -712,8 +693,8 @@ int boot(const po::variables_map& vm) {
 
 #ifdef ENABLE_ADMIN_PANEL
         if (module_handles.size() == 0 && restart_modules) {
-            module_handles = start_modules(*config, mqtt_abstraction, ignored_modules, standalone_modules, rs,
-                                           status_fifo, err_comm_bridge);
+            module_handles =
+                start_modules(*config, mqtt_abstraction, ignored_modules, standalone_modules, rs, status_fifo);
             restart_modules = false;
             modules_started = true;
         }
@@ -757,6 +738,7 @@ int boot(const po::variables_map& vm) {
 
 int main(int argc, char* argv[]) {
     po::options_description desc("EVerest manager");
+    desc.add_options()("version", "Print version and exit");
     desc.add_options()("help,h", "produce help message");
     desc.add_options()("check", "Check and validate all config files and exit (0=success)");
     desc.add_options()("dump", po::value<std::string>(),
@@ -785,6 +767,12 @@ int main(int argc, char* argv[]) {
 
         if (vm.count("help") != 0) {
             desc.print(std::cout);
+            return EXIT_SUCCESS;
+        }
+
+        if (vm.count("version") != 0) {
+            std::cout << argv[0] << " (" << PROJECT_NAME << " " << PROJECT_VERSION << " " << GIT_VERSION << ") "
+                      << std::endl;
             return EXIT_SUCCESS;
         }
 

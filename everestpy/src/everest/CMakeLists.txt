@@ -1,7 +1,7 @@
-find_program(
-    PYTHON_EXECUTABLE
-    python3
+find_package(Python3
     REQUIRED
+    COMPONENTS
+    Development
 )
 
 if (DISABLE_EDM)
