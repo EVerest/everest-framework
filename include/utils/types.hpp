@@ -13,6 +13,8 @@
 
 #include <nlohmann/json.hpp>
 
+#include <everest/exceptions.hpp>
+
 using json = nlohmann::json;
 using Value = json;
 using Parameters = json;
@@ -101,5 +103,10 @@ bool operator==(const ImplementationIdentifier& lhs, const ImplementationIdentif
 bool operator!=(const ImplementationIdentifier& lhs, const ImplementationIdentifier& rhs);
 
 #define EVCALLBACK(function) [](auto&& PH1) { function(std::forward<decltype(PH1)>(PH1)); }
+
+class EverestShuttingDown : public Everest::EverestBaseRuntimeError {
+public:
+    using Everest::EverestBaseRuntimeError::EverestBaseRuntimeError;
+};
 
 #endif // UTILS_TYPES_HPP

@@ -30,6 +30,7 @@
 
 namespace Everest {
 const auto remote_cmd_res_timeout_seconds = 300;
+const auto remote_cmd_res_timeout_step = std::chrono::seconds(1);
 const std::array<std::string, 3> TELEMETRY_RESERVED_KEYS = {{"connector_id"}};
 
 Everest::Everest(std::string module_id_, const Config& config_, bool validate_data_with_schema,
@@ -63,6 +64,8 @@ Everest::Everest(std::string module_id_, const Config& config_, bool validate_da
 
     this->ready_received = false;
     this->on_ready = nullptr;
+    this->shutdown_received = false;
+    this->on_shutdown = nullptr;
 
     // setup error_manager_req_global if enabled + error_database + error_state_monitor
     if (this->module_manifest.contains("enable_global_errors") &&
@@ -147,6 +150,13 @@ Everest::Everest(std::string module_id_, const Config& config_, bool validate_da
         std::make_shared<TypedHandler>(HandlerType::ExternalMQTT, std::make_shared<Handler>(handle_ready_wrapper));
     this->mqtt_abstraction.register_handler(fmt::format("{}ready", mqtt_everest_prefix), everest_ready, QOS::QOS2);
 
+    // register handler for global shutdown signal
+    Handler handle_shutdown_wrapper = [this](json data) { this->handle_shutdown(data); };
+    std::shared_ptr<TypedHandler> everest_shutdown =
+        std::make_shared<TypedHandler>(HandlerType::ExternalMQTT, std::make_shared<Handler>(handle_shutdown_wrapper));
+    this->mqtt_abstraction.register_handler(fmt::format("{}shutdown", mqtt_everest_prefix), everest_shutdown,
+                                            QOS::QOS2);
+
     this->publish_metadata();
 }
 
@@ -207,6 +217,12 @@ void Everest::register_on_ready_handler(const std::function<void()>& handler) {
     BOOST_LOG_FUNCTION();
 
     this->on_ready = std::make_unique<std::function<void()>>(handler);
+}
+
+void Everest::register_on_shutdown_handler(const std::function<void()>& handler) {
+    BOOST_LOG_FUNCTION();
+
+    this->on_shutdown = std::make_unique<std::function<void()>>(handler);
 }
 
 void Everest::check_code() {
@@ -347,8 +363,14 @@ json Everest::call_cmd(const Requirement& req, const std::string& cmd_name, json
         std::chrono::steady_clock::now() + this->remote_cmd_res_timeout;
     std::future_status res_future_status;
     do {
-        res_future_status = res_future.wait_until(res_wait);
-    } while (res_future_status == std::future_status::deferred);
+        res_future_status = res_future.wait_for(remote_cmd_res_timeout_step);
+    } while (!this->shutdown_received &&
+             (res_future_status == std::future_status::deferred ||
+              (res_future_status == std::future_status::timeout && std::chrono::steady_clock::now() < res_wait)));
+
+    if (this->shutdown_received) {
+        EVLOG_AND_THROW(EverestShuttingDown("Shutting down while waiting for result of call.")); // TODO: add which call this was?
+    }
 
     json result;
     if (res_future_status == std::future_status::timeout) {
@@ -738,6 +760,15 @@ void Everest::signal_ready() {
     this->mqtt_abstraction.publish(ready_topic, json(true));
 }
 
+void Everest::signal_shutdown() {
+    BOOST_LOG_FUNCTION();
+
+    EVLOG_info << "Module " << this->module_id << " requested shutdown of EVerest.";
+
+    // FIXME: maybe make this a publish tied to the module like with ready?
+    this->mqtt_abstraction.publish(fmt::format("{}shutdown", mqtt_everest_prefix), json(true));
+}
+
 ///
 /// \brief Ready handler for global readyness (e.g. all modules are ready now).
 /// This will called when receiving the global ready signal from manager.
@@ -774,6 +805,39 @@ void Everest::handle_ready(json data) {
 
     // TODO(kai): make heartbeat interval configurable, disable it completely until then
     // this->heartbeat_thread = std::thread(&Everest::heartbeat, this);
+}
+
+/// \brief Shutdown handler for shutting down the module
+void Everest::handle_shutdown(json data) {
+    BOOST_LOG_FUNCTION();
+
+    EVLOG_debug << fmt::format("handle_shutdown: {}", data.dump());
+
+    bool shutdown = false;
+
+    if (data.is_boolean()) {
+        shutdown = data.get<bool>();
+    }
+
+    // ignore non-truish shutdown signals
+    if (!shutdown) {
+        return;
+    }
+
+    if (this->shutdown_received) {
+        EVLOG_warning << "Ignoring repeated everest shutdown signal!";
+        return;
+    }
+    this->shutdown_received = true;
+
+    if (this->on_shutdown != nullptr) {
+        auto on_shutdown_handler = *on_shutdown;
+        on_shutdown_handler();
+    } else {
+        EVLOG_error << "No shutdown handler registered";
+    }
+
+    this->mqtt_abstraction.disconnect();
 }
 
 void Everest::provide_cmd(const std::string impl_id, const std::string cmd_name, const JsonCommand handler) {

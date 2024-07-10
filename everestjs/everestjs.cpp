@@ -194,6 +194,12 @@ void framework_ready_handler() {
         nullptr);
 }
 
+void framework_shutdown_handler() {
+    BOOST_LOG_FUNCTION();
+    EVLOG_error << "TODO: implement shutdown handlers for JavaScript modules";
+    _exit(EXIT_SUCCESS);
+}
+
 static Napi::Value mqtt_publish(const Napi::CallbackInfo& info) {
     BOOST_LOG_FUNCTION();
 
@@ -911,6 +917,7 @@ static Napi::Value boot_module(const Napi::CallbackInfo& info) {
         ctx->js_module_ref = Napi::Persistent(module_this);
         ctx->js_cb = std::make_unique<JsExecCtx>(env, callback_wrapper);
         ctx->everest->register_on_ready_handler(framework_ready_handler);
+        ctx->everest->register_on_shutdown_handler(framework_shutdown_handler);
 
         ctx->everest->spawn_main_loop_thread();
 

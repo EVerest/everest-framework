@@ -95,6 +95,14 @@ struct ModuleStartInfo {
     std::vector<std::string> capabilities;
 };
 
+struct ModuleShutdownInfo {
+    std::string id;
+    int wstatus;
+
+    ModuleShutdownInfo(const std::string& id, int wstatus) : id(id), wstatus(wstatus) {
+    }
+};
+
 static std::vector<char*> arguments_to_exec_argv(std::vector<std::string>& arguments) {
     std::vector<char*> argv_list(arguments.size() + 1);
     std::transform(arguments.begin(), arguments.end(), argv_list.begin(),
@@ -455,6 +463,11 @@ static ControllerHandle start_controller(std::shared_ptr<RuntimeSettings> rs) {
 }
 #endif
 
+void cleanup(std::thread& shutdown_thread, Everest::MQTTAbstraction& mqtt_abstraction) {
+    mqtt_abstraction.disconnect();
+    shutdown_thread.join();
+}
+
 int boot(const po::variables_map& vm) {
     bool check = (vm.count("check") != 0);
 
@@ -645,6 +658,10 @@ int boot(const po::variables_map& vm) {
     }
 #endif
 
+    std::vector<ModuleShutdownInfo> shutdown_info;
+    std::thread shutdown_thread;
+    bool shutdown_initiated = false;
+    bool shutdown_complete = false;
     while (true) {
 // check if anyone died
 #ifdef ENABLE_ADMIN_PANEL
@@ -678,6 +695,63 @@ int boot(const po::variables_map& vm) {
             module_handles.erase(module_iter);
             // one of our modules died -> kill 'em all
             if (modules_started) {
+                if (wstatus == 0) {
+                    if (not shutdown_initiated) {
+                        shutdown_initiated = true;
+                        shutdown_thread = std::thread(
+                            [&shutdown_complete, &module_handles, &config, &mqtt_abstraction, &modules_started]() {
+                                auto count = 0;
+                                while (not shutdown_complete and count < 5) {
+                                    std::this_thread::sleep_for(std::chrono::seconds(1));
+                                    count += 1;
+                                }
+                                if (not shutdown_complete) {
+                                    EVLOG_error << "Could not shut down in time. Terminating all remaining modules.";
+                                    shutdown_complete = true;
+                                    shutdown_modules(module_handles, *config, mqtt_abstraction);
+                                }
+                            });
+                    }
+                    EVLOG_debug << fmt::format("Module {} (pid: {}) exited with status: {}.", module_name, pid,
+                                               wstatus);
+                    // TODO: properly count all modules that had a clean shutdown and track the ones that crashed from
+                    // now on
+                    shutdown_info.push_back({module_name, wstatus});
+                    if (module_handles.size() > 0) {
+                        continue;
+                    } else {
+                        // TODO: check the shutdown_info here for non-zero exit codes
+                        EVLOG_info << "All modules shut down properly, exiting manager.";
+                        cleanup(shutdown_thread, mqtt_abstraction);
+                        return EXIT_SUCCESS;
+                    }
+                } else if (shutdown_info.size() >
+                           0) { // TODO: propery check if we are in shutdown (from everest object)
+                    EVLOG_error << fmt::format("Module {} (pid: {}) exited with status: {} during a shutdown. This is "
+                                               "probably a bug in your shutdown handler implementation.",
+                                               module_name, pid, wstatus);
+                    shutdown_info.push_back({module_name, wstatus});
+                    if (module_handles.size() > 0) {
+                        continue;
+                    } else {
+                        // TODO: check the shutdown_info here for non-zero exit codes
+                        // FIXME: track this further up so module_handles is not always empty...
+                        std::string remaining_modules;
+                        for (auto& info : shutdown_info) {
+                            if (info.wstatus != 0) {
+                                remaining_modules += " " + info.id + " (status: " + std::to_string(info.wstatus) + ")";
+                            }
+                        }
+
+                        EVLOG_info << "The following modules did not shut down correctly:" << remaining_modules;
+                        // } else {
+                        //     EVLOG_info << "All modules shut down properly, exiting manager.";
+                        // }
+
+                        cleanup(shutdown_thread, mqtt_abstraction);
+                        return EXIT_SUCCESS;
+                    }
+                }
                 EVLOG_critical << fmt::format("Module {} (pid: {}) exited with status: {}. Terminating all modules.",
                                               module_name, pid, wstatus);
                 shutdown_modules(module_handles, *config, mqtt_abstraction);

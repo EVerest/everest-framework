@@ -57,6 +57,12 @@ Module::Module(const std::string& module_id_, const RuntimeSession& session_) :
         const auto& interface_def = config.get_interface_definition(interface_name);
         requirements.emplace(requirement_id, create_everest_interface_from_definition(interface_def));
     }
+
+    // setup shutdown handler
+    handle->register_on_shutdown_handler([]() {
+        EVLOG_error << "TODO: implement shutdown handlers for Python modules";
+        _exit(EXIT_SUCCESS);
+    });
 }
 
 ModuleSetup Module::say_hello() {
