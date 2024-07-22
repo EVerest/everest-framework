@@ -27,6 +27,7 @@ target_sources(framework
         everest.cpp
         formatter.cpp
         message_queue.cpp
+        module_config.cpp
         mqtt_abstraction.cpp
         mqtt_abstraction_impl.cpp
         thread.cpp

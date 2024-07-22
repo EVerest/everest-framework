@@ -39,6 +39,7 @@ enum class HandlerType {
     SubscribeVar,
     SubscribeError,
     ClearErrorRequest,
+    Internal,
     ExternalMQTT,
     Unknown
 };

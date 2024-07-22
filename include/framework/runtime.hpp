@@ -12,6 +12,7 @@
 #include <framework/ModuleAdapter.hpp>
 #include <sys/prctl.h>
 
+#include <utils/module_config.hpp>
 #include <utils/yaml_loader.hpp>
 
 #include <everest/compile_time_settings.hpp>
@@ -91,9 +92,6 @@ const auto TERMINAL_STYLE_ERROR = fmt::emphasis::bold | fg(fmt::terminal_color::
 const auto TERMINAL_STYLE_OK = fmt::emphasis::bold | fg(fmt::terminal_color::green);
 const auto TERMINAL_STYLE_BLUE = fmt::emphasis::bold | fg(fmt::terminal_color::blue);
 
-struct BootException : public std::runtime_error {
-    using std::runtime_error::runtime_error;
-};
 
 struct RuntimeSettings {
     fs::path prefix;
@@ -127,6 +125,8 @@ struct RuntimeSettings {
     bool validate_schema;
 
     explicit RuntimeSettings(const std::string& prefix, const std::string& config);
+    explicit RuntimeSettings(const std::string& prefix, nlohmann::json config);
+    void parse();
 };
 
 // NOTE: this function needs the be called with a pre-initialized ModuleInfo struct
@@ -155,10 +155,14 @@ struct VersionInformation {
 class ModuleLoader {
 private:
     std::shared_ptr<RuntimeSettings> runtime_settings;
+    std::shared_ptr<MQTTSettings> mqtt_settings;
     std::string module_id;
     std::string original_process_name;
     ModuleCallbacks callbacks;
     VersionInformation version_information;
+    std::string prefix_opt;
+    std::string config_opt; // TODO
+    fs::path logging_config_file;
 
     bool parse_command_line(int argc, char* argv[]);
 

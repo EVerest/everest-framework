@@ -36,9 +36,9 @@ void MQTTAbstraction::publish(const std::string& topic, const json& json) {
     mqtt_abstraction->publish(topic, json);
 }
 
-void MQTTAbstraction::publish(const std::string& topic, const json& json, QOS qos) {
+void MQTTAbstraction::publish(const std::string& topic, const json& json, QOS qos, bool retain) {
     BOOST_LOG_FUNCTION();
-    mqtt_abstraction->publish(topic, json, qos);
+    mqtt_abstraction->publish(topic, json, qos, retain);
 }
 
 void MQTTAbstraction::publish(const std::string& topic, const std::string& data) {
@@ -46,9 +46,9 @@ void MQTTAbstraction::publish(const std::string& topic, const std::string& data)
     mqtt_abstraction->publish(topic, data);
 }
 
-void MQTTAbstraction::publish(const std::string& topic, const std::string& data, QOS qos) {
+void MQTTAbstraction::publish(const std::string& topic, const std::string& data, QOS qos, bool retain) {
     BOOST_LOG_FUNCTION();
-    mqtt_abstraction->publish(topic, data, qos);
+    mqtt_abstraction->publish(topic, data, qos, retain);
 }
 
 void MQTTAbstraction::subscribe(const std::string& topic) {
@@ -64,6 +64,11 @@ void MQTTAbstraction::subscribe(const std::string& topic, QOS qos) {
 void MQTTAbstraction::unsubscribe(const std::string& topic) {
     BOOST_LOG_FUNCTION();
     mqtt_abstraction->unsubscribe(topic);
+}
+
+json MQTTAbstraction::get(const std::string& topic, QOS qos) {
+    BOOST_LOG_FUNCTION();
+    return mqtt_abstraction->get(topic, qos);
 }
 
 std::future<void> MQTTAbstraction::spawn_main_loop_thread() {

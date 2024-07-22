@@ -27,55 +27,6 @@ std::string parse_string_option(const po::variables_map& vm, const char* option)
     return vm[option].as<std::string>();
 }
 
-static fs::path assert_dir(const std::string& path, const std::string& path_alias = "The") {
-    auto fs_path = fs::path(path);
-
-    if (!fs::exists(fs_path)) {
-        throw BootException(fmt::format("{} path '{}' does not exist", path_alias, path));
-    }
-
-    fs_path = fs::canonical(fs_path);
-
-    if (!fs::is_directory(fs_path)) {
-        throw BootException(fmt::format("{} path '{}' is not a directory", path_alias, path));
-    }
-
-    return fs_path;
-}
-
-static fs::path assert_file(const std::string& path, const std::string& file_alias = "The") {
-    auto fs_file = fs::path(path);
-
-    if (!fs::exists(fs_file)) {
-        throw BootException(fmt::format("{} file '{}' does not exist", file_alias, path));
-    }
-
-    fs_file = fs::canonical(fs_file);
-
-    if (!fs::is_regular_file(fs_file)) {
-        throw BootException(fmt::format("{} file '{}' is not a regular file", file_alias, path));
-    }
-
-    return fs_file;
-}
-
-static bool has_extension(const std::string& path, const std::string& ext) {
-    auto path_ext = fs::path(path).stem().string();
-
-    // lowercase the string
-    std::transform(path_ext.begin(), path_ext.end(), path_ext.begin(), [](unsigned char c) { return std::tolower(c); });
-
-    return path_ext == ext;
-}
-
-static std::string get_prefixed_path_from_json(const nlohmann::json& value, const fs::path& prefix) {
-    auto settings_configs_dir = value.get<std::string>();
-    if (fs::path(settings_configs_dir).is_relative()) {
-        settings_configs_dir = (prefix / settings_configs_dir).string();
-    }
-    return settings_configs_dir;
-}
-
 void populate_module_info_path_from_runtime_settings(ModuleInfo& mi, std::shared_ptr<RuntimeSettings> rs) {
     mi.paths.etc = rs->etc_dir;
     mi.paths.libexec = rs->modules_dir / mi.name;
@@ -144,6 +95,21 @@ RuntimeSettings::RuntimeSettings(const std::string& prefix_, const std::string& 
         throw BootException(fmt::format("Config file '{}' is not an object", config_file.string()));
     }
 
+    this->parse();
+}
+
+RuntimeSettings::RuntimeSettings(const std::string& prefix_, nlohmann::json config_) {
+    if (prefix_.length() != 0) {
+        // user provided
+        prefix = assert_dir(prefix_, "User provided prefix");
+    }
+
+    config = config_;
+
+    this->parse();
+}
+
+void RuntimeSettings::parse() {
     const auto settings = config.value("settings", json::object());
 
     if (prefix.empty()) {
@@ -269,6 +235,8 @@ RuntimeSettings::RuntimeSettings(const std::string& prefix_, const std::string& 
         controller_rpc_timeout_ms = defaults::CONTROLLER_RPC_TIMEOUT_MS;
     }
 
+    // TODO: remove this once it is moved to the MQTTSettings!
+
     // Unix Domain Socket configuration MUST be set in the configuration,
     // doesn't have a default value if not provided thus it takes precedence
     // over default values - this is to have backward compatiblity in term of configuration
@@ -348,6 +316,7 @@ RuntimeSettings::RuntimeSettings(const std::string& prefix_, const std::string& 
                                         mqtt_everest_prefix, mqtt_external_prefix));
     }
 
+    // TODO: END
     const auto settings_telemetry_prefix_it = settings.find("telemetry_prefix");
     if (settings_telemetry_prefix_it != settings.end()) {
         telemetry_prefix = settings_telemetry_prefix_it->get<std::string>();
@@ -392,22 +361,35 @@ ModuleCallbacks::ModuleCallbacks(const std::function<void(ModuleAdapter module_a
 
 ModuleLoader::ModuleLoader(int argc, char* argv[], ModuleCallbacks callbacks,
                            const VersionInformation version_information) :
-    runtime_settings(nullptr), callbacks(callbacks), version_information(version_information) {
+    runtime_settings(nullptr), mqtt_settings(nullptr), callbacks(callbacks), version_information(version_information) {
     if (!this->parse_command_line(argc, argv)) {
         return;
     }
 }
 
 int ModuleLoader::initialize() {
+    Logging::init(this->logging_config_file.string(), this->module_id);
+    // TODO: make initial connection to manager here to receive config
     auto start_time = std::chrono::system_clock::now();
+
+    auto result = ModuleConfig::get_config(this->mqtt_settings, this->module_id);
+    auto get_config_time = std::chrono::system_clock::now();
+    EVLOG_info << "Module " << fmt::format(TERMINAL_STYLE_OK, "{}", module_id) << " get_config() ["
+               << std::chrono::duration_cast<std::chrono::milliseconds>(get_config_time - start_time).count() << "ms]";
+
+    this->runtime_settings = std::make_shared<RuntimeSettings>(prefix_opt, result);
     if (!this->runtime_settings) {
         return 0;
     }
 
     auto& rs = this->runtime_settings;
-    Logging::init(rs->logging_config_file.string(), this->module_id);
+    // FIXME: get this logging_config_file from command line since we cannot re-init later!
+    // Logging::init(rs->logging_config_file.string(), this->module_id);
     try {
-        Config config = Config(rs);
+        Config config = Config(rs, false, result);
+        auto config_instantiation_time = std::chrono::system_clock::now();
+        EVLOG_info << "Module " << fmt::format(TERMINAL_STYLE_OK, "{}", module_id) << " after Config() instantiation ["
+               << std::chrono::duration_cast<std::chrono::milliseconds>(config_instantiation_time - start_time).count() << "ms]";
 
         if (!config.contains(this->module_id)) {
             EVLOG_error << fmt::format("Module id '{}' not found in config!", this->module_id);
@@ -415,7 +397,7 @@ int ModuleLoader::initialize() {
         }
 
         const std::string module_identifier = config.printable_identifier(this->module_id);
-        EVLOG_debug << fmt::format("Initializing framework for module {}...", module_identifier);
+        EVLOG_info << fmt::format("Initializing framework for module {}...", module_identifier);
         EVLOG_verbose << fmt::format("Setting process name to: '{}'...", module_identifier);
         int prctl_return = prctl(PR_SET_NAME, module_identifier.c_str());
         if (prctl_return == 1) {
@@ -429,7 +411,7 @@ int ModuleLoader::initialize() {
                                rs->mqtt_external_prefix, rs->telemetry_prefix, rs->telemetry_enabled);
 
         // module import
-        EVLOG_debug << fmt::format("Initializing module {}...", module_identifier);
+        EVLOG_info << fmt::format("Initializing module {}...", module_identifier);
 
         if (!everest.connect()) {
             if (rs->mqtt_broker_socket_path.empty()) {
@@ -545,7 +527,22 @@ bool ModuleLoader::parse_command_line(int argc, char* argv[]) {
     desc.add_options()("module,m", po::value<std::string>(),
                        "Which module should be executed (module id from config file)");
     desc.add_options()("dontvalidateschema", "Don't validate json schema on every message");
-    desc.add_options()("config", po::value<std::string>(), "The path to a custom config.json");
+    desc.add_options()("config", po::value<std::string>(), "The path to a custom config.yaml");
+    desc.add_options()("log_config", po::value<std::string>(), "The path to a custom logging config");
+    desc.add_options()("mqtt_broker_socket_path", po::value<std::string>(), "The MQTT broker socket path");
+    desc.add_options()("mqtt_broker_host", po::value<std::string>(), "The MQTT broker hostname");
+    desc.add_options()("mqtt_broker_port", po::value<int>(), "The MQTT broker port");
+    desc.add_options()("mqtt_everest_prefix", po::value<std::string>(), "The MQTT everest prefix");
+
+    // FIXME: do runtime settings parsing (the "settings" block in the config) here and then serialize the new RuntimeSettings
+    // just remove these entries completely from the runtime config that the module receices, this should not be needed at all
+    // however this means that we have to serialize the schemas once, like the interface definitions
+    //      config_file:
+    //     type: string
+    //   configs_dir:
+    //     type: string
+    //   schemas_dir:
+    //     type: string
 
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -563,9 +560,101 @@ bool ModuleLoader::parse_command_line(int argc, char* argv[]) {
         return false;
     }
 
-    const auto prefix_opt = parse_string_option(vm, "prefix");
-    const auto config_opt = parse_string_option(vm, "config");
-    this->runtime_settings = std::make_unique<RuntimeSettings>(prefix_opt, config_opt);
+    std::string mqtt_broker_socket_path;
+    std::string mqtt_broker_host;
+    int mqtt_broker_port = defaults::MQTT_BROKER_PORT;
+    std::string mqtt_everest_prefix;
+
+    if (vm.count("mqtt_broker_socket_path") != 0) {
+        mqtt_broker_socket_path = vm["mqtt_broker_socket_path"].as<std::string>();
+        EVLOG_info << "USING CMDLINE mqtt_broker_socket_path" << mqtt_broker_socket_path;
+    }
+
+    if (vm.count("mqtt_broker_host") != 0) {
+        mqtt_broker_host = vm["mqtt_broker_host"].as<std::string>();
+        if (!mqtt_broker_socket_path.empty()) {
+            // invalid configuration, can't have both UDS and IDS
+            throw BootException(
+                fmt::format("Setting both the Unix Domain Socket {} and Internet Domain Socket {} in config is invalid",
+                            mqtt_broker_socket_path, mqtt_broker_host));
+        }
+        EVLOG_info << "USING CMDLINE mqtt_broker_host" << mqtt_broker_host;
+    } else {
+        mqtt_broker_host = defaults::MQTT_BROKER_HOST;
+    }
+
+    // overwrite mqtt broker host with environment variable
+    // NOLINTNEXTLINE(concurrency-mt-unsafe): not problematic that this function is not threadsafe here
+    const char* mqtt_server_address = std::getenv("MQTT_SERVER_ADDRESS");
+    if (mqtt_server_address != nullptr) {
+        mqtt_broker_host = mqtt_server_address;
+        EVLOG_info << "USING env var mqtt_broker_host" << mqtt_broker_host;
+
+        if (!mqtt_broker_socket_path.empty()) {
+            // invalid configuration, can't have both UDS and IDS
+            throw BootException(
+                fmt::format("Setting both the Unix Domain Socket {} and Internet Domain Socket {} in "
+                            "config and as environment variable respectivelly (as MQTT_SERVER_ADDRESS) is not allowed",
+                            mqtt_broker_socket_path, mqtt_broker_host));
+        }
+    }
+
+    if (vm.count("mqtt_broker_port") != 0) {
+        mqtt_broker_port = vm["mqtt_broker_port"].as<int>();
+        EVLOG_info << "USING CMDLINE mqtt_broker_port" << mqtt_broker_port;
+    }
+
+    // overwrite mqtt broker port with environment variable
+    // NOLINTNEXTLINE(concurrency-mt-unsafe): not problematic that this function is not threadsafe here
+    const char* mqtt_server_port = std::getenv("MQTT_SERVER_PORT");
+
+    if (mqtt_server_port != nullptr) {
+        try {
+            mqtt_broker_port = std::stoi(mqtt_server_port);
+            EVLOG_info << "USING env var mqtt_broker_port" << mqtt_broker_port;
+
+        } catch (...) {
+            EVLOG_warning << "Environment variable MQTT_SERVER_PORT set, but not set to an integer. Ignoring.";
+        }
+    }
+
+    if (vm.count("mqtt_everest_prefix") != 0) {
+        mqtt_everest_prefix = vm["mqtt_everest_prefix"].as<std::string>();
+    } else {
+        mqtt_everest_prefix = defaults::MQTT_EVEREST_PREFIX;
+    }
+
+    // always make sure the everest mqtt prefix ends with '/'
+    if (mqtt_everest_prefix.length() > 0 && mqtt_everest_prefix.back() != '/') {
+        mqtt_everest_prefix = mqtt_everest_prefix += "/";
+    }
+
+    if (not mqtt_broker_socket_path.empty()) {
+        this->mqtt_settings = std::make_shared<MQTTSettings>(mqtt_broker_socket_path, mqtt_everest_prefix);
+    } else {
+        this->mqtt_settings = std::make_shared<MQTTSettings>(mqtt_broker_host, mqtt_broker_port, mqtt_everest_prefix);
+    }
+
+    // FIXME TODO we have to pass the logging config as well, probably just re-introducte the logconf parameter...
+
+    if (vm.count("log_config") != 0) {
+        auto command_line_logging_config_file = vm["log_config"].as<std::string>();
+        this->logging_config_file = assert_file(command_line_logging_config_file, "Command line provided logging config");
+
+    } else {
+        auto default_logging_config_file = assert_dir(defaults::PREFIX, "Default prefix") /
+                                       fs::path(defaults::SYSCONF_DIR) / defaults::NAMESPACE /
+                                       defaults::LOGGING_CONFIG_NAME;
+
+        this->logging_config_file = assert_file(default_logging_config_file, "Default logging config");
+    }
+
+    // EVLOG_info << "MQTT settings: " << this->mqtt_settings->mqtt_broker_socket_path << " "
+    //            << this->mqtt_settings->mqtt_broker_host << " " << this->mqtt_settings->mqtt_broker_port << " "
+    //            << this->mqtt_settings->mqtt_everest_prefix;
+
+    this->prefix_opt = parse_string_option(vm, "prefix");
+    this->config_opt = parse_string_option(vm, "config");
     this->original_process_name = argv[0];
 
     if (vm.count("module") != 0) {

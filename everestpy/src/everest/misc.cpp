@@ -23,16 +23,45 @@ static std::string get_ev_conf_file_from_env() {
     return config_file;
 }
 
+static std::string get_ev_module_from_env() {
+    const auto module_id = std::getenv("EV_MODULE");
+    if (module_id == nullptr) {
+        throw std::runtime_error("EV_MODULE needed for everestpy");
+    }
+
+    return module_id;
+}
+
 RuntimeSession::RuntimeSession(const std::string& prefix, const std::string& config_file) :
     rs(std::make_shared<Everest::RuntimeSettings>(prefix, config_file)), config(create_config_instance(rs)) {
 }
 
-RuntimeSession::RuntimeSession() : RuntimeSession(get_ev_prefix_from_env(), get_ev_conf_file_from_env()) {
+// old ctor
+// RuntimeSession::RuntimeSession() : RuntimeSession(get_ev_prefix_from_env(), get_ev_conf_file_from_env()) {
+// }
+
+RuntimeSession::RuntimeSession() {
+    auto module_id = get_ev_module_from_env();
+
+    // FIXME: proper logging path...
+    namespace fs = std::filesystem;
+    auto default_logging_config_file = Everest::assert_dir(Everest::defaults::PREFIX, "Default prefix") /
+                                       fs::path(Everest::defaults::SYSCONF_DIR) / Everest::defaults::NAMESPACE /
+                                       Everest::defaults::LOGGING_CONFIG_NAME;
+    fs::path logging_config_file = Everest::assert_file(default_logging_config_file, "Default logging config");
+    Everest::Logging::init(logging_config_file.string(), module_id);
+
+    auto mqtt_settings = std::make_shared<Everest::MQTTSettings>("localhost", 1883, "everest/"); // FIXME
+
+    EVLOG_error << "calling get_config() for PY module: " << module_id;
+    auto result = Everest::ModuleConfig::get_config(mqtt_settings, module_id);
+    this->rs = std::make_shared<Everest::RuntimeSettings>(get_ev_prefix_from_env(), result);
+    this->config = std::make_unique<Everest::Config>(rs, false, result);
 }
 
 std::unique_ptr<Everest::Config> RuntimeSession::create_config_instance(std::shared_ptr<Everest::RuntimeSettings> rs) {
     // FIXME (aw): where to initialize the logger?
-    Everest::Logging::init(rs->logging_config_file);
+    // Everest::Logging::init(rs->logging_config_file);
     return std::make_unique<Everest::Config>(rs);
 }
 

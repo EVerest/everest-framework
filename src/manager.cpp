@@ -237,12 +237,26 @@ static std::map<pid_t, std::string> spawn_modules(const std::vector<ModuleStartI
 
 struct ModuleReadyInfo {
     bool ready;
-    std::shared_ptr<TypedHandler> token;
+    std::shared_ptr<TypedHandler> ready_token;
+    std::shared_ptr<TypedHandler> get_config_token;
 };
 
 // FIXME (aw): these are globals here, because they are used in the ready callback handlers
 std::map<std::string, ModuleReadyInfo> modules_ready;
 std::mutex modules_ready_mutex;
+
+void cleanup_retained_topics(Config& config, MQTTAbstraction& mqtt_abstraction,
+                                                            std::shared_ptr<RuntimeSettings> rs) {
+    auto interface_definitions = config.get_interface_definitions();
+EVLOG_info << "cleanup...";
+    mqtt_abstraction.publish(fmt::format("{}interfaces", rs->mqtt_everest_prefix), std::string(), QOS::QOS2, true);
+
+    for (const auto& interface_definition : interface_definitions.items()) {
+        mqtt_abstraction.publish(
+            fmt::format("{}interface_definitions/{}", rs->mqtt_everest_prefix, interface_definition.key()),
+            std::string(), QOS::QOS2, true);
+    }
+}
 
 static std::map<pid_t, std::string> start_modules(Config& config, MQTTAbstraction& mqtt_abstraction,
                                                   const std::vector<std::string>& ignored_modules,
@@ -255,8 +269,26 @@ static std::map<pid_t, std::string> start_modules(Config& config, MQTTAbstractio
     auto main_config = config.get_main_config();
     modules_to_spawn.reserve(main_config.size());
 
-    for (const auto& module : main_config.items()) {
+    auto serialized_config = config.serialize();
+    auto interface_definitions = config.get_interface_definitions();
+    std::vector<std::string> interface_names;
+    for (auto& interface_definition : interface_definitions.items()) {
+        interface_names.push_back(interface_definition.key());
+    }
+    mqtt_abstraction.publish(fmt::format("{}interfaces", rs->mqtt_everest_prefix), interface_names, QOS::QOS2, true);
+
+    for (const auto& interface_definition : interface_definitions.items()) {
+        mqtt_abstraction.publish(
+            fmt::format("{}interface_definitions/{}", rs->mqtt_everest_prefix, interface_definition.key()),
+            interface_definition.value(), QOS::QOS2, true);
+    }
+
+    for (const auto& module : serialized_config.at("module_names").items()) {
         std::string module_name = module.key();
+        json serialized_mod_config = serialized_config;
+        serialized_mod_config["module_config"] = json::object();
+        serialized_mod_config["module_config"][module_name] = serialized_config.at("main").at(module_name);
+        serialized_mod_config.erase("main"); // FIXME: do not put this "main" config in there in the first place
         if (std::any_of(ignored_modules.begin(), ignored_modules.end(),
                         [module_name](const auto& element) { return element == module_name; })) {
             EVLOG_info << fmt::format("Ignoring module: {}", module_name);
@@ -282,7 +314,7 @@ static std::map<pid_t, std::string> start_modules(Config& config, MQTTAbstractio
                                       fmt::join(capabilities.begin(), capabilities.end(), " "));
         }
 
-        Handler module_ready_handler = [module_name, &mqtt_abstraction, standalone_modules,
+        Handler module_ready_handler = [module_name, &mqtt_abstraction, &config, &rs, standalone_modules,
                                         mqtt_everest_prefix = rs->mqtt_everest_prefix,
                                         &status_fifo](nlohmann::json json) {
             EVLOG_debug << fmt::format("received module ready signal for module: {}({})", module_name, json.dump());
@@ -310,6 +342,7 @@ static std::map<pid_t, std::string> start_modules(Config& config, MQTTAbstractio
                     TERMINAL_STYLE_OK, "🚙🚙🚙 All modules are initialized. EVerest up and running [{}ms] 🚙🚙🚙",
                     std::chrono::duration_cast<std::chrono::milliseconds>(complete_end_time - complete_start_time)
                         .count());
+                cleanup_retained_topics(config, mqtt_abstraction, rs);
                 mqtt_abstraction.publish(fmt::format("{}ready", mqtt_everest_prefix), nlohmann::json(true));
             } else if (!standalone_modules.empty()) {
                 if (modules_spawned == modules_ready.size() - standalone_modules.size()) {
@@ -320,12 +353,25 @@ static std::map<pid_t, std::string> start_modules(Config& config, MQTTAbstractio
             }
         };
 
-        std::string topic = fmt::format("{}/ready", config.mqtt_module_prefix(module_name));
-
-        module_it->second.token =
+        std::string ready_topic = fmt::format("{}/ready", config.mqtt_module_prefix(module_name));
+        module_it->second.ready_token =
             std::make_shared<TypedHandler>(HandlerType::ExternalMQTT, std::make_shared<Handler>(module_ready_handler));
+        mqtt_abstraction.register_handler(ready_topic, module_it->second.ready_token, QOS::QOS2);
 
-        mqtt_abstraction.register_handler(topic, module_it->second.token, QOS::QOS2);
+        std::string config_topic = fmt::format("{}/config", config.mqtt_module_prefix(module_name));
+        Handler module_get_config_handler = [module_name, config_topic, serialized_mod_config, &mqtt_abstraction,
+                                             standalone_modules,
+                                             mqtt_everest_prefix = rs->mqtt_everest_prefix](nlohmann::json json) {
+            EVLOG_info << "Get config called for " << module_name << ": " << json.dump();
+            mqtt_abstraction.publish(config_topic, serialized_mod_config.dump());
+        };
+
+        std::string get_config_topic = fmt::format("{}/get_config", config.mqtt_module_prefix(module_name));
+        module_it->second.get_config_token = std::make_shared<TypedHandler>(
+            HandlerType::ExternalMQTT, std::make_shared<Handler>(module_get_config_handler));
+        mqtt_abstraction.register_handler(get_config_topic, module_it->second.get_config_token, QOS::QOS2);
+
+        // TODO: add additional handlers for interface_definitions?
 
         if (std::any_of(standalone_modules.begin(), standalone_modules.end(),
                         [module_name](const auto& element) { return element == module_name; })) {
@@ -379,7 +425,7 @@ static void shutdown_modules(const std::map<pid_t, std::string>& modules, Config
             const auto& ready_info = module.second;
             const auto& module_name = module.first;
             const std::string topic = fmt::format("{}/ready", config.mqtt_module_prefix(module_name));
-            mqtt_abstraction.unregister_handler(topic, ready_info.token);
+            mqtt_abstraction.unregister_handler(topic, ready_info.ready_token);
         }
 
         modules_ready.clear();

@@ -130,6 +130,8 @@ private:
     /// \returns the loaded json and how long the validation took in ms
     std::tuple<json, int> load_and_validate_with_schema(const fs::path& file_path, const json& schema);
 
+    void parse(json config);
+
 public:
     error::ErrorTypeMap get_error_map() const;
     std::string get_module_name(const std::string& module_id) const;
@@ -139,6 +141,7 @@ public:
     /// \brief creates a new Config object
     explicit Config(std::shared_ptr<RuntimeSettings> rs);
     explicit Config(std::shared_ptr<RuntimeSettings> rs, bool manager);
+    explicit Config(std::shared_ptr<RuntimeSettings> rs, bool manager, json config);
 
     ///
     /// \brief checks if the given \p module_id provides the requirement given in \p requirement_id
@@ -189,6 +192,10 @@ public:
     json get_interfaces();
 
     ///
+    /// \returns a json object that contains the interface definitions
+    json get_interface_definitions();
+
+    ///
     /// \returns a json object that contains the interface definition
     json get_interface_definition(const std::string& interface_name);
 
@@ -233,6 +240,8 @@ public:
     ///
     void ref_loader(const json_uri& uri, json& schema);
 
+    json serialize();
+
     ///
     /// \brief loads the config.json and manifest.json in the schemes subfolder of
     /// the provided \p schemas_dir
@@ -256,7 +265,7 @@ public:
     /// \brief Extracts the keys of the provided json \p object
     ///
     /// \returns a set of object keys
-    static std::set<std::string> keys(json object);
+    static std::set<std::string> keys(const json& object);
 
     ///
     /// \brief A simple json schema loader that uses the builtin draft7 schema of
@@ -272,5 +281,25 @@ public:
     static void format_checker(const std::string& format, const std::string& value);
 };
 } // namespace Everest
+
+NLOHMANN_JSON_NAMESPACE_BEGIN
+template <> struct adl_serializer<Everest::schemas> {
+    static void to_json(nlohmann::json& j, const Everest::schemas& s) {
+        j = {{"config", s.config},
+             {"manifest", s.manifest},
+             {"interface", s.interface},
+             {"type", s.type},
+             {"error_declaration_list", s.error_declaration_list}};
+    }
+
+    static void from_json(const nlohmann::json& j, Everest::schemas& s) {
+        s.config = j.at("config");
+        s.manifest = j.at("manifest");
+        s.interface = j.at("interface");
+        s.type = j.at("type");
+        s.error_declaration_list = j.at("error_declaration_list");
+    }
+};
+NLOHMANN_JSON_NAMESPACE_END
 
 #endif // UTILS_CONFIG_HPP

@@ -116,11 +116,11 @@ void MQTTAbstractionImpl::publish(const std::string& topic, const json& json) {
     publish(topic, json, QOS::QOS2);
 }
 
-void MQTTAbstractionImpl::publish(const std::string& topic, const json& json, QOS qos) {
+void MQTTAbstractionImpl::publish(const std::string& topic, const json& json, QOS qos, bool retain) {
     BOOST_LOG_FUNCTION();
 
     std::string data = json.dump();
-    publish(topic, data, qos);
+    publish(topic, data, qos, retain);
 }
 
 void MQTTAbstractionImpl::publish(const std::string& topic, const std::string& data) {
@@ -129,7 +129,7 @@ void MQTTAbstractionImpl::publish(const std::string& topic, const std::string& d
     publish(topic, data, QOS::QOS0);
 }
 
-void MQTTAbstractionImpl::publish(const std::string& topic, const std::string& data, QOS qos) {
+void MQTTAbstractionImpl::publish(const std::string& topic, const std::string& data, QOS qos, bool retain) {
     BOOST_LOG_FUNCTION();
 
     auto publish_flags = 0;
@@ -146,6 +146,10 @@ void MQTTAbstractionImpl::publish(const std::string& topic, const std::string& d
 
     default:
         break;
+    }
+
+    if (retain) {
+        publish_flags |= MQTT_PUBLISH_RETAIN;
     }
 
     if (!this->mqtt_is_connected) {
@@ -196,6 +200,39 @@ void MQTTAbstractionImpl::unsubscribe(const std::string& topic) {
 
     mqtt_unsubscribe(&this->mqtt_client, topic.c_str());
     notify_write_data();
+}
+
+json MQTTAbstractionImpl::get(const std::string& topic, QOS qos) {
+    BOOST_LOG_FUNCTION();
+    std::promise<json> res_promise;
+    std::future<json> res_future = res_promise.get_future();
+
+    Handler res_handler = [this, &res_promise](json data) { res_promise.set_value(std::move(data)); };
+
+    std::shared_ptr<TypedHandler> res_token =
+        std::make_shared<TypedHandler>(HandlerType::Internal, std::make_shared<Handler>(res_handler));
+    this->register_handler(topic, res_token, QOS::QOS2);
+
+    json config_publish_data = json::object({{"type", "full"}});
+
+    // wait for result future
+    std::chrono::time_point<std::chrono::steady_clock> res_wait =
+        std::chrono::steady_clock::now() + std::chrono::seconds(10);
+    std::future_status res_future_status;
+    do {
+        res_future_status = res_future.wait_until(res_wait);
+    } while (res_future_status == std::future_status::deferred);
+
+    json result;
+    if (res_future_status == std::future_status::timeout) {
+        EVLOG_AND_THROW(EverestTimeoutError(fmt::format("Timeout while waiting for result of get()")));
+    } else if (res_future_status == std::future_status::ready) {
+        EVLOG_verbose << "res future ready";
+        result = res_future.get();
+    }
+    this->unregister_handler(topic, res_token);
+
+    return result;
 }
 
 void MQTTAbstractionImpl::notify_write_data() {
@@ -383,6 +420,10 @@ void MQTTAbstractionImpl::register_handler(const std::string& topic, std::shared
         break;
     case HandlerType::ExternalMQTT:
         EVLOG_debug << fmt::format("Registering external MQTT handler {} on topic {}", fmt::ptr(&handler->handler),
+                                   topic);
+        break;
+    case HandlerType::Internal:
+        EVLOG_debug << fmt::format("Registering internal MQTT handler {} on topic {}", fmt::ptr(&handler->handler),
                                    topic);
         break;
     default:

@@ -26,6 +26,7 @@
 #include <utils/error/error_manager_impl.hpp>
 #include <utils/error/error_manager_req.hpp>
 #include <utils/error/error_state_monitor.hpp>
+#include <utils/module_config.hpp>
 
 namespace EverestJs {
 
@@ -567,12 +568,24 @@ static Napi::Value boot_module(const Napi::CallbackInfo& info) {
         const auto& config_file = settings.Get("config_file").ToString().Utf8Value();
         const bool validate_schema = settings.Get("validate_schema").ToBoolean().Value();
 
-        auto rs = std::make_shared<Everest::RuntimeSettings>(prefix, config_file);
+        // FIXME: proper logging path...
+        namespace fs = std::filesystem;
+        auto default_logging_config_file = Everest::assert_dir(Everest::defaults::PREFIX, "Default prefix") /
+                                       fs::path(Everest::defaults::SYSCONF_DIR) / Everest::defaults::NAMESPACE /
+                                       Everest::defaults::LOGGING_CONFIG_NAME;
+        fs::path logging_config_file = Everest::assert_file(default_logging_config_file, "Default logging config");
+        Everest::Logging::init(logging_config_file.string(), module_id);
+        auto mqtt_settings = std::make_shared<Everest::MQTTSettings>("localhost", 1883, "everest/"); // FIXME
+
+        EVLOG_error << "calling get_config() for JS module: " << module_id;
+        const auto result = Everest::ModuleConfig::get_config(mqtt_settings, module_id);
+
+        auto rs = std::make_shared<Everest::RuntimeSettings>(prefix, result);
 
         // initialize logging as early as possible
-        Everest::Logging::init(rs->logging_config_file, module_id);
+        // Everest::Logging::init(rs->logging_config_file, module_id);
 
-        auto config = std::make_unique<Everest::Config>(rs);
+        auto config = std::make_unique<Everest::Config>(rs, false, result);
         if (!config->contains(module_id)) {
             EVTHROW(EVEXCEPTION(Everest::EverestConfigError,
                                 "Module with identifier '" << module_id << "' not found in config!"));
@@ -600,9 +613,11 @@ static Napi::Value boot_module(const Napi::CallbackInfo& info) {
         // provides property: iterate over every implementation that this modules provides
         auto provided_impls_prop = Napi::Object::New(env);
         auto provided_cmds_prop = Napi::Object::New(env);
+        const auto& interface_definitions = config->get_interface_definitions();
         for (const auto& impl_definition : module_impls.items()) {
             const auto& impl_id = impl_definition.key();
-            const auto& impl_intf = module_impls[impl_id];
+            const auto& interface_name = module_impls.at(impl_id).get<std::string>();
+            const auto& impl_intf = interface_definitions.at(interface_name);
 
             auto impl_prop = Napi::Object::New(env);
 

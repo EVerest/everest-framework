@@ -59,7 +59,7 @@ public:
 
     ///
     /// \brief publishes the given \p json on the given \p topic with the given \p qos
-    void publish(const std::string& topic, const json& json, QOS qos);
+    void publish(const std::string& topic, const json& json, QOS qos, bool retain = false);
 
     ///
     /// \brief publishes the given \p data on the given \p topic with QOS level 0
@@ -67,7 +67,7 @@ public:
 
     ///
     /// \brief publishes the given \p data on the given \p topic with the given \p qos
-    void publish(const std::string& topic, const std::string& data, QOS qos);
+    void publish(const std::string& topic, const std::string& data, QOS qos, bool retain = false);
 
     ///
     /// \brief subscribes to the given \p topic with QOS level 0
@@ -80,6 +80,10 @@ public:
     ///
     /// \brief unsubscribes from the given \p topic
     void unsubscribe(const std::string& topic);
+
+    ///
+    /// \brief subscribe and wait for value on the subscribed topic
+    json get(const std::string& topic, QOS qos);
 
     ///
     /// \brief Spawn a thread running the mqtt main loop

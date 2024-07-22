@@ -44,7 +44,7 @@ public:
 
     ///
     /// \copydoc MQTTAbstractionImpl::publish(const std::string&, const json&, QOS)
-    void publish(const std::string& topic, const json& json, QOS qos);
+    void publish(const std::string& topic, const json& json, QOS qos, bool retain = false);
 
     ///
     /// \copydoc MQTTAbstractionImpl::publish(const std::string&, const std::string&)
@@ -52,7 +52,7 @@ public:
 
     ///
     /// \copydoc MQTTAbstractionImpl::publish(const std::string&, const std::string&, QOS)
-    void publish(const std::string& topic, const std::string& data, QOS qos);
+    void publish(const std::string& topic, const std::string& data, QOS qos, bool retain = false);
 
     ///
     /// \copydoc MQTTAbstractionImpl::subscribe(const std::string&)
@@ -65,6 +65,10 @@ public:
     ///
     /// \copydoc MQTTAbstractionImpl::unsubscribe(const std::string&)
     void unsubscribe(const std::string& topic);
+
+    ///
+    /// \copydoc MQTTAbstractionImpl::get(const std::string&, QOS)
+    json get(const std::string& topic, QOS qos);
 
     ///
     /// \copydoc MQTTAbstractionImpl::spawn_main_loop_thread()
