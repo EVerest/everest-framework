@@ -25,7 +25,7 @@ public:
         SCHEMA
     };
     ConfigParseException(ParseErrorType err_t, const std::string& entry, const std::string& what = "") :
-        err_t(err_t), entry(entry), what(what) {};
+        err_t(err_t), entry(entry), what(what){};
 
     const ParseErrorType err_t;
     const std::string entry;
@@ -809,8 +809,7 @@ std::unordered_map<std::string, ModuleTierMappings> Config::get_3_tier_model_map
     return this->tier_mappings;
 }
 
-std::optional<ModuleTierMappings>
-Config::get_3_tier_model_mappings(const std::string& module_id) {
+std::optional<ModuleTierMappings> Config::get_3_tier_model_mappings(const std::string& module_id) {
     if (this->tier_mappings.find(module_id) == this->tier_mappings.end()) {
         return std::nullopt;
     }
