@@ -84,9 +84,10 @@ struct TelemetryConfig {
     int id;
 };
 
+/// \brief A Mapping that can be used to map a module or implementation to a specific EVSE or optionally to a Connector
 struct Mapping {
-    int evse;
-    std::optional<int> connector;
+    int evse;                     ///< The EVSE id
+    std::optional<int> connector; ///< An optional Connector id
 
     Mapping(int evse) : evse(evse) {
     }
@@ -95,9 +96,12 @@ struct Mapping {
     }
 };
 
+/// \brief A 3 tier mapping for a module and its individual implementations
 struct ModuleTierMappings {
-    std::optional<Mapping> module;
-    std::unordered_map<std::string, std::optional<Mapping>> implementations;
+    std::optional<Mapping> module; ///< Mapping of the whole module to an EVSE id and optional Connector id. If this is
+                                   ///< absent the module is assumed to be mapped to the whole charging station
+    std::unordered_map<std::string, std::optional<Mapping>>
+        implementations; ///< Mappings for the individual implementations of the module
 };
 
 struct Requirement {
