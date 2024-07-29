@@ -51,7 +51,7 @@ const EverestModule = function EverestModule(handler_setup, user_settings) {
     mqtt_external_prefix: helpers.get_default(settings, 'mqtt_external_prefix', ''),
     mqtt_broker_socket_path: helpers.get_default(settings, 'mqtt_broker_socket_path', ''),
     mqtt_server_address: helpers.get_default(settings, 'mqtt_server_address', ''),
-    mqtt_server_port: helpers.get_default(settings, 'mqtt_server_address', 0),
+    mqtt_server_port: helpers.get_default(settings, 'mqtt_server_port', 0),
     validate_schema: helpers.get_default(settings, 'validate_schema', false),
   };
 
