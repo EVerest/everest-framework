@@ -58,7 +58,6 @@ json ModuleConfig::get_config(std::shared_ptr<MQTTSettings> mqtt_settings, const
 
     json config_publish_data = json::object({{"type", "full"}});
 
-    EVLOG_info << "publishing to " << get_config_topic;
     mqtt.publish(get_config_topic, config_publish_data, QOS::QOS2);
 
     // wait for result future
@@ -78,8 +77,6 @@ json ModuleConfig::get_config(std::shared_ptr<MQTTSettings> mqtt_settings, const
         result = res_future.get();
     }
     mqtt.unregister_handler(config_topic, res_token);
-
-    EVLOG_info << "Received config: "; // << result.dump();
 
     // TODO: disconnect initial mqtt or do we keep this open for additional config updates later on?
 

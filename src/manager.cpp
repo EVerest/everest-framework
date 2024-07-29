@@ -145,8 +145,6 @@ static void exec_javascript_module(system::SubProcess& proc_handle, const Module
     const auto node_modules_path = rs->prefix / defaults::LIB_DIR / defaults::NAMESPACE / "node_modules";
     setenv("NODE_PATH", node_modules_path.c_str(), 0);
 
-    EVLOG_info << "LOG CONF? " << rs->logging_config_file;
-
     setenv("EV_MODULE", module_info.name.c_str(), 1);
     setenv("EV_PREFIX", rs->prefix.c_str(), 0);
     setenv("EV_LOG_CONF_FILE", rs->logging_config_file.c_str(), 0);
@@ -287,7 +285,7 @@ std::mutex modules_ready_mutex;
 void cleanup_retained_topics(ManagerConfig& config, MQTTAbstraction& mqtt_abstraction,
                              const std::string& mqtt_everest_prefix) {
     auto interface_definitions = config.get_interface_definitions();
-    EVLOG_info << "cleanup...";
+
     mqtt_abstraction.publish(fmt::format("{}interfaces", mqtt_everest_prefix), std::string(), QOS::QOS2, true);
 
     for (const auto& interface_definition : interface_definitions.items()) {
@@ -442,7 +440,6 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
         std::string config_topic = fmt::format("{}/config", config.mqtt_module_prefix(module_name));
         Handler module_get_config_handler = [module_name, config_topic, serialized_mod_config,
                                              &mqtt_abstraction](nlohmann::json json) {
-            EVLOG_info << "Get config called for " << module_name << ": " << json.dump();
             mqtt_abstraction.publish(config_topic, serialized_mod_config.dump());
         };
 

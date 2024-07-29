@@ -404,7 +404,6 @@ std::tuple<json, int> ManagerConfig::load_and_validate_with_schema(const fs::pat
 
 ManagerConfig::ManagerConfig(std::shared_ptr<ManagerSettings> ms) : ConfigBase(ms->mqtt_settings), ms(ms) {
     BOOST_LOG_FUNCTION();
-    EVLOG_info << "Config ctor";
 
     this->manifests = json({});
     this->interfaces = json({});
@@ -438,7 +437,6 @@ ManagerConfig::ManagerConfig(std::shared_ptr<ManagerSettings> ms) : ConfigBase(m
         }
 
         json_validator validator(Config::loader, Config::format_checker);
-        EVLOG_info << "Config()";
         validator.set_root_schema(this->_schemas.config);
         auto patch = validator.validate(complete_config);
         if (!patch.is_null()) {
@@ -457,8 +455,6 @@ ManagerConfig::ManagerConfig(std::shared_ptr<ManagerSettings> ms) : ConfigBase(m
 
 // FIXME do not put another json type into a constructor here...
 Config::Config(std::shared_ptr<MQTTSettings> mqtt_settings, json serialized_config) : ConfigBase(mqtt_settings) {
-    EVLOG_info << "serialized Config ctor";
-
     this->main = serialized_config.value("module_config", json({}));
     this->manifests = serialized_config.value("manifests", json({}));
     this->interfaces = serialized_config.value("module_provides", json({}));

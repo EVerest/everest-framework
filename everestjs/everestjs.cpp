@@ -593,7 +593,6 @@ static Napi::Value boot_module(const Napi::CallbackInfo& info) {
                                                                     mqtt_external_prefix);
         }
 
-        EVLOG_error << "calling get_config() for JS module: " << module_id;
         const auto result = Everest::ModuleConfig::get_config(mqtt_settings, module_id);
 
         auto rs = std::make_shared<Everest::RuntimeSettings>(result.at("settings"));
