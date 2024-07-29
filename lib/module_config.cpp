@@ -99,6 +99,10 @@ json ModuleConfig::get_config(std::shared_ptr<MQTTSettings> mqtt_settings, const
     // just get all the interfaces into this interface definitions struct
     // TODO: maybe only get the ones we actually need
 
+    auto module_provides_topic = fmt::format("{}module_provides", mqtt_settings->mqtt_everest_prefix);
+    auto module_provides = mqtt.get(module_provides_topic, QOS::QOS2);
+    result["module_provides"] = module_provides;
+
     auto settings_topic = fmt::format("{}settings", mqtt_settings->mqtt_everest_prefix);
     auto settings = mqtt.get(settings_topic, QOS::QOS2);
     result["settings"] = settings;
@@ -107,9 +111,17 @@ json ModuleConfig::get_config(std::shared_ptr<MQTTSettings> mqtt_settings, const
     auto schemas = mqtt.get(schemas_topic, QOS::QOS2);
     result["schemas"] = schemas;
 
+    auto manifests_topic = fmt::format("{}manifests", mqtt_settings->mqtt_everest_prefix);
+    auto manifests = mqtt.get(manifests_topic, QOS::QOS2);
+    result["manifests"] = manifests;
+
     auto error_types_map_topic = fmt::format("{}error_types_map", mqtt_settings->mqtt_everest_prefix);
     auto error_types_map = mqtt.get(error_types_map_topic, QOS::QOS2);
     result["error_map"] = error_types_map;
+
+    auto module_config_cache_topic = fmt::format("{}module_config_cache", mqtt_settings->mqtt_everest_prefix);
+    auto module_config_cache = mqtt.get(module_config_cache_topic, QOS::QOS2);
+    result["module_config_cache"] = module_config_cache;
 
     return result;
 }

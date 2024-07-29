@@ -410,7 +410,6 @@ ManagerConfig::ManagerConfig(std::shared_ptr<ManagerSettings> ms) : ConfigBase(m
     this->interfaces = json({});
     this->interface_definitions = json({});
     this->types = json({});
-    this->errors = json({});
     this->_schemas = Config::load_schemas(this->ms->schemas_dir);
     this->error_map = error::ErrorTypeMap(this->ms->errors_dir);
 
@@ -459,30 +458,21 @@ ManagerConfig::ManagerConfig(std::shared_ptr<ManagerSettings> ms) : ConfigBase(m
 // FIXME do not put another json type into a constructor here...
 Config::Config(std::shared_ptr<MQTTSettings> mqtt_settings, json serialized_config) : ConfigBase(mqtt_settings) {
     EVLOG_info << "serialized Config ctor";
-    // FIXME
+
     this->main = serialized_config.value("module_config", json({}));
     this->manifests = serialized_config.value("manifests", json({}));
-    this->interfaces = serialized_config.value("interfaces", json({}));
+    this->interfaces = serialized_config.value("module_provides", json({}));
     this->interface_definitions = serialized_config.value("interface_definitions", json({}));
     this->types = serialized_config.value("types", json({}));
-    this->errors = serialized_config.value("errors", json({}));
     this->module_names = serialized_config.at("module_names");
     this->module_config_cache = serialized_config.at("module_config_cache");
     if (serialized_config.contains("mappings") and !serialized_config.at("mappings").is_null()) {
         this->tier_mappings = serialized_config.at("mappings");
     }
 
-    // this->_schemas = serialized_config.at("schemas");
-    this->_schemas =
-        serialized_config.at("schemas"); // Config::load_schemas(this->rs->schemas_dir); // FIXME: get this via mqtt
+    this->_schemas = serialized_config.at("schemas");
     this->error_map = error::ErrorTypeMap();
-    this->error_map.load_error_types_map(
-        serialized_config.at("error_map")); // error::ErrorTypeMap(this->rs->errors_dir); // FIXME: get this via mqtt
-
-    // TODO try-catch
-    // parse(config);
-    // FIXME: is this even needed?
-    // resolve_all_requirements();
+    this->error_map.load_error_types_map(serialized_config.at("error_map"));
 }
 
 void ManagerConfig::parse(json config) {
@@ -530,14 +520,13 @@ void ManagerConfig::parse(json config) {
                     std::string("/") + fs::relative(error_file_path, this->ms->errors_dir).stem().string();
 
                 try {
-                    // load and validate error file, store validated result in this->errors
+                    // load and validate error file
                     EVLOG_verbose << fmt::format("Loading error file at: {}", fs::canonical(error_file_path).c_str());
 
                     auto [error_json, validate_ms] =
                         load_and_validate_with_schema(error_file_path, this->_schemas.error_declaration_list);
                     total_time_validation_ms += validate_ms;
 
-                    this->errors[error_path] = error_json["errors"];
                 } catch (const std::exception& e) {
                     EVLOG_AND_THROW(EverestConfigError(fmt::format(
                         "Failed to load and parse error file '{}', reason: {}", error_file_path.string(), e.what())));
@@ -597,13 +586,7 @@ void ManagerConfig::parse(json config) {
 }
 
 json ManagerConfig::serialize() {
-    auto serialized = json::object({{"main", this->main},
-                                    {"manifests", this->manifests},
-                                    {"interfaces", this->interfaces},
-                                    {"types", json({})}, // this->types},
-                                    {"errors", this->errors},
-                                    {"module_names", this->module_names},
-                                    {"module_config_cache", this->module_config_cache}});
+    auto serialized = json::object({{"main", this->main}, {"module_names", this->module_names}});
     return serialized;
 }
 
@@ -890,7 +873,7 @@ const json& ConfigBase::get_manifests() {
     return this->manifests;
 }
 
-json Config::get_interfaces() {
+json ConfigBase::get_interfaces() {
     BOOST_LOG_FUNCTION();
     return this->interfaces;
 }
@@ -913,6 +896,11 @@ json ConfigBase::get_schemas() {
 json ConfigBase::get_error_types_map() {
     BOOST_LOG_FUNCTION();
     return this->error_map.get_error_types_map();
+}
+
+std::unordered_map<std::string, ConfigCache> ConfigBase::get_module_config_cache() {
+    BOOST_LOG_FUNCTION();
+    return this->module_config_cache;
 }
 
 json Config::get_interface_definition(const std::string& interface_name) {

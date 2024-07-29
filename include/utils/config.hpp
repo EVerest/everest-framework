@@ -54,7 +54,6 @@ protected: // or protected?
     json interfaces;
     json interface_definitions;
     json types;
-    json errors;
     schemas _schemas;
 
     std::unordered_map<std::string, ModuleTierMappings> tier_mappings;
@@ -135,6 +134,10 @@ public:
     json get_interface_definitions();
 
     ///
+    /// \returns a json object that contains the available interfaces
+    json get_interfaces();
+
+    ///
     /// \returns a json object that contains the settings
     json get_settings();
 
@@ -145,6 +148,10 @@ public:
     ///
     /// \returns a json object that contains the schemas
     json get_error_types_map();
+
+    ///
+    /// \returns the module config cache
+    std::unordered_map<std::string, ConfigCache> get_module_config_cache();
 
     ///
     /// \returns the 3 tier model mappings
@@ -218,24 +225,7 @@ private:
     std::shared_ptr<RuntimeSettings> rs;
     bool manager;
 
-    // json main;
-
-    // json manifests;
-    // json interfaces;
-    // json interface_definitions;
-    // json types;
-    // json errors;
-    // schemas _schemas;
-
     std::unordered_map<std::string, std::optional<TelemetryConfig>> telemetry_configs;
-
-    // experimental caches
-    // std::unordered_map<std::string, std::string> module_names;
-    // std::unordered_map<std::string, ConfigCache> module_config_cache;
-
-    // void load_and_validate_manifest(const std::string& module_id, const json& module_config);
-
-    // void parse(json config);
 
 public:
     error::ErrorTypeMap get_error_map() const;
@@ -243,8 +233,6 @@ public:
     json get_module_cmds(const std::string& module_name, const std::string& impl_id);
     ///
     /// \brief creates a new Config object
-    // explicit Config(std::shared_ptr<RuntimeSettings> rs);
-    // explicit Config(std::shared_ptr<RuntimeSettings> rs, bool manager);
     explicit Config(std::shared_ptr<MQTTSettings> mqtt_settings, json config);
 
     ///
@@ -281,10 +269,6 @@ public:
     ///
     /// \returns a TelemetryConfig if this has been configured
     std::optional<TelemetryConfig> get_telemetry_config(const std::string& module_id);
-
-    ///
-    /// \returns a json object that contains the available interfaces
-    json get_interfaces();
 
     ///
     /// \returns a json object that contains the interface definition
