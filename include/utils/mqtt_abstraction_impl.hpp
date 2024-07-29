@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-// Copyright 2020 - 2023 Pionix GmbH and Contributors to EVerest
+// Copyright Pionix GmbH and Contributors to EVerest
 #ifndef UTILS_MQTT_ABSTRACTION_IMPL_HPP
 #define UTILS_MQTT_ABSTRACTION_IMPL_HPP
 

@@ -46,7 +46,7 @@ struct schemas {
 const static std::regex type_uri_regex{R"(^((?:\/[a-zA-Z0-9\-\_]+)+#\/[a-zA-Z0-9\-\_]+)$)"};
 
 class ConfigBase {
-protected: // or protected?
+protected:
     json main;
     json settings;
 
@@ -94,7 +94,9 @@ protected: // or protected?
     void parse_3_tier_model_mapping();
 
 public:
-    ConfigBase(std::shared_ptr<MQTTSettings> mqtt_settings) : mqtt_settings(mqtt_settings) {}; // virtual?
+    ///
+    /// \brief Create a ConfigBase with the provided \p mqtt_settings
+    ConfigBase(std::shared_ptr<MQTTSettings> mqtt_settings) : mqtt_settings(mqtt_settings) {};
 
     ///
     /// \brief turns then given \p module_id into a printable identifier
@@ -108,6 +110,8 @@ public:
     /// \returns a string with the printable identifier
     std::string printable_identifier(const std::string& module_id, const std::string& impl_id) const;
 
+    ///
+    /// \returns the module name matching the provided \p module_id
     std::string get_module_name(const std::string& module_id) const;
 
     ///
@@ -171,6 +175,8 @@ private:
     bool manager = false;
     std::shared_ptr<ManagerSettings> ms;
 
+    ///
+    /// \brief loads and validates the manifest of the module \p module_id using the provided \p module config
     void load_and_validate_manifest(const std::string& module_id, const json& module_config);
 
     ///
@@ -205,17 +211,23 @@ private:
     /// \returns the interface_json with replaced error references
     json replace_error_refs(json& interface_json);
 
+    ///
+    /// \brief resolves all requirements (connections) of the modules in the main config
     void resolve_all_requirements();
 
+    ///
+    /// \brief parses the provided \p config resolving types, errors, manifests, requirements and 3 tier module mappings
     void parse(json config);
 
 public:
+    ///
+    /// \brief Create a ManagerConfig from the provided ManagerSettings \p ms
     ManagerConfig(std::shared_ptr<ManagerSettings> ms);
 
+    ///
+    /// \brief Serialize the config to json
     json serialize();
 };
-
-// TODO: split config into managerconfig and config!
 
 ///
 /// \brief Contains config and manifest parsing
@@ -228,11 +240,20 @@ private:
     std::unordered_map<std::string, std::optional<TelemetryConfig>> telemetry_configs;
 
 public:
-    error::ErrorTypeMap get_error_map() const;
-    bool module_provides(const std::string& module_name, const std::string& impl_id);
-    json get_module_cmds(const std::string& module_name, const std::string& impl_id);
     ///
-    /// \brief creates a new Config object
+    /// \returns the ErrorTypeMap
+    error::ErrorTypeMap get_error_map() const;
+
+    ///
+    /// \returns true if the module \p module_name provides the implementation \p impl_id
+    bool module_provides(const std::string& module_name, const std::string& impl_id);
+
+    ///
+    /// \returns the commands that the modules \p module_name implements from the given implementation \p impl_id
+    json get_module_cmds(const std::string& module_name, const std::string& impl_id);
+
+    ///
+    /// \brief creates a new Config object form the given \p mqtt_settings and \p config
     explicit Config(std::shared_ptr<MQTTSettings> mqtt_settings, json config);
 
     ///
@@ -243,12 +264,10 @@ public:
 
     ///
     /// \returns a list of Requirements for \p module_id
-    ///
     std::list<Requirement> get_requirements(const std::string& module_id) const;
 
     ///
     /// \brief checks if the config contains the given \p module_id
-    ///
     bool contains(const std::string& module_id) const;
 
     ///
@@ -278,7 +297,6 @@ public:
     /// \brief A json schema loader that can handle type refs and otherwise uses the builtin draft7 schema of
     /// the json schema validator when it encounters it. Throws an exception
     /// otherwise
-    ///
     void ref_loader(const json_uri& uri, json& schema);
 
     ///
@@ -310,13 +328,11 @@ public:
     /// \brief A simple json schema loader that uses the builtin draft7 schema of
     /// the json schema validator when it encounters it, throws an exception
     /// otherwise
-    ///
     static void loader(const json_uri& uri, json& schema);
 
     ///
     /// \brief An extension to the default format checker of the json schema
     /// validator supporting uris
-    ///
     static void format_checker(const std::string& format, const std::string& value);
 };
 } // namespace Everest

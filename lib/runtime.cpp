@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-// Copyright 2020 - 2023 Pionix GmbH and Contributors to EVerest
+// Copyright Pionix GmbH and Contributors to EVerest
 
 #include <framework/runtime.hpp>
 #include <utils/error.hpp>
@@ -568,17 +568,6 @@ bool ModuleLoader::parse_command_line(int argc, char* argv[]) {
     desc.add_options()("mqtt_broker_port", po::value<int>(), "The MQTT broker port");
     desc.add_options()("mqtt_everest_prefix", po::value<std::string>(), "The MQTT everest prefix");
     desc.add_options()("mqtt_external_prefix", po::value<std::string>(), "The external MQTT prefix");
-
-    // FIXME: do runtime settings parsing (the "settings" block in the config) here and then serialize the new
-    // RuntimeSettings just remove these entries completely from the runtime config that the module receices, this
-    // should not be needed at all however this means that we have to serialize the schemas once, like the interface
-    // definitions
-    //      config_file:
-    //     type: string
-    //   configs_dir:
-    //     type: string
-    //   schemas_dir:
-    //     type: string
 
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);

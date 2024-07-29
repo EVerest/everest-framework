@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-// Copyright 2020 - 2023 Pionix GmbH and Contributors to EVerest
+// Copyright Pionix GmbH and Contributors to EVerest
 #include <algorithm>
 #include <fstream>
 #include <list>
@@ -1174,7 +1174,7 @@ json ConfigBase::extract_implementation_info(const std::string& module_id) const
 void ManagerConfig::resolve_all_requirements() {
     BOOST_LOG_FUNCTION();
 
-    EVLOG_debug << "Resolving module reguirements...";
+    EVLOG_debug << "Resolving module requirements...";
     // this whole code will not check existence of keys defined by config or
     // manifest metaschemas these have already been checked by schema validation
     for (auto& element : this->main.items()) {
