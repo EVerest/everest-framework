@@ -565,27 +565,40 @@ static Napi::Value boot_module(const Napi::CallbackInfo& info) {
 
         const auto& module_id = settings.Get("module").ToString().Utf8Value();
         const auto& prefix = settings.Get("prefix").ToString().Utf8Value();
-        const auto& config_file = settings.Get("config_file").ToString().Utf8Value();
+        const auto& mqtt_everest_prefix = settings.Get("mqtt_everest_prefix").ToString().Utf8Value();
+        const auto& mqtt_external_prefix = settings.Get("mqtt_external_prefix").ToString().Utf8Value();
+        const auto& mqtt_broker_socket_path = settings.Get("mqtt_broker_socket_path").ToString().Utf8Value();
+        const auto& mqtt_server_address = settings.Get("mqtt_server_address").ToString().Utf8Value();
+        const auto& mqtt_server_port = settings.Get("mqtt_server_port").ToString().Utf8Value();
         const bool validate_schema = settings.Get("validate_schema").ToBoolean().Value();
 
-        // FIXME: proper logging path...
         namespace fs = std::filesystem;
-        auto default_logging_config_file = Everest::assert_dir(Everest::defaults::PREFIX, "Default prefix") /
-                                       fs::path(Everest::defaults::SYSCONF_DIR) / Everest::defaults::NAMESPACE /
-                                       Everest::defaults::LOGGING_CONFIG_NAME;
-        fs::path logging_config_file = Everest::assert_file(default_logging_config_file, "Default logging config");
+        fs::path logging_config_file =
+            Everest::assert_file(settings.Get("logging_config_file").ToString().Utf8Value(), "Default logging config");
+        // initialize logging as early as possible
         Everest::Logging::init(logging_config_file.string(), module_id);
-        auto mqtt_settings = std::make_shared<Everest::MQTTSettings>("localhost", 1883, "everest/"); // FIXME
+
+        std::shared_ptr<Everest::MQTTSettings> mqtt_settings;
+        if (mqtt_broker_socket_path.empty()) {
+            auto mqtt_broker_port = Everest::defaults::MQTT_BROKER_PORT;
+            try {
+                mqtt_broker_port = std::stoi(mqtt_server_port);
+            } catch (...) {
+                EVLOG_warning << "Could not parse MQTT broker port, using default: " << mqtt_broker_port;
+            }
+            mqtt_settings = std::make_shared<Everest::MQTTSettings>(mqtt_server_address, mqtt_broker_port,
+                                                                    mqtt_everest_prefix, mqtt_external_prefix);
+        } else {
+            mqtt_settings = std::make_shared<Everest::MQTTSettings>(mqtt_broker_socket_path, mqtt_everest_prefix,
+                                                                    mqtt_external_prefix);
+        }
 
         EVLOG_error << "calling get_config() for JS module: " << module_id;
         const auto result = Everest::ModuleConfig::get_config(mqtt_settings, module_id);
 
-        auto rs = std::make_shared<Everest::RuntimeSettings>(prefix, result);
+        auto rs = std::make_shared<Everest::RuntimeSettings>(result.at("settings"));
 
-        // initialize logging as early as possible
-        // Everest::Logging::init(rs->logging_config_file, module_id);
-
-        auto config = std::make_unique<Everest::Config>(rs, false, result);
+        auto config = std::make_unique<Everest::Config>(mqtt_settings, result);
         if (!config->contains(module_id)) {
             EVTHROW(EVEXCEPTION(Everest::EverestConfigError,
                                 "Module with identifier '" << module_id << "' not found in config!"));
@@ -740,11 +753,11 @@ static Napi::Value boot_module(const Napi::CallbackInfo& info) {
                 for (auto const& var_name : requirement_vars) {
                     var_subscribe_prop.DefineProperty(Napi::PropertyDescriptor::Value(
                         var_name,
-                        Napi::Function::New(
-                            env,
-                            [requirement_id, i, var_name](const Napi::CallbackInfo& info) {
-                                return set_var_subscription_handler({requirement_id, i}, var_name, info);
-                            }),
+                        Napi::Function::New(env,
+                                            [requirement_id, i, var_name](const Napi::CallbackInfo& info) {
+                                                return set_var_subscription_handler({requirement_id, i}, var_name,
+                                                                                    info);
+                                            }),
                         napi_enumerable));
                 }
 
@@ -912,10 +925,10 @@ static Napi::Value boot_module(const Napi::CallbackInfo& info) {
         module_this.DefineProperty(Napi::PropertyDescriptor::Value("info", module_info_prop, napi_enumerable));
 
         // connect to mqtt server and start mqtt mainloop thread
-        auto everest_handle =
-            std::make_unique<Everest::Everest>(module_id, *config, validate_schema, rs->mqtt_broker_socket_path,
-                                               rs->mqtt_broker_host, rs->mqtt_broker_port, rs->mqtt_everest_prefix,
-                                               rs->mqtt_external_prefix, rs->telemetry_prefix, rs->telemetry_enabled);
+        auto everest_handle = std::make_unique<Everest::Everest>(
+            module_id, *config, validate_schema, mqtt_settings->mqtt_broker_socket_path,
+            mqtt_settings->mqtt_broker_host, mqtt_settings->mqtt_broker_port, mqtt_settings->mqtt_everest_prefix,
+            mqtt_settings->mqtt_external_prefix, rs->telemetry_prefix, rs->telemetry_enabled);
 
         ctx = new EvModCtx(std::move(everest_handle), module_manifest, env);
 

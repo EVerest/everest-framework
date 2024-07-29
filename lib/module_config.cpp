@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Pionix GmbH and Contributors to EVerest
 
-
 #include <fmt/format.h>
 
 #include <everest/exceptions.hpp>
@@ -11,23 +10,28 @@
 
 namespace Everest {
 
-MQTTSettings::MQTTSettings(const std::string& mqtt_broker_socket_path, const std::string& mqtt_everest_prefix) :
-    mqtt_broker_socket_path(mqtt_broker_socket_path), mqtt_everest_prefix(mqtt_everest_prefix), socket(true) {
+MQTTSettings::MQTTSettings(const std::string& mqtt_broker_socket_path, const std::string& mqtt_everest_prefix,
+                           const std::string& mqtt_external_prefix) :
+    mqtt_broker_socket_path(mqtt_broker_socket_path),
+    mqtt_everest_prefix(mqtt_everest_prefix),
+    mqtt_external_prefix(mqtt_external_prefix),
+    socket(true) {
 }
 
 MQTTSettings::MQTTSettings(const std::string& mqtt_broker_host, int mqtt_broker_port,
-                           const std::string& mqtt_everest_prefix) :
+                           const std::string& mqtt_everest_prefix, const std::string& mqtt_external_prefix) :
     mqtt_broker_host(mqtt_broker_host),
     mqtt_broker_port(mqtt_broker_port),
     mqtt_everest_prefix(mqtt_everest_prefix),
+    mqtt_external_prefix(mqtt_external_prefix),
     socket(false) {
 }
 
 json ModuleConfig::get_config(std::shared_ptr<MQTTSettings> mqtt_settings, const std::string& module_id) {
     // TODO: make initial connection to manager here to receive config
-    auto mqtt = MQTTAbstraction(mqtt_settings->mqtt_broker_socket_path, mqtt_settings->mqtt_broker_host,
-                                std::to_string(mqtt_settings->mqtt_broker_port),
-                                mqtt_settings->mqtt_everest_prefix, "");
+    auto mqtt =
+        MQTTAbstraction(mqtt_settings->mqtt_broker_socket_path, mqtt_settings->mqtt_broker_host,
+                        std::to_string(mqtt_settings->mqtt_broker_port), mqtt_settings->mqtt_everest_prefix, "");
     if (not mqtt.connect()) {
         EVLOG_error << "Could not connect";
         return 0; // shouldn't this be an error code?
@@ -37,8 +41,7 @@ json ModuleConfig::get_config(std::shared_ptr<MQTTSettings> mqtt_settings, const
     // TODO: move this to its own function
 
     // START get config
-    auto get_config_topic =
-        fmt::format("{}modules/{}/get_config", mqtt_settings->mqtt_everest_prefix, module_id);
+    auto get_config_topic = fmt::format("{}modules/{}/get_config", mqtt_settings->mqtt_everest_prefix, module_id);
     auto config_topic = fmt::format("{}modules/{}/config", mqtt_settings->mqtt_everest_prefix, module_id);
     std::promise<json> res_promise;
     std::future<json> res_future = res_promise.get_future();
@@ -80,10 +83,6 @@ json ModuleConfig::get_config(std::shared_ptr<MQTTSettings> mqtt_settings, const
 
     // TODO: disconnect initial mqtt or do we keep this open for additional config updates later on?
 
-    // TODO: move this config into the Config() constructor without re-triggering the validations since they are already
-    // done by the manager END get config
-
-    // START GET INTERFACE DEFINITIONS
     auto interface_names_topic = fmt::format("{}interfaces", mqtt_settings->mqtt_everest_prefix);
     auto interface_names = mqtt.get(interface_names_topic, QOS::QOS2);
     // EVLOG_info << "interface names from mqtt: " << interface_names.dump();
@@ -98,7 +97,20 @@ json ModuleConfig::get_config(std::shared_ptr<MQTTSettings> mqtt_settings, const
 
     result["interface_definitions"] = interface_definitions;
     // just get all the interfaces into this interface definitions struct
-    // END GET INTERFACE DEFINITONS
+    // TODO: maybe only get the ones we actually need
+
+    auto settings_topic = fmt::format("{}settings", mqtt_settings->mqtt_everest_prefix);
+    auto settings = mqtt.get(settings_topic, QOS::QOS2);
+    result["settings"] = settings;
+
+    auto schemas_topic = fmt::format("{}schemas", mqtt_settings->mqtt_everest_prefix);
+    auto schemas = mqtt.get(schemas_topic, QOS::QOS2);
+    result["schemas"] = schemas;
+
+    auto error_types_map_topic = fmt::format("{}error_types_map", mqtt_settings->mqtt_everest_prefix);
+    auto error_types_map = mqtt.get(error_types_map_topic, QOS::QOS2);
+    result["error_map"] = error_types_map;
+
     return result;
 }
 

@@ -234,7 +234,7 @@ static void setup_probe_module_manifest(const std::string& probe_module_id, cons
     }
 }
 
-void Config::load_and_validate_manifest(const std::string& module_id, const json& module_config) {
+void ManagerConfig::load_and_validate_manifest(const std::string& module_id, const json& module_config) {
     std::string module_name = module_config["module"];
 
     this->module_config_cache[module_id] = ConfigCache();
@@ -242,7 +242,7 @@ void Config::load_and_validate_manifest(const std::string& module_id, const json
     EVLOG_debug << fmt::format("Found module {}, loading and verifying manifest...", printable_identifier(module_id));
 
     // load and validate module manifest.json
-    fs::path manifest_path = this->rs->modules_dir / module_name / "manifest.yaml";
+    fs::path manifest_path = this->ms->modules_dir / module_name / "manifest.yaml";
     try {
 
         if (module_name != "ProbeModule") {
@@ -382,7 +382,7 @@ void Config::load_and_validate_manifest(const std::string& module_id, const json
     }
 }
 
-std::tuple<json, int> Config::load_and_validate_with_schema(const fs::path& file_path, const json& schema) {
+std::tuple<json, int> ManagerConfig::load_and_validate_with_schema(const fs::path& file_path, const json& schema) {
     json json_to_validate = load_yaml(file_path);
     auto validation_ms = 0;
 
@@ -402,10 +402,7 @@ std::tuple<json, int> Config::load_and_validate_with_schema(const fs::path& file
     return {json_to_validate, validation_ms};
 }
 
-Config::Config(std::shared_ptr<RuntimeSettings> rs) : Config(rs, false) {
-}
-
-Config::Config(std::shared_ptr<RuntimeSettings> rs, bool manager) : rs(rs), manager(manager) {
+ManagerConfig::ManagerConfig(std::shared_ptr<ManagerSettings> ms) : ConfigBase(ms->mqtt_settings), ms(ms) {
     BOOST_LOG_FUNCTION();
     EVLOG_info << "Config ctor";
 
@@ -414,11 +411,11 @@ Config::Config(std::shared_ptr<RuntimeSettings> rs, bool manager) : rs(rs), mana
     this->interface_definitions = json({});
     this->types = json({});
     this->errors = json({});
-    this->_schemas = Config::load_schemas(this->rs->schemas_dir);
-    this->error_map = error::ErrorTypeMap(this->rs->errors_dir);
+    this->_schemas = Config::load_schemas(this->ms->schemas_dir);
+    this->error_map = error::ErrorTypeMap(this->ms->errors_dir);
 
     // load and process config file
-    fs::path config_path = rs->config_file;
+    fs::path config_path = ms->config_file;
 
     try {
         if (manager) {
@@ -451,6 +448,7 @@ Config::Config(std::shared_ptr<RuntimeSettings> rs, bool manager) : rs(rs), mana
         }
 
         auto config = complete_config.at("active_modules");
+        this->settings = *ms->get_runtime_settings();
         this->parse(config);
 
     } catch (const std::exception& e) {
@@ -459,8 +457,7 @@ Config::Config(std::shared_ptr<RuntimeSettings> rs, bool manager) : rs(rs), mana
 }
 
 // FIXME do not put another json type into a constructor here...
-Config::Config(std::shared_ptr<RuntimeSettings> rs, bool manager, json serialized_config) :
-    rs(rs), manager(manager) {
+Config::Config(std::shared_ptr<MQTTSettings> mqtt_settings, json serialized_config) : ConfigBase(mqtt_settings) {
     EVLOG_info << "serialized Config ctor";
     // FIXME
     this->main = serialized_config.value("module_config", json({}));
@@ -472,8 +469,11 @@ Config::Config(std::shared_ptr<RuntimeSettings> rs, bool manager, json serialize
     this->module_names = serialized_config.at("module_names");
     this->module_config_cache = serialized_config.at("module_config_cache");
     // this->_schemas = serialized_config.at("schemas");
-    this->_schemas = Config::load_schemas(this->rs->schemas_dir);
-    this->error_map = error::ErrorTypeMap(this->rs->errors_dir);
+    this->_schemas =
+        serialized_config.at("schemas"); // Config::load_schemas(this->rs->schemas_dir); // FIXME: get this via mqtt
+    this->error_map = error::ErrorTypeMap();
+    this->error_map.load_error_types_map(
+        serialized_config.at("error_map")); // error::ErrorTypeMap(this->rs->errors_dir); // FIXME: get this via mqtt
 
     // TODO try-catch
     // parse(config);
@@ -481,16 +481,16 @@ Config::Config(std::shared_ptr<RuntimeSettings> rs, bool manager, json serialize
     // resolve_all_requirements();
 }
 
-void Config::parse(json config) {
+void ManagerConfig::parse(json config) {
     this->main = config;
     // load type files
-    if (rs->validate_schema) {
+    if (ms->validate_schema) {
         int total_time_validation_ms = 0, total_time_parsing_ms = 0;
-        for (auto const& types_entry : fs::recursive_directory_iterator(this->rs->types_dir)) {
+        for (auto const& types_entry : fs::recursive_directory_iterator(this->ms->types_dir)) {
             auto start_time = std::chrono::system_clock::now();
             auto const& type_file_path = types_entry.path();
             if (fs::is_regular_file(type_file_path) && type_file_path.extension() == ".yaml") {
-                auto type_path = std::string("/") + fs::relative(type_file_path, this->rs->types_dir).stem().string();
+                auto type_path = std::string("/") + fs::relative(type_file_path, this->ms->types_dir).stem().string();
 
                 try {
                     // load and validate type file, store validated result in this->types
@@ -516,14 +516,14 @@ void Config::parse(json config) {
     }
 
     // load error files
-    if (rs->validate_schema) {
+    if (ms->validate_schema) {
         int total_time_validation_ms = 0, total_time_parsing_ms = 0;
-        for (auto const& errors_entry : fs::recursive_directory_iterator(this->rs->errors_dir)) {
+        for (auto const& errors_entry : fs::recursive_directory_iterator(this->ms->errors_dir)) {
             auto start_time = std::chrono::system_clock::now();
             auto const& error_file_path = errors_entry.path();
             if (fs::is_regular_file(error_file_path) && error_file_path.extension() == ".yaml") {
                 auto error_path =
-                    std::string("/") + fs::relative(error_file_path, this->rs->errors_dir).stem().string();
+                    std::string("/") + fs::relative(error_file_path, this->ms->errors_dir).stem().string();
 
                 try {
                     // load and validate error file, store validated result in this->errors
@@ -575,14 +575,15 @@ void Config::parse(json config) {
     }
 
     // load telemetry configs
-    for (auto& element : this->main.items()) {
-        const auto& module_id = element.key();
-        auto& module_config = element.value();
-        std::string module_name = module_config.at("module");
-        if (module_config.contains("telemetry")) {
-            this->telemetry_configs[module_id].emplace(TelemetryConfig{module_config.at("telemetry").at("id")});
-        }
-    }
+    // FIXME
+    // for (auto& element : this->main.items()) {
+    //     const auto& module_id = element.key();
+    //     auto& module_config = element.value();
+    //     std::string module_name = module_config.at("module");
+    //     if (module_config.contains("telemetry")) {
+    //         this->telemetry_configs[module_id].emplace(TelemetryConfig{module_config.at("telemetry").at("id")});
+    //     }
+    // }
 
     resolve_all_requirements();
     parse_3_tier_model_mapping();
@@ -591,20 +592,14 @@ void Config::parse(json config) {
     // TODO: move this into its own function...
 }
 
-json Config::serialize() {
-    //  this->module_config_cache[module_id] = ConfigCache();
-    // this->module_names[module_id] = module_name;
-    auto serialized = json::object(
-        {{"main", this->main},
-         {"manifests", this->manifests},
-         {"interfaces", this->interfaces},
-         //{"interface_definitions", this->interface_definitions},
-         {"types", json({})}, // this->types},
-         {"errors", this->errors},
-         {"module_names", this->module_names},
-         // {"schemas", this->_schemas}, // maybe publish this once for everyone, quite high serialization cost...
-         {"module_config_cache", this->module_config_cache}});
-    // EVLOG_info << "Serialize: " << serialized.dump();
+json ManagerConfig::serialize() {
+    auto serialized = json::object({{"main", this->main},
+                                    {"manifests", this->manifests},
+                                    {"interfaces", this->interfaces},
+                                    {"types", json({})}, // this->types},
+                                    {"errors", this->errors},
+                                    {"module_names", this->module_names},
+                                    {"module_config_cache", this->module_config_cache}});
     return serialized;
 }
 
@@ -612,7 +607,7 @@ error::ErrorTypeMap Config::get_error_map() const {
     return this->error_map;
 }
 
-std::string Config::get_module_name(const std::string& module_id) const {
+std::string ConfigBase::get_module_name(const std::string& module_id) const {
     return this->module_names.at(module_id);
 }
 
@@ -625,7 +620,7 @@ json Config::get_module_cmds(const std::string& module_name, const std::string& 
     return this->module_config_cache.at(module_name).cmds.at(impl_id);
 }
 
-json Config::resolve_interface(const std::string& intf_name) {
+json ManagerConfig::resolve_interface(const std::string& intf_name) {
     // load and validate interface.json and mark interface as seen
     auto intf_definition = load_interface_file(intf_name);
 
@@ -633,7 +628,7 @@ json Config::resolve_interface(const std::string& intf_name) {
     return intf_definition;
 }
 
-std::list<json> Config::resolve_error_ref(const std::string& reference) {
+std::list<json> ManagerConfig::resolve_error_ref(const std::string& reference) {
     BOOST_LOG_FUNCTION();
     std::string ref_prefix = "/errors/";
     std::string err_ref = reference.substr(ref_prefix.length());
@@ -650,7 +645,7 @@ std::list<json> Config::resolve_error_ref(const std::string& reference) {
         err_name = err_ref.substr(result + 2);
         is_error_list = false;
     }
-    fs::path path = this->rs->errors_dir / (err_namespace + ".yaml");
+    fs::path path = this->ms->errors_dir / (err_namespace + ".yaml");
     json error_json = load_yaml(path);
     std::list<json> errors;
     if (is_error_list) {
@@ -670,7 +665,7 @@ std::list<json> Config::resolve_error_ref(const std::string& reference) {
     return errors;
 }
 
-json Config::replace_error_refs(json& interface_json) {
+json ManagerConfig::replace_error_refs(json& interface_json) {
     BOOST_LOG_FUNCTION();
     if (!interface_json.contains("errors")) {
         return interface_json;
@@ -693,9 +688,9 @@ json Config::replace_error_refs(json& interface_json) {
     return interface_json;
 }
 
-json Config::load_interface_file(const std::string& intf_name) {
+json ManagerConfig::load_interface_file(const std::string& intf_name) {
     BOOST_LOG_FUNCTION();
-    fs::path intf_path = this->rs->interfaces_dir / (intf_name + ".yaml");
+    fs::path intf_path = this->ms->interfaces_dir / (intf_name + ".yaml");
     try {
         EVLOG_debug << fmt::format("Loading interface file at: {}", fs::canonical(intf_path).string());
 
@@ -712,7 +707,7 @@ json Config::load_interface_file(const std::string& intf_name) {
             // extend config entry with default values
             interface_json = interface_json.patch(patch);
         }
-        interface_json = Config::replace_error_refs(interface_json);
+        interface_json = ManagerConfig::replace_error_refs(interface_json);
 
         // erase "description"
         if (interface_json.contains("description")) {
@@ -829,7 +824,7 @@ bool Config::contains(const std::string& module_id) const {
     return this->main.contains(module_id);
 }
 
-json Config::get_main_config() {
+json ConfigBase::get_main_config() {
     BOOST_LOG_FUNCTION();
     return this->main;
 }
@@ -886,7 +881,7 @@ ModuleConfigs Config::get_module_configs(const std::string& module_id) const {
     return module_configs;
 }
 
-const json& Config::get_manifests() {
+const json& ConfigBase::get_manifests() {
     BOOST_LOG_FUNCTION();
     return this->manifests;
 }
@@ -896,9 +891,24 @@ json Config::get_interfaces() {
     return this->interfaces;
 }
 
-json Config::get_interface_definitions() {
+json ConfigBase::get_interface_definitions() {
     BOOST_LOG_FUNCTION();
     return this->interface_definitions;
+}
+
+json ConfigBase::get_settings() {
+    BOOST_LOG_FUNCTION();
+    return this->settings;
+}
+
+json ConfigBase::get_schemas() {
+    BOOST_LOG_FUNCTION();
+    return this->_schemas;
+}
+
+json ConfigBase::get_error_types_map() {
+    BOOST_LOG_FUNCTION();
+    return this->error_map.get_error_types_map();
 }
 
 json Config::get_interface_definition(const std::string& interface_name) {
@@ -1069,13 +1079,13 @@ void Config::format_checker(const std::string& format, const std::string& value)
     }
 }
 
-std::string Config::printable_identifier(const std::string& module_id) const {
+std::string ConfigBase::printable_identifier(const std::string& module_id) const {
     BOOST_LOG_FUNCTION();
 
     return printable_identifier(module_id, "");
 }
 
-std::string Config::printable_identifier(const std::string& module_id, const std::string& impl_id) const {
+std::string ConfigBase::printable_identifier(const std::string& module_id, const std::string& impl_id) const {
     BOOST_LOG_FUNCTION();
 
     json info = extract_implementation_info(module_id, impl_id);
@@ -1120,22 +1130,20 @@ std::optional<TelemetryConfig> Config::get_telemetry_config(const std::string& m
     return this->telemetry_configs.at(module_id);
 }
 
-std::string Config::mqtt_prefix(const std::string& module_id, const std::string& impl_id) {
+std::string ConfigBase::mqtt_prefix(const std::string& module_id, const std::string& impl_id) {
     BOOST_LOG_FUNCTION();
 
-    return fmt::format("{}modules/{}/impl/{}", this->rs->mqtt_everest_prefix, module_id, impl_id);
+    return fmt::format("{}modules/{}/impl/{}", this->mqtt_settings->mqtt_everest_prefix, module_id, impl_id);
 }
 
-std::string Config::mqtt_module_prefix(const std::string& module_id) {
+std::string ConfigBase::mqtt_module_prefix(const std::string& module_id) {
     BOOST_LOG_FUNCTION();
 
-    return fmt::format("{}modules/{}", this->rs->mqtt_everest_prefix, module_id);
+    return fmt::format("{}modules/{}", this->mqtt_settings->mqtt_everest_prefix, module_id);
 }
 
-json Config::extract_implementation_info(const std::string& module_id, const std::string& impl_id) const {
+json ConfigBase::extract_implementation_info(const std::string& module_id, const std::string& impl_id) const {
     BOOST_LOG_FUNCTION();
-
-    // EVLOG_info << "extract_implementation_info: " << module_id << " " << impl_id;
 
     if (!this->main.contains(module_id)) {
         EVTHROW(EverestApiError(fmt::format("Module id '{}' not found in config!", module_id)));
@@ -1148,6 +1156,7 @@ json Config::extract_implementation_info(const std::string& module_id, const std
     // EVLOG_info << "after";
     info["impl_id"] = impl_id;
     info["impl_intf"] = "";
+
     if (!impl_id.empty()) {
         if (!this->manifests.contains(info["module_name"])) {
             EVTHROW(EverestApiError(fmt::format("No known manifest for module name '{}'!", info["module_name"])));
@@ -1160,17 +1169,17 @@ json Config::extract_implementation_info(const std::string& module_id, const std
 
         info["impl_intf"] = this->manifests[info["module_name"].get<std::string>()]["provides"][impl_id]["interface"];
     }
-    // EVLOG_info << "info: " << info.dump();
+
     return info;
 }
 
-json Config::extract_implementation_info(const std::string& module_id) const {
+json ConfigBase::extract_implementation_info(const std::string& module_id) const {
     BOOST_LOG_FUNCTION();
 
     return extract_implementation_info(module_id, "");
 }
 
-void Config::resolve_all_requirements() {
+void ManagerConfig::resolve_all_requirements() {
     BOOST_LOG_FUNCTION();
 
     EVLOG_debug << "Resolving module reguirements...";

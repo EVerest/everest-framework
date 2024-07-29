@@ -24,10 +24,11 @@ struct MQTTSettings {
     std::string mqtt_broker_host;
     int mqtt_broker_port = 0;
     std::string mqtt_everest_prefix;
+    std::string mqtt_external_prefix;
     bool socket = false;
 
-    MQTTSettings(const std::string& mqtt_broker_socket_path, const std::string& mqtt_everest_prefix);
-    MQTTSettings(const std::string& mqtt_broker_host, int mqtt_broker_port, const std::string& mqtt_everest_prefix);
+    MQTTSettings(const std::string& mqtt_broker_socket_path, const std::string& mqtt_everest_prefix, const std::string& mqtt_external_prefix);
+    MQTTSettings(const std::string& mqtt_broker_host, int mqtt_broker_port, const std::string& mqtt_everest_prefix, const std::string& mqtt_external_prefix);
 };
 
 ///

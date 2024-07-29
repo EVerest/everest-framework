@@ -12,10 +12,11 @@
 std::unique_ptr<Everest::Everest> Module::create_everest_instance(const std::string& module_id,
                                                                   const RuntimeSession& session) {
     const auto& rs = session.get_runtime_settings();
-    return std::make_unique<Everest::Everest>(module_id, session.get_config(), rs->validate_schema,
-                                              rs->mqtt_broker_socket_path, rs->mqtt_broker_host, rs->mqtt_broker_port,
-                                              rs->mqtt_everest_prefix, rs->mqtt_external_prefix, rs->telemetry_prefix,
-                                              rs->telemetry_enabled);
+    const auto& mqtt_settings = session.get_mqtt_settings();
+    return std::make_unique<Everest::Everest>(
+        module_id, session.get_config(), rs->validate_schema, mqtt_settings->mqtt_broker_socket_path,
+        mqtt_settings->mqtt_broker_host, mqtt_settings->mqtt_broker_port, mqtt_settings->mqtt_everest_prefix,
+        mqtt_settings->mqtt_external_prefix, rs->telemetry_prefix, rs->telemetry_enabled);
 }
 
 static std::string get_ev_module_from_env() {

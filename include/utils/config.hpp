@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-// Copyright 2020 - 2023 Pionix GmbH and Contributors to EVerest
+// Copyright Pionix GmbH and Contributors to EVerest
 #ifndef UTILS_CONFIG_HPP
 #define UTILS_CONFIG_HPP
 
@@ -17,6 +17,7 @@
 #include <utils/config_cache.hpp>
 #include <utils/error.hpp>
 #include <utils/error/error_type_map.hpp>
+#include <utils/module_config.hpp>
 #include <utils/types.hpp>
 
 namespace Everest {
@@ -25,7 +26,9 @@ using json_uri = nlohmann::json_uri;
 using json_validator = nlohmann::json_schema::json_validator;
 namespace fs = std::filesystem;
 
+struct ManagerSettings;
 struct RuntimeSettings;
+
 ///
 /// \brief A structure that contains all available schemas
 ///
@@ -42,15 +45,10 @@ struct schemas {
 ///
 const static std::regex type_uri_regex{R"(^((?:\/[a-zA-Z0-9\-\_]+)+#\/[a-zA-Z0-9\-\_]+)$)"};
 
-///
-/// \brief Contains config and manifest parsing
-///
-class Config {
-private:
-    std::shared_ptr<RuntimeSettings> rs;
-    bool manager;
-
+class ConfigBase {
+protected: // or protected?
     json main;
+    json settings;
 
     json manifests;
     json interfaces;
@@ -61,32 +59,13 @@ private:
 
     std::unordered_map<std::string, ModuleTierMappings> tier_mappings;
     std::unordered_map<std::string, std::optional<TelemetryConfig>> telemetry_configs;
+    // experimental caches
+    std::unordered_map<std::string, std::string> module_names;
+    std::unordered_map<std::string, ConfigCache> module_config_cache;
 
-    ///
-    /// \brief loads the contents of an error or an error list referenced by the given \p reference.
-    ///
-    /// \returns a list of json objects containing the error definitions
-    std::list<json> resolve_error_ref(const std::string& reference);
+    error::ErrorTypeMap error_map;
 
-    ///
-    /// \brief replaces all error references in the given \p interface_json with the actual error definitions
-    ///
-    /// \returns the interface_json with replaced error references
-    json replace_error_refs(json& interface_json);
-
-    ///
-    /// \brief loads the contents of the interface file referenced by the give \p intf_name from disk and validates its
-    /// contents
-    ///
-    /// \returns a json object containing the interface definition
-    json load_interface_file(const std::string& intf_name);
-
-    ///
-    /// \brief resolves inheritance tree of json interface \p intf_name, throws an exception if variables or commands
-    /// would be overwritten
-    ///
-    /// \returns the resulting interface definiion
-    json resolve_interface(const std::string& intf_name);
+    std::shared_ptr<MQTTSettings> mqtt_settings;
 
     ///
     /// \brief extracts information about the provided module given via \p module_id from the config and manifest
@@ -101,7 +80,6 @@ private:
     ///
     /// \returns a json object containing module_id, module_name, impl_id and impl_intf
     json extract_implementation_info(const std::string& module_id, const std::string& impl_id) const;
-    void resolve_all_requirements();
 
     ///
     /// \brief Parses the 3 tier model mappings in the config
@@ -116,13 +94,65 @@ private:
     /// Implementations can have overwritten mappings.
     void parse_3_tier_model_mapping();
 
-    // experimental caches
-    std::unordered_map<std::string, std::string> module_names;
-    std::unordered_map<std::string, ConfigCache> module_config_cache;
+public:
+    ConfigBase(std::shared_ptr<MQTTSettings> mqtt_settings) : mqtt_settings(mqtt_settings){}; // virtual?
+
+    ///
+    /// \brief turns then given \p module_id into a printable identifier
+    ///
+    /// \returns a string with the printable identifier
+    std::string printable_identifier(const std::string& module_id) const;
+
+    ///
+    /// \brief turns then given \p module_id and \p impl_id into a printable identifier
+    ///
+    /// \returns a string with the printable identifier
+    std::string printable_identifier(const std::string& module_id, const std::string& impl_id) const;
+
+    std::string get_module_name(const std::string& module_id) const;
+
+    ///
+    /// \brief turns the given \p module_id and \p impl_id into a mqtt prefix
+    ///
+    std::string mqtt_prefix(const std::string& module_id, const std::string& impl_id);
+
+    ///
+    /// \brief turns the given \p module_id into a mqtt prefix
+    ///
+    std::string mqtt_module_prefix(const std::string& module_id);
+
+    ///
+    /// \returns a json object that contains the main config
+    // FIXME (aw): this should be const and return the config by const ref!
+    json get_main_config();
+
+    ///
+    /// \returns a json object that contains the manifests
+    const json& get_manifests();
+
+    ///
+    /// \returns a json object that contains the interface definitions
+    json get_interface_definitions();
+
+    ///
+    /// \returns a json object that contains the settings
+    json get_settings();
+
+    ///
+    /// \returns a json object that contains the schemas
+    json get_schemas();
+
+    ///
+    /// \returns a json object that contains the schemas
+    json get_error_types_map();
+};
+
+class ManagerConfig : public ConfigBase {
+private:
+    bool manager = false;
+    std::shared_ptr<ManagerSettings> ms;
 
     void load_and_validate_manifest(const std::string& module_id, const json& module_config);
-
-    error::ErrorTypeMap error_map;
 
     ///
     /// \brief loads and validates the given file \p file_path with the schema \p schema
@@ -130,18 +160,80 @@ private:
     /// \returns the loaded json and how long the validation took in ms
     std::tuple<json, int> load_and_validate_with_schema(const fs::path& file_path, const json& schema);
 
+    ///
+    /// \brief resolves inheritance tree of json interface \p intf_name, throws an exception if variables or commands
+    /// would be overwritten
+    ///
+    /// \returns the resulting interface definiion
+    json resolve_interface(const std::string& intf_name);
+
+    ///
+    /// \brief loads the contents of the interface file referenced by the give \p intf_name from disk and validates its
+    /// contents
+    ///
+    /// \returns a json object containing the interface definition
+    json load_interface_file(const std::string& intf_name);
+
+    ///
+    /// \brief loads the contents of an error or an error list referenced by the given \p reference.
+    ///
+    /// \returns a list of json objects containing the error definitions
+    std::list<json> resolve_error_ref(const std::string& reference);
+
+    ///
+    /// \brief replaces all error references in the given \p interface_json with the actual error definitions
+    ///
+    /// \returns the interface_json with replaced error references
+    json replace_error_refs(json& interface_json);
+
+    void resolve_all_requirements();
+
     void parse(json config);
 
 public:
+    ManagerConfig(std::shared_ptr<ManagerSettings> ms);
+
+    json serialize();
+};
+
+// TODO: split config into managerconfig and config!
+
+///
+/// \brief Contains config and manifest parsing
+///
+class Config : public ConfigBase {
+private:
+    std::shared_ptr<RuntimeSettings> rs;
+    bool manager;
+
+    // json main;
+
+    // json manifests;
+    // json interfaces;
+    // json interface_definitions;
+    // json types;
+    // json errors;
+    // schemas _schemas;
+
+    std::unordered_map<std::string, std::optional<TelemetryConfig>> telemetry_configs;
+
+    // experimental caches
+    // std::unordered_map<std::string, std::string> module_names;
+    // std::unordered_map<std::string, ConfigCache> module_config_cache;
+
+    // void load_and_validate_manifest(const std::string& module_id, const json& module_config);
+
+    // void parse(json config);
+
+public:
     error::ErrorTypeMap get_error_map() const;
-    std::string get_module_name(const std::string& module_id) const;
     bool module_provides(const std::string& module_name, const std::string& impl_id);
     json get_module_cmds(const std::string& module_name, const std::string& impl_id);
     ///
     /// \brief creates a new Config object
-    explicit Config(std::shared_ptr<RuntimeSettings> rs);
-    explicit Config(std::shared_ptr<RuntimeSettings> rs, bool manager);
-    explicit Config(std::shared_ptr<RuntimeSettings> rs, bool manager, json config);
+    // explicit Config(std::shared_ptr<RuntimeSettings> rs);
+    // explicit Config(std::shared_ptr<RuntimeSettings> rs, bool manager);
+    explicit Config(std::shared_ptr<MQTTSettings> mqtt_settings, json config);
 
     ///
     /// \brief checks if the given \p module_id provides the requirement given in \p requirement_id
@@ -158,11 +250,6 @@ public:
     /// \brief checks if the config contains the given \p module_id
     ///
     bool contains(const std::string& module_id) const;
-
-    ///
-    /// \returns a json object that contains the main config
-    // FIXME (aw): this should be const and return the config by const ref!
-    json get_main_config();
 
     ///
     /// \returns a map of module config options
@@ -184,16 +271,8 @@ public:
     std::optional<TelemetryConfig> get_telemetry_config(const std::string& module_id);
 
     ///
-    /// \returns a json object that contains the manifests
-    const json& get_manifests();
-
-    ///
     /// \returns a json object that contains the available interfaces
     json get_interfaces();
-
-    ///
-    /// \returns a json object that contains the interface definitions
-    json get_interface_definitions();
 
     ///
     /// \returns a json object that contains the interface definition
@@ -239,8 +318,6 @@ public:
     /// otherwise
     ///
     void ref_loader(const json_uri& uri, json& schema);
-
-    json serialize();
 
     ///
     /// \brief loads the config.json and manifest.json in the schemes subfolder of

@@ -92,29 +92,40 @@ const auto TERMINAL_STYLE_ERROR = fmt::emphasis::bold | fg(fmt::terminal_color::
 const auto TERMINAL_STYLE_OK = fmt::emphasis::bold | fg(fmt::terminal_color::green);
 const auto TERMINAL_STYLE_BLUE = fmt::emphasis::bold | fg(fmt::terminal_color::blue);
 
-
 struct RuntimeSettings {
     fs::path prefix;
     fs::path etc_dir;
     fs::path data_dir;
+    fs::path modules_dir;
+    fs::path logging_config_file;
+    std::string telemetry_prefix;
+    bool telemetry_enabled;
+
+    bool validate_schema;
+
+    explicit RuntimeSettings(const fs::path& prefix, const fs::path& etc_dir, const fs::path& data_dir,
+                             const fs::path& modules_dir, const fs::path& logging_config_file,
+                             const std::string& telemetry_prefix, bool telemetry_enabled, bool validate_schema);
+
+    explicit RuntimeSettings(const nlohmann::json& json);
+};
+
+struct ManagerSettings {
+    fs::path prefix;
+    fs::path etc_dir;
+    fs::path data_dir;
+    fs::path logging_config_file;
+
     fs::path configs_dir;
     fs::path schemas_dir;
     fs::path modules_dir;
     fs::path interfaces_dir;
     fs::path types_dir;
     fs::path errors_dir;
-    fs::path logging_config_file;
     fs::path config_file;
     fs::path www_dir;
     int controller_port;
     int controller_rpc_timeout_ms;
-    std::string mqtt_broker_socket_path;
-    std::string mqtt_broker_host;
-    int mqtt_broker_port;
-    std::string mqtt_everest_prefix;
-    std::string mqtt_external_prefix;
-    std::string telemetry_prefix;
-    bool telemetry_enabled;
 
     std::string run_as_user;
 
@@ -124,9 +135,14 @@ struct RuntimeSettings {
 
     bool validate_schema;
 
-    explicit RuntimeSettings(const std::string& prefix, const std::string& config);
-    explicit RuntimeSettings(const std::string& prefix, nlohmann::json config);
-    void parse();
+    std::shared_ptr<MQTTSettings> mqtt_settings;
+
+    std::string telemetry_prefix;
+    bool telemetry_enabled;
+
+    ManagerSettings(const std::string& prefix, const std::string& config);
+
+    std::shared_ptr<RuntimeSettings> get_runtime_settings();
 };
 
 // NOTE: this function needs the be called with a pre-initialized ModuleInfo struct
@@ -168,7 +184,7 @@ private:
 
 public:
     explicit ModuleLoader(int argc, char* argv[], ModuleCallbacks callbacks) :
-        ModuleLoader(argc, argv, callbacks, {"undefined project", "undefined version", "undefined git version"}){};
+        ModuleLoader(argc, argv, callbacks, {"undefined project", "undefined version", "undefined git version"}) {};
     explicit ModuleLoader(int argc, char* argv[], ModuleCallbacks callbacks,
                           const VersionInformation version_information);
 
@@ -176,5 +192,29 @@ public:
 };
 
 } // namespace Everest
+
+NLOHMANN_JSON_NAMESPACE_BEGIN
+template <> struct adl_serializer<Everest::RuntimeSettings> {
+    static void to_json(nlohmann::json& j, const Everest::RuntimeSettings& r) {
+        j = {{"prefix", r.prefix},
+             {"etc_dir", r.etc_dir},
+             {"data_dir", r.data_dir},
+             {"modules_dir", r.modules_dir},
+             {"telemetry_prefix", r.telemetry_prefix},
+             {"telemetry_enabled", r.telemetry_enabled},
+             {"validate_schema", r.validate_schema}};
+    }
+
+    static void from_json(const nlohmann::json& j, Everest::RuntimeSettings& r) {
+        r.prefix = j.at("prefix").get<std::string>();
+        r.etc_dir = j.at("etc_dir").get<std::string>();
+        r.data_dir = j.at("data_dir").get<std::string>();
+        r.modules_dir = j.at("modules_dir").get<std::string>();
+        r.telemetry_prefix = j.at("telemetry_prefix").get<std::string>();
+        r.telemetry_enabled = j.at("telemetry_enabled").get<bool>();
+        r.validate_schema = j.at("validate_schema").get<bool>();
+    }
+};
+NLOHMANN_JSON_NAMESPACE_END
 
 #endif // FRAMEWORK_EVEREST_RUNTIME_HPP
