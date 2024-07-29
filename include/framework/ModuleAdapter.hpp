@@ -92,6 +92,7 @@ struct ModuleAdapter {
     using ExtMqttSubscribeFunc = std::function<UnsubscribeToken(const std::string&, StringHandler)>;
     using TelemetryPublishFunc =
         std::function<void(const std::string&, const std::string&, const std::string&, const TelemetryMap&)>;
+    using WatchdogFeedPublishFunc = std::function<void()>;
 
     CallFunc call;
     PublishFunc publish;
@@ -107,6 +108,7 @@ struct ModuleAdapter {
     ExtMqttSubscribeFunc ext_mqtt_subscribe;
     std::vector<cmd> registered_commands;
     TelemetryPublishFunc telemetry_publish;
+    WatchdogFeedPublishFunc watchdog_feed_publish;
 
     void check_complete() {
         // FIXME (aw): I should throw if some of my handlers are not set

@@ -210,18 +210,12 @@ void Everest::wait_for_main_loop_end() {
     this->main_loop_end.get();
 }
 
-void Everest::heartbeat() {
+void Everest::watchdog_feed_publish() {
     BOOST_LOG_FUNCTION();
-    const auto heartbeat_topic = fmt::format("{}/heartbeat", this->config.mqtt_module_prefix(this->module_id));
+    // const auto heartbeat_topic = fmt::format("{}/heartbeat", this->config.mqtt_module_prefix(this->module_id));
+    const auto watchdog_topic = "everest/watchdogs";
 
-    using namespace date;
-
-    while (this->ready_received) {
-        std::ostringstream now;
-        now << date::utc_clock::now();
-        this->mqtt_abstraction.publish(heartbeat_topic, json(now.str()), QOS::QOS0);
-        std::this_thread::sleep_for(std::chrono::seconds(1));
-    }
+    this->mqtt_abstraction.publish(watchdog_topic, this->module_id, QOS::QOS0);
 }
 
 void Everest::publish_metadata() {
@@ -814,9 +808,6 @@ void Everest::handle_ready(json data) {
         auto on_ready_handler = *on_ready;
         on_ready_handler();
     }
-
-    // TODO(kai): make heartbeat interval configurable, disable it completely until then
-    // this->heartbeat_thread = std::thread(&Everest::heartbeat, this);
 }
 
 void Everest::provide_cmd(const std::string impl_id, const std::string cmd_name, const JsonCommand handler) {
