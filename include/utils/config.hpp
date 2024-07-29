@@ -291,28 +291,6 @@ public:
     std::optional<Mapping> get_3_tier_model_mapping(const std::string& module_id, const std::string& impl_id);
 
     ///
-    /// \brief turns then given \p module_id into a printable identifier
-    ///
-    /// \returns a string with the printable identifier
-    std::string printable_identifier(const std::string& module_id) const;
-
-    ///
-    /// \brief turns then given \p module_id and \p impl_id into a printable identifier
-    ///
-    /// \returns a string with the printable identifier
-    std::string printable_identifier(const std::string& module_id, const std::string& impl_id) const;
-
-    ///
-    /// \brief turns the given \p module_id and \p impl_id into a mqtt prefix
-    ///
-    std::string mqtt_prefix(const std::string& module_id, const std::string& impl_id);
-
-    ///
-    /// \brief turns the given \p module_id into a mqtt prefix
-    ///
-    std::string mqtt_module_prefix(const std::string& module_id);
-
-    ///
     /// \brief A json schema loader that can handle type refs and otherwise uses the builtin draft7 schema of
     /// the json schema validator when it encounters it. Throws an exception
     /// otherwise

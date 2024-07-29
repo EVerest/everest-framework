@@ -1291,7 +1291,7 @@ void ManagerConfig::resolve_all_requirements() {
     EVLOG_debug << "All module requirements resolved successfully...";
 }
 
-void Config::parse_3_tier_model_mapping() {
+void ConfigBase::parse_3_tier_model_mapping() {
     for (auto& element : this->main.items()) {
         const auto& module_id = element.key();
         auto impl_info = this->extract_implementation_info(module_id);
