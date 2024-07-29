@@ -346,6 +346,11 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
         json serialized_mod_config = serialized_config;
         serialized_mod_config["module_config"] = json::object();
         serialized_mod_config["module_config"][module_name] = serialized_config.at("main").at(module_name);
+        auto mappings = config.get_3_tier_model_mappings(module_name);
+        if (mappings.has_value()) {
+            serialized_mod_config["mappings"] = json::object();
+            serialized_mod_config["mappings"][module_name] = mappings.value();
+        }
         serialized_mod_config.erase("main"); // FIXME: do not put this "main" config in there in the first place
         if (std::any_of(ignored_modules.begin(), ignored_modules.end(),
                         [module_name](const auto& element) { return element == module_name; })) {

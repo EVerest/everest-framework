@@ -95,7 +95,7 @@ protected: // or protected?
     void parse_3_tier_model_mapping();
 
 public:
-    ConfigBase(std::shared_ptr<MQTTSettings> mqtt_settings) : mqtt_settings(mqtt_settings){}; // virtual?
+    ConfigBase(std::shared_ptr<MQTTSettings> mqtt_settings) : mqtt_settings(mqtt_settings) {}; // virtual?
 
     ///
     /// \brief turns then given \p module_id into a printable identifier
@@ -145,6 +145,18 @@ public:
     ///
     /// \returns a json object that contains the schemas
     json get_error_types_map();
+
+    ///
+    /// \returns the 3 tier model mappings
+    std::unordered_map<std::string, ModuleTierMappings> get_3_tier_model_mappings();
+
+    //
+    /// \returns the 3 tier model mappings for the given \p module_id
+    std::optional<ModuleTierMappings> get_3_tier_model_mappings(const std::string& module_id);
+
+    //
+    /// \returns the 3 tier model mapping for the given \p module_id and \p impl_id
+    std::optional<Mapping> get_3_tier_model_mapping(const std::string& module_id, const std::string& impl_id);
 };
 
 class ManagerConfig : public ConfigBase {
@@ -277,18 +289,6 @@ public:
     ///
     /// \returns a json object that contains the interface definition
     json get_interface_definition(const std::string& interface_name);
-
-    ///
-    /// \returns the 3 tier model mappings
-    std::unordered_map<std::string, ModuleTierMappings> get_3_tier_model_mappings();
-
-    //
-    /// \returns the 3 tier model mappings for the given \p module_id
-    std::optional<ModuleTierMappings> get_3_tier_model_mappings(const std::string& module_id);
-
-    //
-    /// \returns the 3 tier model mapping for the given \p module_id and \p impl_id
-    std::optional<Mapping> get_3_tier_model_mapping(const std::string& module_id, const std::string& impl_id);
 
     ///
     /// \brief A json schema loader that can handle type refs and otherwise uses the builtin draft7 schema of

@@ -418,8 +418,8 @@ void Everest::publish_var(const std::string& impl_id, const std::string& var_nam
         EVLOG_info << "IMPLE intf: " << impl_intf;
 
         if (!module_manifest["provides"].contains(impl_id)) {
-            EVLOG_AND_THROW(EverestApiError(fmt::format("Implementation '{}' not declared in manifest of module '{}'!",
-                                                        impl_id, this->module_id)));
+            EVLOG_AND_THROW(EverestApiError(
+                fmt::format("Implementation '{}' not declared in manifest of module '{}'!", impl_id, this->module_id)));
         }
 
         if (!impl_intf["vars"].contains(var_name)) {
@@ -466,7 +466,8 @@ void Everest::subscribe_var(const Requirement& req, const std::string& var_name,
     auto requirement_module_id = connection["module_id"].get<std::string>();
     auto module_name = this->config.get_module_name(requirement_module_id);
     auto requirement_impl_id = connection["implementation_id"].get<std::string>();
-    auto requirement_impl_manifest = this->config.get_interface_definitions().at(this->config.get_interfaces()[module_name][requirement_impl_id]);
+    auto requirement_impl_manifest =
+        this->config.get_interface_definitions().at(this->config.get_interfaces()[module_name][requirement_impl_id]);
 
     if (!requirement_impl_manifest["vars"].contains(var_name)) {
         EVLOG_AND_THROW(EverestApiError(
@@ -523,7 +524,8 @@ void Everest::subscribe_error(const Requirement& req, const error::ErrorType& er
     std::string requirement_module_id = connection.at("module_id");
     std::string module_name = this->config.get_module_name(requirement_module_id);
     std::string requirement_impl_id = connection.at("implementation_id");
-    json requirement_impl_if = this->config.get_interface_definitions().at(this->config.get_interfaces().at(module_name).at(requirement_impl_id));
+    json requirement_impl_if = this->config.get_interface_definitions().at(
+        this->config.get_interfaces().at(module_name).at(requirement_impl_id));
 
     // check if requirement is allowed to publish this error_type
     // split error_type at '/'

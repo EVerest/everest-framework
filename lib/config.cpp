@@ -25,7 +25,7 @@ public:
         SCHEMA
     };
     ConfigParseException(ParseErrorType err_t, const std::string& entry, const std::string& what = "") :
-        err_t(err_t), entry(entry), what(what){};
+        err_t(err_t), entry(entry), what(what) {};
 
     const ParseErrorType err_t;
     const std::string entry;
@@ -468,6 +468,10 @@ Config::Config(std::shared_ptr<MQTTSettings> mqtt_settings, json serialized_conf
     this->errors = serialized_config.value("errors", json({}));
     this->module_names = serialized_config.at("module_names");
     this->module_config_cache = serialized_config.at("module_config_cache");
+    if (serialized_config.contains("mappings") and !serialized_config.at("mappings").is_null()) {
+        this->tier_mappings = serialized_config.at("mappings");
+    }
+
     // this->_schemas = serialized_config.at("schemas");
     this->_schemas =
         serialized_config.at("schemas"); // Config::load_schemas(this->rs->schemas_dir); // FIXME: get this via mqtt
@@ -916,18 +920,18 @@ json Config::get_interface_definition(const std::string& interface_name) {
     return this->interface_definitions.value(interface_name, json());
 }
 
-std::unordered_map<std::string, ModuleTierMappings> Config::get_3_tier_model_mappings() {
+std::unordered_map<std::string, ModuleTierMappings> ConfigBase::get_3_tier_model_mappings() {
     return this->tier_mappings;
 }
 
-std::optional<ModuleTierMappings> Config::get_3_tier_model_mappings(const std::string& module_id) {
+std::optional<ModuleTierMappings> ConfigBase::get_3_tier_model_mappings(const std::string& module_id) {
     if (this->tier_mappings.find(module_id) == this->tier_mappings.end()) {
         return std::nullopt;
     }
     return this->tier_mappings.at(module_id);
 }
 
-std::optional<Mapping> Config::get_3_tier_model_mapping(const std::string& module_id, const std::string& impl_id) {
+std::optional<Mapping> ConfigBase::get_3_tier_model_mapping(const std::string& module_id, const std::string& impl_id) {
     auto module_tier_mappings = this->get_3_tier_model_mappings(module_id);
     if (not module_tier_mappings.has_value()) {
         return std::nullopt;

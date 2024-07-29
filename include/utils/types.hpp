@@ -139,6 +139,35 @@ template <> struct adl_serializer<Mapping> {
         return m;
     }
 };
+template <> struct adl_serializer<ModuleTierMappings> {
+    static void to_json(json& j, const ModuleTierMappings& m) {
+        if (m.module.has_value()) {
+            j = {{"module", m.module.value()}};
+        }
+        if (m.implementations.size() > 0) {
+            j["implementations"] = json::object();
+            for (auto& impl_mapping : m.implementations) {
+                if (impl_mapping.second.has_value()) {
+                    j["implementations"][impl_mapping.first] = impl_mapping.second.value();
+                }
+            }
+        }
+    }
+    static ModuleTierMappings from_json(const json& j) {
+        ModuleTierMappings m;
+        if (!j.is_null()) {
+            if (j.contains("module")) {
+                m.module = j.at("module");
+            }
+            if (j.contains("implementations")) {
+                for (auto& impl : j.at("implementations").items()) {
+                    m.implementations[impl.key()] = impl.value();
+                }
+            }
+        }
+        return m;
+    }
+};
 NLOHMANN_JSON_NAMESPACE_END
 
 #define EVCALLBACK(function) [](auto&& PH1) { function(std::forward<decltype(PH1)>(PH1)); }
