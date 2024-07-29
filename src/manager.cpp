@@ -379,7 +379,7 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
         // FIXME (aw): shall create a ref to main_confit.at(module_name)!
         std::string module_type = main_config[module_name]["module"];
         // FIXME (aw): implicitely adding ModuleReadyInfo and setting its ready member
-        auto module_it = modules_ready.emplace(module_name, ModuleReadyInfo{false, nullptr}).first;
+        auto module_it = modules_ready.emplace(module_name, ModuleReadyInfo{false, nullptr, nullptr}).first;
 
         const auto capabilities = [&module_config = main_config.at(module_name)]() {
             const auto cap_it = module_config.find("capabilities");

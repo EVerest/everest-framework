@@ -529,7 +529,7 @@ void Everest::subscribe_error(const Requirement& req, const error::ErrorType& er
 
     // check if requirement is allowed to publish this error_type
     // split error_type at '/'
-    int pos = error_type.find('/');
+    size_t pos = error_type.find('/');
     if (pos == std::string::npos) {
         EVLOG_error << fmt::format("Error type {} is not valid, ignore subscription", error_type);
         return;

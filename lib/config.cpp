@@ -560,8 +560,6 @@ void ManagerConfig::parse(json config) {
     }
 
     if (probe_module_id) {
-        auto& manifest = this->manifests["ProbeModule"];
-
         setup_probe_module_manifest(*probe_module_id, this->main, this->manifests);
 
         load_and_validate_manifest(*probe_module_id, this->main.at(*probe_module_id));
@@ -796,7 +794,7 @@ std::list<Requirement> Config::get_requirements(const std::string& module_id) co
             Requirement req(req_id, 0);
             res.push_back(req);
         } else {
-            for (int i = 0; i < resolved_req.size(); i++) {
+            for (size_t i = 0; i < resolved_req.size(); i++) {
                 Requirement req(req_id, i);
                 res.push_back(req);
             }
