@@ -112,7 +112,9 @@ mod ffi {
         include!("everestrs/src/everestrs_sys.hpp");
 
         type Module;
-        fn create_module(module_id: &str, prefix: &str, conf: &str) -> UniquePtr<Module>;
+        fn create_module(module_id: &str, prefix: &str, log_config: &str, mqtt_broker_socket_path: &str, mqtt_broker_host: &str,
+             mqtt_broker_port: &str,  mqtt_everest_prefix: &str,
+             mqtt_external_prefix: &str) -> SharedPtr<Module>;
 
         /// Connects to the message broker and launches the main everest thread to push work
         /// forward. Returns the module manifest.
@@ -162,14 +164,12 @@ mod ffi {
         fn get_log_level(self: &Module) -> i32;
 
         /// Returns the module config from cpp.
-        fn get_module_configs(module_id: &str, prefix: &str, conf: &str) -> Vec<RsModuleConfig>;
+        fn get_module_configs(module_id: &str) -> Vec<RsModuleConfig>;
 
         /// Returns the `connections` block defined in the `config.yaml` for
         /// the current module.
         fn get_module_connections(
-            module_id: &str,
-            prefix: &str,
-            conf: &str,
+            module_id: &str
         ) -> Vec<RsModuleConnections>;
 
         /// Logging sink for the EVerest module.
@@ -263,19 +263,42 @@ unsafe impl Send for ffi::Module {}
 /// Arguments for an EVerest node.
 #[derive(FromArgs, Debug)]
 struct Args {
+    /// TODO: add version param
+
     /// prefix of installation.
     #[argh(option)]
     #[allow(unused)]
     pub prefix: PathBuf,
 
-    /// configuration yml that we are running.
+    /// logging configuration yml that we are using.
     #[argh(option)]
     #[allow(unused)]
-    pub conf: PathBuf,
+    pub log_config: PathBuf,
 
     /// module name for us.
     #[argh(option)]
     pub module: String,
+
+    /// MQTT broker socket path
+    #[argh(option)]
+    #[allow(unused)]
+    pub mqtt_broker_socket_path: PathBuf,
+
+    /// MQTT broker hostname
+    #[argh(option)]
+    pub mqtt_broker_host: String,
+
+    /// MQTT broker port
+    #[argh(option)]
+    pub mqtt_broker_port: String, // TODO: int?
+
+    /// MQTT EVerest prefix
+    #[argh(option)]
+    pub mqtt_everest_prefix: String,
+
+    /// MQTT external prefix
+    #[argh(option)]
+    pub mqtt_external_prefix: String,
 }
 
 /// Implements the handling of commands & variables, but has no specific information about the
@@ -312,7 +335,7 @@ pub trait Subscriber: Sync + Send {
 /// code the `Subscriber` might take ownership of the [Runtime] - the weak
 /// ownership hence is necessary to break possible ownership cycles.
 pub struct Runtime {
-    cpp_module: cxx::UniquePtr<ffi::Module>,
+    cpp_module: cxx::SharedPtr<ffi::Module>,
     sub_impl: RwLock<Option<Weak<dyn Subscriber>>>,
 }
 
@@ -398,7 +421,12 @@ impl Runtime {
         let cpp_module = ffi::create_module(
             &args.module,
             &args.prefix.to_string_lossy(),
-            &args.conf.to_string_lossy(),
+            &args.log_config.to_string_lossy(),
+            &args.mqtt_broker_socket_path.to_string_lossy(),
+            &args.mqtt_broker_host,
+            &args.mqtt_broker_port,
+            &args.mqtt_everest_prefix,
+            &args.mqtt_external_prefix,
         );
 
         logger::Logger::init_logger(&cpp_module);
@@ -508,9 +536,7 @@ impl TryFrom<&Config> for i64 {
 pub fn get_module_configs() -> HashMap<String, HashMap<String, Config>> {
     let args: Args = argh::from_env();
     let raw_config = ffi::get_module_configs(
-        &args.module,
-        &args.prefix.to_string_lossy(),
-        &args.conf.to_string_lossy(),
+        &args.module
     );
 
     // Convert the nested Vec's into nested HashMaps.
@@ -546,9 +572,7 @@ pub fn get_module_configs() -> HashMap<String, HashMap<String, Config>> {
 pub fn get_module_connections() -> HashMap<String, usize> {
     let args: Args = argh::from_env();
     let raw_connections = ffi::get_module_connections(
-        &args.module,
-        &args.prefix.to_string_lossy(),
-        &args.conf.to_string_lossy(),
+        &args.module
     );
 
     raw_connections
