@@ -66,19 +66,9 @@ RuntimeSession::RuntimeSession(const std::string& prefix, const std::string& con
     EVLOG_info << "called the old RuntimeSession ctor";
 }
 
-// old ctor
-// RuntimeSession::RuntimeSession() : RuntimeSession(get_ev_prefix_from_env(), get_ev_conf_file_from_env()) {
-// }
-
 RuntimeSession::RuntimeSession() {
     auto module_id = get_ev_module_from_env();
 
-    // TODO: get the rest of the parameters from env
-
-    EVLOG_info << "new RuntimeSession ctor: " << module_id;
-    ;
-
-    // FIXME: proper logging path...
     namespace fs = std::filesystem;
     fs::path logging_config_file = Everest::assert_file(get_ev_log_conf_file_from_env(), "Default logging config");
     Everest::Logging::init(logging_config_file.string(), module_id);

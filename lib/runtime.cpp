@@ -398,7 +398,7 @@ ModuleLoader::ModuleLoader(int argc, char* argv[], ModuleCallbacks callbacks,
 
 int ModuleLoader::initialize() {
     Logging::init(this->logging_config_file.string(), this->module_id);
-    // TODO: make initial connection to manager here to receive config
+
     auto start_time = std::chrono::system_clock::now();
 
     auto result = ModuleConfig::get_config(this->mqtt_settings, this->module_id);

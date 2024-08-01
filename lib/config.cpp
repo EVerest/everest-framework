@@ -298,8 +298,7 @@ void ManagerConfig::load_and_validate_manifest(const std::string& module_id, con
         EVLOG_debug << fmt::format("Loading interface for implementation: {}", impl_id);
         auto intf_name = this->manifests[module_name]["provides"][impl_id]["interface"].get<std::string>();
         auto seen_interfaces = std::set<std::string>();
-        // this->interfaces[module_name][impl_id] = resolve_interface(intf_name);
-        this->interfaces[module_name][impl_id] = intf_name; // FIXME
+        this->interfaces[module_name][impl_id] = intf_name;
         resolve_interface(intf_name);
         this->module_config_cache[module_name].cmds[impl_id] = this->interface_definitions.at(intf_name).at("cmds");
     }
@@ -575,8 +574,7 @@ void ManagerConfig::parse(json config) {
     resolve_all_requirements();
     parse_3_tier_model_mapping();
 
-    // cleanup "descriptions" from config
-    // TODO: move this into its own function...
+    // TODO: cleanup "descriptions" from config ?
 }
 
 json ManagerConfig::serialize() {
