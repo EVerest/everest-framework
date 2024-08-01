@@ -13,6 +13,23 @@ MQTTAbstraction::MQTTAbstraction(const std::string& mqtt_server_socket_path, con
     if (mqtt_server_socket_path.empty()) {
         mqtt_abstraction = std::make_unique<MQTTAbstractionImpl>(mqtt_server_address, mqtt_server_port,
                                                                  mqtt_everest_prefix, mqtt_external_prefix);
+MQTTSettings::MQTTSettings(const std::string& mqtt_broker_socket_path, const std::string& mqtt_everest_prefix,
+                           const std::string& mqtt_external_prefix) :
+    mqtt_broker_socket_path(mqtt_broker_socket_path),
+    mqtt_everest_prefix(mqtt_everest_prefix),
+    mqtt_external_prefix(mqtt_external_prefix),
+    socket(true) {
+}
+
+MQTTSettings::MQTTSettings(const std::string& mqtt_broker_host, int mqtt_broker_port,
+                           const std::string& mqtt_everest_prefix, const std::string& mqtt_external_prefix) :
+    mqtt_broker_host(mqtt_broker_host),
+    mqtt_broker_port(mqtt_broker_port),
+    mqtt_everest_prefix(mqtt_everest_prefix),
+    mqtt_external_prefix(mqtt_external_prefix),
+    socket(false) {
+}
+
     } else {
         mqtt_abstraction =
             std::make_unique<MQTTAbstractionImpl>(mqtt_server_socket_path, mqtt_everest_prefix, mqtt_external_prefix);

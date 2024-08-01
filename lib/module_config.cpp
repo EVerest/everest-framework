@@ -67,23 +67,6 @@ std::string get_prefixed_path_from_json(const nlohmann::json& value, const fs::p
     return settings_configs_dir;
 }
 
-MQTTSettings::MQTTSettings(const std::string& mqtt_broker_socket_path, const std::string& mqtt_everest_prefix,
-                           const std::string& mqtt_external_prefix) :
-    mqtt_broker_socket_path(mqtt_broker_socket_path),
-    mqtt_everest_prefix(mqtt_everest_prefix),
-    mqtt_external_prefix(mqtt_external_prefix),
-    socket(true) {
-}
-
-MQTTSettings::MQTTSettings(const std::string& mqtt_broker_host, int mqtt_broker_port,
-                           const std::string& mqtt_everest_prefix, const std::string& mqtt_external_prefix) :
-    mqtt_broker_host(mqtt_broker_host),
-    mqtt_broker_port(mqtt_broker_port),
-    mqtt_everest_prefix(mqtt_everest_prefix),
-    mqtt_external_prefix(mqtt_external_prefix),
-    socket(false) {
-}
-
 json ModuleConfig::get_config(std::shared_ptr<MQTTSettings> mqtt_settings, const std::string& module_id) {
     // TODO: make initial connection to manager here to receive config
     auto mqtt =
