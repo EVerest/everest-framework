@@ -732,10 +732,7 @@ int boot(const po::variables_map& vm) {
     // create StatusFifo object
     auto status_fifo = StatusFifo::create_from_path(vm["status-fifo"].as<std::string>());
 
-    auto mqtt_abstraction =
-        MQTTAbstraction(ms->mqtt_settings->mqtt_broker_socket_path, ms->mqtt_settings->mqtt_broker_host,
-                        std::to_string(ms->mqtt_settings->mqtt_broker_port), ms->mqtt_settings->mqtt_everest_prefix,
-                        ms->mqtt_settings->mqtt_external_prefix);
+    auto mqtt_abstraction = MQTTAbstraction(ms->mqtt_settings);
 
     if (!mqtt_abstraction.connect()) {
         if (ms->mqtt_settings->mqtt_broker_socket_path.empty()) {

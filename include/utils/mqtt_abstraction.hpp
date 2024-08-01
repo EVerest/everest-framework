@@ -41,9 +41,8 @@ struct MQTTSettings {
 ///
 class MQTTAbstraction {
 public:
-    MQTTAbstraction(const std::string& mqtt_server_socket_path, const std::string& mqtt_server_address,
-                    const std::string& mqtt_server_port, const std::string& mqtt_everest_prefix,
-                    const std::string& mqtt_external_prefix);
+    /// \brief Create a MQTTAbstraction with the provideded \p mqtt_settings
+    MQTTAbstraction(const std::shared_ptr<MQTTSettings> mqtt_settings);
 
     // forbid copy assignment and copy construction
     MQTTAbstraction(MQTTAbstraction const&) = delete;

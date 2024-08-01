@@ -924,10 +924,8 @@ static Napi::Value boot_module(const Napi::CallbackInfo& info) {
         module_this.DefineProperty(Napi::PropertyDescriptor::Value("info", module_info_prop, napi_enumerable));
 
         // connect to mqtt server and start mqtt mainloop thread
-        auto everest_handle = std::make_unique<Everest::Everest>(
-            module_id, *config, validate_schema, mqtt_settings->mqtt_broker_socket_path,
-            mqtt_settings->mqtt_broker_host, mqtt_settings->mqtt_broker_port, mqtt_settings->mqtt_everest_prefix,
-            mqtt_settings->mqtt_external_prefix, rs->telemetry_prefix, rs->telemetry_enabled);
+        auto everest_handle = std::make_unique<Everest::Everest>(module_id, *config, validate_schema, mqtt_settings,
+                                                                 rs->telemetry_prefix, rs->telemetry_enabled);
 
         ctx = new EvModCtx(std::move(everest_handle), module_manifest, env);
 

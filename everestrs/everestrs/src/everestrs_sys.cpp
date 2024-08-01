@@ -78,11 +78,9 @@ Module::Module(const std::string& module_id, const std::string& prefix, const st
 
     config_ = std::make_shared<Everest::Config>(this->mqtt_settings_, result);
 
-    handle_ = std::make_unique<Everest::Everest>(
-        this->module_id_, *this->config_, this->rs_->validate_schema, this->mqtt_settings_->mqtt_broker_socket_path,
-        this->mqtt_settings_->mqtt_broker_host, this->mqtt_settings_->mqtt_broker_port,
-        this->mqtt_settings_->mqtt_everest_prefix, this->mqtt_settings_->mqtt_external_prefix,
-        this->rs_->telemetry_prefix, this->rs_->telemetry_enabled);
+    handle_ = std::make_unique<Everest::Everest>(this->module_id_, *this->config_, this->rs_->validate_schema,
+                                                 this->mqtt_settings_, this->rs_->telemetry_prefix,
+                                                 this->rs_->telemetry_enabled);
 }
 
 std::shared_ptr<Everest::Config> Module::get_config() const {
@@ -150,9 +148,9 @@ std::shared_ptr<Module> create_module(rust::Str module_name, rust::Str prefix, r
             std::string(mqtt_broker_host), std::stoi(std::string(mqtt_broker_port)), std::string(mqtt_everest_prefix),
             std::string(mqtt_external_prefix));
     }
-    mod = std::make_shared<Module>(std::string(module_name), std::string(prefix), std::string(log_config),
-                                    mqtt_settings);
-                                    return mod;
+    mod =
+        std::make_shared<Module>(std::string(module_name), std::string(prefix), std::string(log_config), mqtt_settings);
+    return mod;
 }
 
 rust::Vec<RsModuleConfig> get_module_configs(rust::Str module_id) {

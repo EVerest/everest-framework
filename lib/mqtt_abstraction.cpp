@@ -6,13 +6,7 @@
 #include <utils/mqtt_abstraction_impl.hpp>
 
 namespace Everest {
-MQTTAbstraction::MQTTAbstraction(const std::string& mqtt_server_socket_path, const std::string& mqtt_server_address,
-                                 const std::string& mqtt_server_port, const std::string& mqtt_everest_prefix,
-                                 const std::string& mqtt_external_prefix) {
-    EVLOG_debug << "initialized mqtt_abstraction";
-    if (mqtt_server_socket_path.empty()) {
-        mqtt_abstraction = std::make_unique<MQTTAbstractionImpl>(mqtt_server_address, mqtt_server_port,
-                                                                 mqtt_everest_prefix, mqtt_external_prefix);
+
 MQTTSettings::MQTTSettings(const std::string& mqtt_broker_socket_path, const std::string& mqtt_everest_prefix,
                            const std::string& mqtt_external_prefix) :
     mqtt_broker_socket_path(mqtt_broker_socket_path),
@@ -30,9 +24,15 @@ MQTTSettings::MQTTSettings(const std::string& mqtt_broker_host, int mqtt_broker_
     socket(false) {
 }
 
+MQTTAbstraction::MQTTAbstraction(const std::shared_ptr<MQTTSettings> mqtt_settings) {
+    if (mqtt_settings->socket) {
+        mqtt_abstraction = std::make_unique<MQTTAbstractionImpl>(mqtt_settings->mqtt_broker_socket_path,
+                                                                 mqtt_settings->mqtt_everest_prefix,
+                                                                 mqtt_settings->mqtt_external_prefix);
     } else {
-        mqtt_abstraction =
-            std::make_unique<MQTTAbstractionImpl>(mqtt_server_socket_path, mqtt_everest_prefix, mqtt_external_prefix);
+        mqtt_abstraction = std::make_unique<MQTTAbstractionImpl>(
+            mqtt_settings->mqtt_broker_host, std::to_string(mqtt_settings->mqtt_broker_port),
+            mqtt_settings->mqtt_everest_prefix, mqtt_settings->mqtt_external_prefix);
     }
 }
 

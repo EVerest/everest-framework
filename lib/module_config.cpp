@@ -68,10 +68,7 @@ std::string get_prefixed_path_from_json(const nlohmann::json& value, const fs::p
 }
 
 json ModuleConfig::get_config(std::shared_ptr<MQTTSettings> mqtt_settings, const std::string& module_id) {
-    // TODO: make initial connection to manager here to receive config
-    auto mqtt =
-        MQTTAbstraction(mqtt_settings->mqtt_broker_socket_path, mqtt_settings->mqtt_broker_host,
-                        std::to_string(mqtt_settings->mqtt_broker_port), mqtt_settings->mqtt_everest_prefix, "");
+    auto mqtt = MQTTAbstraction(mqtt_settings);
     if (not mqtt.connect()) {
         EVLOG_error << "Could not connect";
         return 0; // shouldn't this be an error code?
