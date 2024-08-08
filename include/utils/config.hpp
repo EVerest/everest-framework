@@ -130,6 +130,10 @@ public:
     json get_main_config();
 
     ///
+    /// \brief checks if the config contains the given \p module_id
+    bool contains(const std::string& module_id) const;
+
+    ///
     /// \returns a json object that contains the manifests
     const json& get_manifests();
 
@@ -265,10 +269,6 @@ public:
     ///
     /// \returns a list of Requirements for \p module_id
     std::list<Requirement> get_requirements(const std::string& module_id) const;
-
-    ///
-    /// \brief checks if the config contains the given \p module_id
-    bool contains(const std::string& module_id) const;
 
     ///
     /// \returns a map of module config options

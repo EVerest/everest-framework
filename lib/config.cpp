@@ -798,7 +798,7 @@ std::list<Requirement> Config::get_requirements(const std::string& module_id) co
     return res;
 }
 
-bool Config::contains(const std::string& module_id) const {
+bool ConfigBase::contains(const std::string& module_id) const {
     BOOST_LOG_FUNCTION();
     return this->main.contains(module_id);
 }
