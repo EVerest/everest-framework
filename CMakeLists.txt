@@ -28,6 +28,13 @@ ev_setup_python_executable(
     PYTHON_VENV_PATH ${${PROJECT_NAME}_PYTHON_VENV_PATH}
 )
 
+if((${CMAKE_PROJECT_NAME} STREQUAL ${PROJECT_NAME} OR ${PROJECT_NAME}_BUILD_TESTING) AND BUILD_TESTING)
+    set(EVEREST_FRAMEWORK_BUILD_TESTING ON)
+    evc_include(CodeCoverage)
+
+    append_coverage_compiler_flags()
+endif()
+
 # make own cmake modules available
 list(INSERT CMAKE_MODULE_PATH 0 "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
@@ -166,7 +173,7 @@ endif ()
 
 # testing
 # FIXME (aw): move testing logic into tests/CMakeLists.txt
-if((${CMAKE_PROJECT_NAME} STREQUAL ${PROJECT_NAME} OR ${PROJECT_NAME}_BUILD_TESTING) AND BUILD_TESTING)
+if(EVEREST_FRAMEWORK_BUILD_TESTING)
     if(NOT DISABLE_EDM)
         list(APPEND CMAKE_MODULE_PATH ${CPM_PACKAGE_catch2_SOURCE_DIR}/extras)
     endif()
@@ -175,18 +182,21 @@ if((${CMAKE_PROJECT_NAME} STREQUAL ${PROJECT_NAME} OR ${PROJECT_NAME}_BUILD_TEST
 
     add_subdirectory(tests)
 
+    set(GCOVR_ADDITIONAL_ARGS "${PROJECT_SOURCE_DIR}" "--gcov-ignore-errors=all")
     setup_target_for_coverage_gcovr_html(
         NAME ${PROJECT_NAME}_gcovr_coverage
         EXECUTABLE ctest --output-on-failure
-        EXCLUDE "${CMAKE_SOURCE_DIR}/tests" "${CMAKE_BINARY_DIR}"
-        DEPENDENCIES tests everest
+        BASE_DIRECTORY "${PROJECT_SOURCE_DIR}"
+        DEPENDENCIES ${PROJECT_NAME}_tests everest::framework
+        EXCLUDE "${CMAKE_SOURCE_DIR}/tests" "${CMAKE_BINARY_DIR}/*" "${CPM_SOURCE_CACHE}"
     )
 
     setup_target_for_coverage_lcov(
         NAME ${PROJECT_NAME}_lcov_coverage
         EXECUTABLE ctest --output-on-failure
-        EXCLUDE "${CMAKE_SOURCE_DIR}/tests" "${CMAKE_BINARY_DIR}"
-        DEPENDENCIES tests everest
+        DEPENDENCIES ${PROJECT_NAME}_tests everest::framework
+        EXCLUDE "${CMAKE_BINARY_DIR}"
+        LCOV_ARGS "--no-external" "--ignore-errors=inconsistent,source,gcov"
     )
 else()
     message(STATUS "Not running unit tests")
