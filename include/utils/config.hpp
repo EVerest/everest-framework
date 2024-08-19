@@ -95,7 +95,7 @@ protected:
 public:
     ///
     /// \brief Create a ConfigBase with the provided \p mqtt_settings
-    ConfigBase(std::shared_ptr<MQTTSettings> mqtt_settings) : mqtt_settings(mqtt_settings) {};
+    ConfigBase(std::shared_ptr<MQTTSettings> mqtt_settings) : mqtt_settings(mqtt_settings){};
 
     ///
     /// \brief turns then given \p module_id into a printable identifier
