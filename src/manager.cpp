@@ -369,7 +369,9 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
         }
         serialized_mod_config.erase("main"); // FIXME: do not put this "main" config in there in the first place
         auto telemetry_config = config.get_telemetry_config(module_name);
-        serialized_mod_config["telemetry_config"] = telemetry_config.value_or(json::object());
+        if (telemetry_config.has_value()) {
+            serialized_mod_config["telemetry_config"] = telemetry_config.value();
+        }
         if (std::any_of(ignored_modules.begin(), ignored_modules.end(),
                         [module_name](const auto& element) { return element == module_name; })) {
             EVLOG_info << fmt::format("Ignoring module: {}", module_name);

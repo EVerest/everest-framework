@@ -566,7 +566,10 @@ void ManagerConfig::parse(json config) {
         auto& module_config = element.value();
         std::string module_name = module_config.at("module");
         if (module_config.contains("telemetry")) {
-            this->telemetry_configs[module_id].emplace(TelemetryConfig{module_config.at("telemetry").at("id")});
+            const auto& telemetry = module_config.at("telemetry");
+            if (telemetry.contains("id")) {
+                this->telemetry_configs[module_id].emplace(TelemetryConfig{telemetry.at("id").get<int>()});
+            }
         }
     }
 
@@ -1106,7 +1109,7 @@ std::optional<TelemetryConfig> ManagerConfig::get_telemetry_config(const std::st
     BOOST_LOG_FUNCTION();
 
     if (this->telemetry_configs.find(module_id) == this->telemetry_configs.end()) {
-        return {};
+        return std::nullopt;
     }
 
     return this->telemetry_configs.at(module_id);
