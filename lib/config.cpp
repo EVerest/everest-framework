@@ -425,7 +425,6 @@ ManagerConfig::ManagerConfig(std::shared_ptr<ManagerSettings> ms) : ConfigBase(m
             EVLOG_verbose << "No user-config provided.";
         }
 
-
         json_validator validator(Config::loader, Config::format_checker);
         validator.set_root_schema(this->_schemas.config);
         auto patch = validator.validate(complete_config);
