@@ -452,7 +452,6 @@ ManagerConfig::ManagerConfig(std::shared_ptr<ManagerSettings> ms) : ConfigBase(m
     }
 }
 
-// FIXME do not put another json type into a constructor here...
 Config::Config(std::shared_ptr<MQTTSettings> mqtt_settings, json serialized_config) : ConfigBase(mqtt_settings) {
     this->main = serialized_config.value("module_config", json({}));
     this->manifests = serialized_config.value("manifests", json({}));
