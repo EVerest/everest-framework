@@ -265,9 +265,7 @@ void ManagerConfig::load_and_validate_manifest(const std::string& module_id, con
 
     // validate user-defined default values for the config meta-schemas
     try {
-        if (manager) {
-            validate_config_schema(this->manifests[module_name]["config"]);
-        }
+        validate_config_schema(this->manifests[module_name]["config"]);
     } catch (const std::exception& e) {
         EVLOG_AND_THROW(EverestConfigError(
             fmt::format("Failed to validate the module configuration meta-schema for module '{}'. Reason:\n{}",
@@ -276,9 +274,7 @@ void ManagerConfig::load_and_validate_manifest(const std::string& module_id, con
 
     for (auto& impl : this->manifests[module_name]["provides"].items()) {
         try {
-            if (manager) {
-                validate_config_schema(impl.value()["config"]);
-            }
+            validate_config_schema(impl.value()["config"]);
         } catch (const std::exception& e) {
             EVLOG_AND_THROW(
                 EverestConfigError(fmt::format("Failed to validate the implementation configuration meta-schema "
@@ -413,9 +409,7 @@ ManagerConfig::ManagerConfig(std::shared_ptr<ManagerSettings> ms) : ConfigBase(m
     fs::path config_path = ms->config_file;
 
     try {
-        if (manager) {
-            EVLOG_info << fmt::format("Loading config file at: {}", fs::canonical(config_path).string());
-        }
+        EVLOG_info << fmt::format("Loading config file at: {}", fs::canonical(config_path).string());
         auto complete_config = load_yaml(config_path);
         // try to load user config from a directory "user-config" that might be in the same parent directory as the
         // config_file. The config is supposed to have the same name as the parent config.
@@ -423,15 +417,14 @@ ManagerConfig::ManagerConfig(std::shared_ptr<ManagerSettings> ms) : ConfigBase(m
         // TODO(kai): or should we introduce a "meta-config" that references all configs that should be merged here?
         auto user_config_path = config_path.parent_path() / "user-config" / config_path.filename();
         if (fs::exists(user_config_path)) {
-            if (manager) {
-                EVLOG_info << fmt::format("Loading user-config file at: {}", fs::canonical(user_config_path).string());
-            }
+            EVLOG_info << fmt::format("Loading user-config file at: {}", fs::canonical(user_config_path).string());
             auto user_config = load_yaml(user_config_path);
             EVLOG_debug << "Augmenting main config with user-config entries";
             complete_config.merge_patch(user_config);
         } else {
             EVLOG_verbose << "No user-config provided.";
         }
+
 
         json_validator validator(Config::loader, Config::format_checker);
         validator.set_root_schema(this->_schemas.config);
@@ -444,7 +437,6 @@ ManagerConfig::ManagerConfig(std::shared_ptr<ManagerSettings> ms) : ConfigBase(m
         auto config = complete_config.at("active_modules");
         this->settings = *ms->get_runtime_settings();
         this->parse(config);
-
     } catch (const std::exception& e) {
         EVLOG_AND_THROW(EverestConfigError(fmt::format("Failed to load and parse config file: {}", e.what())));
     }

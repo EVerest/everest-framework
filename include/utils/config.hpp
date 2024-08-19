@@ -175,7 +175,6 @@ public:
 
 class ManagerConfig : public ConfigBase {
 private:
-    bool manager = false;
     std::shared_ptr<ManagerSettings> ms;
     std::unordered_map<std::string, std::optional<TelemetryConfig>> telemetry_configs;
 
@@ -243,7 +242,6 @@ public:
 class Config : public ConfigBase {
 private:
     std::shared_ptr<RuntimeSettings> rs;
-    bool manager;
 
     std::optional<TelemetryConfig> telemetry_config;
 
