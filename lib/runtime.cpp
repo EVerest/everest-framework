@@ -413,8 +413,6 @@ int ModuleLoader::initialize() {
     }
 
     auto& rs = this->runtime_settings;
-    // FIXME: get this logging_config_file from command line since we cannot re-init later!
-    // Logging::init(rs->logging_config_file.string(), this->module_id);
     try {
         Config config = Config(this->mqtt_settings, result);
         auto config_instantiation_time = std::chrono::system_clock::now();
@@ -429,7 +427,7 @@ int ModuleLoader::initialize() {
         }
 
         const std::string module_identifier = config.printable_identifier(this->module_id);
-        EVLOG_info << fmt::format("Initializing framework for module {}...", module_identifier);
+        EVLOG_debug << fmt::format("Initializing framework for module {}...", module_identifier);
         EVLOG_verbose << fmt::format("Setting process name to: '{}'...", module_identifier);
         int prctl_return = prctl(PR_SET_NAME, module_identifier.c_str());
         if (prctl_return == 1) {
@@ -442,7 +440,7 @@ int ModuleLoader::initialize() {
                                rs->telemetry_enabled);
 
         // module import
-        EVLOG_info << fmt::format("Initializing module {}...", module_identifier);
+        EVLOG_debug << fmt::format("Initializing module {}...", module_identifier);
 
         if (!everest.connect()) {
             if (this->mqtt_settings->mqtt_broker_socket_path.empty()) {
@@ -674,8 +672,6 @@ bool ModuleLoader::parse_command_line(int argc, char* argv[]) {
         this->logging_config_file = assert_file(default_logging_config_file, "Default logging config");
     }
 
-    this->prefix_opt = parse_string_option(vm, "prefix");
-    this->config_opt = parse_string_option(vm, "config");
     this->original_process_name = argv[0];
 
     if (vm.count("module") != 0) {

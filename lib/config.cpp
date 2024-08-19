@@ -91,7 +91,6 @@ static ParsedConfigMap parse_config_map(const json& config_map_schema, const jso
         json_validator validator(Config::loader, Config::format_checker);
         validator.set_root_schema(config_entry);
         try {
-            // EVLOG_info << "parse_config_map";
             auto patch = validator.validate(config_entry_value);
             if (!patch.is_null()) {
                 // extend config entry with default values
@@ -254,7 +253,6 @@ void ManagerConfig::load_and_validate_manifest(const std::string& module_id, con
 
         json_validator validator(Config::loader, Config::format_checker);
         validator.set_root_schema(this->_schemas.manifest);
-        // EVLOG_info << "load_and_validate_manifest: " << module_id;
         auto patch = validator.validate(this->manifests[module_name]);
         if (!patch.is_null()) {
             // extend manifest with default values
@@ -681,7 +679,6 @@ json ManagerConfig::load_interface_file(const std::string& intf_name) {
         // --> validating against draft-07 will be done in an extra step below
         json_validator validator(Config::loader, Config::format_checker);
         validator.set_root_schema(this->_schemas.interface);
-        // EVLOG_info << "load_interface_file";
         auto patch = validator.validate(interface_json);
         if (!patch.is_null()) {
             // extend config entry with default values
@@ -1140,9 +1137,7 @@ json ConfigBase::extract_implementation_info(const std::string& module_id, const
 
     json info;
     info["module_id"] = module_id;
-    // EVLOG_info << "before get module name";
     info["module_name"] = get_module_name(module_id);
-    // EVLOG_info << "after";
     info["impl_id"] = impl_id;
     info["impl_intf"] = "";
 

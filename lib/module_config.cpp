@@ -75,9 +75,6 @@ json ModuleConfig::get_config(std::shared_ptr<MQTTSettings> mqtt_settings, const
     }
     mqtt.spawn_main_loop_thread();
 
-    // TODO: move this to its own function
-
-    // START get config
     auto get_config_topic = fmt::format("{}modules/{}/get_config", mqtt_settings->mqtt_everest_prefix, module_id);
     auto config_topic = fmt::format("{}modules/{}/config", mqtt_settings->mqtt_everest_prefix, module_id);
     std::promise<json> res_promise;
@@ -119,10 +116,8 @@ json ModuleConfig::get_config(std::shared_ptr<MQTTSettings> mqtt_settings, const
 
     auto interface_names_topic = fmt::format("{}interfaces", mqtt_settings->mqtt_everest_prefix);
     auto interface_names = mqtt.get(interface_names_topic, QOS::QOS2);
-    // EVLOG_info << "interface names from mqtt: " << interface_names.dump();
     auto interface_definitions = json::object();
     for (auto& interface : interface_names) {
-        // EVLOG_info << "interface: " << interface;
         auto interface_topic =
             fmt::format("{}interface_definitions/{}", mqtt_settings->mqtt_everest_prefix, interface.get<std::string>());
         auto interface_definition = mqtt.get(interface_topic, QOS::QOS2);
@@ -130,8 +125,6 @@ json ModuleConfig::get_config(std::shared_ptr<MQTTSettings> mqtt_settings, const
     }
 
     result["interface_definitions"] = interface_definitions;
-    // just get all the interfaces into this interface definitions struct
-    // TODO: maybe only get the ones we actually need
 
     auto module_provides_topic = fmt::format("{}module_provides", mqtt_settings->mqtt_everest_prefix);
     auto module_provides = mqtt.get(module_provides_topic, QOS::QOS2);

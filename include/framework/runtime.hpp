@@ -176,8 +176,6 @@ private:
     std::string original_process_name;
     ModuleCallbacks callbacks;
     VersionInformation version_information;
-    std::string prefix_opt;
-    std::string config_opt; // TODO
     fs::path logging_config_file;
 
     bool parse_command_line(int argc, char* argv[]);

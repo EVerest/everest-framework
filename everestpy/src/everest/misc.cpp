@@ -61,9 +61,10 @@ static std::shared_ptr<Everest::MQTTSettings> get_mqtt_settings_from_env() {
     return mqtt_settings;
 }
 
-// just for compatibility...
+/// This is just kept for compatibility
 RuntimeSession::RuntimeSession(const std::string& prefix, const std::string& config_file) : RuntimeSession() {
-    EVLOG_info << "called the old RuntimeSession ctor";
+    EVLOG_warning << "everestpy: Usage of the old RuntimeSession ctor detected, config is now loaded via MQTT not via "
+                     "the provided config_file.";
 }
 
 RuntimeSession::RuntimeSession() {
