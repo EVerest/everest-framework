@@ -57,7 +57,7 @@ Everest::Everest(std::string module_id_, const Config& config_, bool validate_da
     this->module_name = module_config_it->at("module");
     this->module_manifest = this->config.get_manifests()[this->module_name];
     this->module_classes = this->config.get_interfaces()[this->module_name];
-    this->telemetry_config = this->config.get_telemetry_config(this->module_id);
+    this->telemetry_config = this->config.get_telemetry_config();
 
     this->ready_received = false;
     this->on_ready = nullptr;

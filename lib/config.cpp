@@ -464,6 +464,9 @@ Config::Config(std::shared_ptr<MQTTSettings> mqtt_settings, json serialized_conf
     if (serialized_config.contains("mappings") and !serialized_config.at("mappings").is_null()) {
         this->tier_mappings = serialized_config.at("mappings");
     }
+    if (serialized_config.contains("telemetry_config") and !serialized_config.at("telemetry_config").is_null()) {
+        this->telemetry_config = serialized_config.at("telemetry_config");
+    }
 
     this->_schemas = serialized_config.at("schemas");
     this->error_map = error::ErrorTypeMap();
@@ -561,15 +564,14 @@ void ManagerConfig::parse(json config) {
     }
 
     // load telemetry configs
-    // FIXME
-    // for (auto& element : this->main.items()) {
-    //     const auto& module_id = element.key();
-    //     auto& module_config = element.value();
-    //     std::string module_name = module_config.at("module");
-    //     if (module_config.contains("telemetry")) {
-    //         this->telemetry_configs[module_id].emplace(TelemetryConfig{module_config.at("telemetry").at("id")});
-    //     }
-    // }
+    for (auto& element : this->main.items()) {
+        const auto& module_id = element.key();
+        auto& module_config = element.value();
+        std::string module_name = module_config.at("module");
+        if (module_config.contains("telemetry")) {
+            this->telemetry_configs[module_id].emplace(TelemetryConfig{module_config.at("telemetry").at("id")});
+        }
+    }
 
     resolve_all_requirements();
     parse_3_tier_model_mapping();
@@ -1104,7 +1106,7 @@ ModuleInfo Config::get_module_info(const std::string& module_id) {
     return module_info;
 }
 
-std::optional<TelemetryConfig> Config::get_telemetry_config(const std::string& module_id) {
+std::optional<TelemetryConfig> ManagerConfig::get_telemetry_config(const std::string& module_id) {
     BOOST_LOG_FUNCTION();
 
     if (this->telemetry_configs.find(module_id) == this->telemetry_configs.end()) {
@@ -1112,6 +1114,10 @@ std::optional<TelemetryConfig> Config::get_telemetry_config(const std::string& m
     }
 
     return this->telemetry_configs.at(module_id);
+}
+
+std::optional<TelemetryConfig> Config::get_telemetry_config() {
+    return this->telemetry_config;
 }
 
 std::string ConfigBase::mqtt_prefix(const std::string& module_id, const std::string& impl_id) {

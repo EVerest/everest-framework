@@ -83,6 +83,8 @@ struct ModuleInfo {
 
 struct TelemetryConfig {
     int id;
+    explicit TelemetryConfig(int id) : id(id) {
+    }
 };
 
 /// \brief A Mapping that can be used to map a module or implementation to a specific EVSE or optionally to a Connector
@@ -137,6 +139,15 @@ template <> struct adl_serializer<Mapping> {
             m.connector = j.at("connector").get<int>();
         }
         return m;
+    }
+};
+template <> struct adl_serializer<TelemetryConfig> {
+    static void to_json(json& j, const TelemetryConfig& t) {
+        j = {{"id", t.id}};
+    }
+    static TelemetryConfig from_json(const json& j) {
+        auto t = TelemetryConfig(j.at("id").get<int>());
+        return t;
     }
 };
 template <> struct adl_serializer<ModuleTierMappings> {

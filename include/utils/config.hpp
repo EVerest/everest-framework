@@ -57,7 +57,6 @@ protected:
     schemas _schemas;
 
     std::unordered_map<std::string, ModuleTierMappings> tier_mappings;
-    std::unordered_map<std::string, std::optional<TelemetryConfig>> telemetry_configs;
     // experimental caches
     std::unordered_map<std::string, std::string> module_names;
     std::unordered_map<std::string, ConfigCache> module_config_cache;
@@ -178,6 +177,7 @@ class ManagerConfig : public ConfigBase {
 private:
     bool manager = false;
     std::shared_ptr<ManagerSettings> ms;
+    std::unordered_map<std::string, std::optional<TelemetryConfig>> telemetry_configs;
 
     ///
     /// \brief loads and validates the manifest of the module \p module_id using the provided \p module config
@@ -231,6 +231,10 @@ public:
     ///
     /// \brief Serialize the config to json
     json serialize();
+
+    ///
+    /// \returns a TelemetryConfig if this has been configured for the given \p module_id
+    std::optional<TelemetryConfig> get_telemetry_config(const std::string& module_id);
 };
 
 ///
@@ -241,7 +245,7 @@ private:
     std::shared_ptr<RuntimeSettings> rs;
     bool manager;
 
-    std::unordered_map<std::string, std::optional<TelemetryConfig>> telemetry_configs;
+    std::optional<TelemetryConfig> telemetry_config;
 
 public:
     ///
@@ -287,7 +291,7 @@ public:
 
     ///
     /// \returns a TelemetryConfig if this has been configured
-    std::optional<TelemetryConfig> get_telemetry_config(const std::string& module_id);
+    std::optional<TelemetryConfig> get_telemetry_config();
 
     ///
     /// \returns a json object that contains the interface definition
