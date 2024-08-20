@@ -50,7 +50,7 @@ fs::path assert_file(const std::string& path, const std::string& file_alias) {
 
 /// \returns true if the file at the provided \p path has an extensions \p ext
 bool has_extension(const std::string& path, const std::string& ext) {
-    auto path_ext = fs::path(path).stem().string();
+    auto path_ext = fs::path(path).extension().string();
 
     // lowercase the string
     std::transform(path_ext.begin(), path_ext.end(), path_ext.begin(), [](unsigned char c) { return std::tolower(c); });

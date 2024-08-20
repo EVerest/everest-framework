@@ -9,6 +9,7 @@ target_include_directories(${TEST_TARGET_NAME} PRIVATE
 
 target_sources(${TEST_TARGET_NAME} PRIVATE
     test_config.cpp
+    test_module_config_helpers.cpp
     helpers.cpp
 )
 
