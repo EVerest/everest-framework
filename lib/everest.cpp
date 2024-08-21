@@ -311,7 +311,7 @@ json Everest::call_cmd(const Requirement& req, const std::string& cmd_name, json
     if (this->validate_data_with_schema) {
         if (cmd_definition["arguments"].size() != json_args.size()) {
             EVLOG_AND_THROW(EverestApiError(
-                fmt::format("Call to {}->{}({}): Argument cound does not match manifest!",
+                fmt::format("Call to {}->{}({}): Argument count does not match manifest!",
                             this->config.printable_identifier(connection["module_id"], connection["implementation_id"]),
                             cmd_name, fmt::join(arg_names, ", "))));
         }
@@ -411,9 +411,6 @@ void Everest::publish_var(const std::string& impl_id, const std::string& var_nam
     // check arguments
     if (this->validate_data_with_schema) {
         auto impl_intf = this->config.get_interface_definitions().at(this->module_classes[impl_id]);
-
-        // FIXME probably broken
-        EVLOG_info << "IMPLE intf: " << impl_intf;
 
         if (!module_manifest["provides"].contains(impl_id)) {
             EVLOG_AND_THROW(EverestApiError(

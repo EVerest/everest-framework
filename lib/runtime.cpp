@@ -403,10 +403,10 @@ int ModuleLoader::initialize() {
 
     auto result = ModuleConfig::get_config(this->mqtt_settings, this->module_id);
     auto get_config_time = std::chrono::system_clock::now();
-    EVLOG_info << "Module " << fmt::format(TERMINAL_STYLE_OK, "{}", module_id) << " get_config() ["
-               << std::chrono::duration_cast<std::chrono::milliseconds>(get_config_time - start_time).count() << "ms]";
+    EVLOG_debug << "Module " << fmt::format(TERMINAL_STYLE_OK, "{}", module_id) << " get_config() ["
+                << std::chrono::duration_cast<std::chrono::milliseconds>(get_config_time - start_time).count() << "ms]";
 
-    this->runtime_settings = std::make_shared<RuntimeSettings>(result.at("settings")); // TODO: .value()
+    this->runtime_settings = std::make_shared<RuntimeSettings>(result.at("settings"));
 
     if (!this->runtime_settings) {
         return 0;
@@ -416,7 +416,7 @@ int ModuleLoader::initialize() {
     try {
         Config config = Config(this->mqtt_settings, result);
         auto config_instantiation_time = std::chrono::system_clock::now();
-        EVLOG_info
+        EVLOG_debug
             << "Module " << fmt::format(TERMINAL_STYLE_OK, "{}", module_id) << " after Config() instantiation ["
             << std::chrono::duration_cast<std::chrono::milliseconds>(config_instantiation_time - start_time).count()
             << "ms]";
