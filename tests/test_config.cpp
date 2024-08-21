@@ -195,4 +195,12 @@ SCENARIO("Check Config Constructor", "[!throws]") {
             }());
         }
     }
+    GIVEN("A valid config in legacy json format with a valid module") {
+        std::shared_ptr<Everest::ManagerSettings> rs =
+            std::make_shared<Everest::ManagerSettings>(Everest::ManagerSettings(
+                bin_dir + "valid_module_config_json/", bin_dir + "valid_module_config_json/config.json"));
+        THEN("It should not throw at all") {
+            CHECK_NOTHROW(Everest::ManagerConfig(rs));
+        }
+    }
 }
