@@ -166,4 +166,21 @@ SCENARIO("Check Config Constructor", "[!throws]") {
             }());
         }
     }
+    GIVEN("A valid config with a valid module and enabled schema validation") {
+        std::shared_ptr<Everest::ManagerSettings> rs =
+            std::make_shared<Everest::ManagerSettings>(Everest::ManagerSettings(
+                bin_dir + "valid_module_config_validate/", bin_dir + "valid_module_config_validate/config.yaml"));
+        THEN("It should not throw at all") {
+            CHECK_NOTHROW([&]() {
+                auto mc = Everest::ManagerConfig(rs);
+                auto interfaces = mc.get_interfaces();
+                CHECK(interfaces.size() == 1);
+                CHECK(interfaces.contains("TESTValidManifestCmdVar"));
+                CHECK(interfaces.at("TESTValidManifestCmdVar").at("main") == "test_interface_cmd_var");
+                auto types = mc.get_types();
+                CHECK(types.size() == 1);
+                CHECK(types.contains("/test_type"));
+            }());
+        }
+    }
 }
