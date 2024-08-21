@@ -882,6 +882,11 @@ json ConfigBase::get_error_types_map() {
     return this->error_map.get_error_types_map();
 }
 
+json ConfigBase::get_types() {
+    BOOST_LOG_FUNCTION();
+    return this->types;
+}
+
 std::unordered_map<std::string, ConfigCache> ConfigBase::get_module_config_cache() {
     BOOST_LOG_FUNCTION();
     return this->module_config_cache;

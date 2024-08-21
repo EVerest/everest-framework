@@ -294,6 +294,8 @@ void cleanup_retained_topics(ManagerConfig& config, MQTTAbstraction& mqtt_abstra
             QOS::QOS2, true);
     }
 
+    mqtt_abstraction.publish(fmt::format("{}types", mqtt_everest_prefix), std::string(), QOS::QOS2, true);
+
     mqtt_abstraction.publish(fmt::format("{}module_provides", mqtt_everest_prefix), std::string(), QOS::QOS2, true);
 
     mqtt_abstraction.publish(fmt::format("{}settings", mqtt_everest_prefix), std::string(), QOS::QOS2, true);
@@ -332,6 +334,10 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
                                              interface_definition.key()),
                                  interface_definition.value(), QOS::QOS2, true);
     }
+
+    // TODO: maybe split this up into individual entries to keep message sizes as small as possible
+    auto types = config.get_types();
+    mqtt_abstraction.publish(fmt::format("{}types", ms->mqtt_settings->mqtt_everest_prefix), types, QOS::QOS2, true);
 
     auto module_provides = config.get_interfaces();
     mqtt_abstraction.publish(fmt::format("{}module_provides", ms->mqtt_settings->mqtt_everest_prefix), module_provides,

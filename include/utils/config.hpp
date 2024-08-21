@@ -157,6 +157,10 @@ public:
     json get_error_types_map();
 
     ///
+    /// \returns a json object that contains the types
+    json get_types();
+
+    ///
     /// \returns the module config cache
     std::unordered_map<std::string, ConfigCache> get_module_config_cache();
 

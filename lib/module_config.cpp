@@ -126,6 +126,9 @@ json ModuleConfig::get_config(std::shared_ptr<MQTTSettings> mqtt_settings, const
 
     result["interface_definitions"] = interface_definitions;
 
+    auto types_topic = fmt::format("{}types", mqtt_settings->mqtt_everest_prefix);
+    result["types"] = mqtt.get(types_topic, QOS::QOS2);
+
     auto module_provides_topic = fmt::format("{}module_provides", mqtt_settings->mqtt_everest_prefix);
     auto module_provides = mqtt.get(module_provides_topic, QOS::QOS2);
     result["module_provides"] = module_provides;
