@@ -117,15 +117,17 @@ SCENARIO("Check Config Constructor", "[!throws]") {
         }
     }
     GIVEN("A config file with an missing implementation config entry") {
-        std::shared_ptr<Everest::ManagerSettings> rs = std::make_shared<Everest::ManagerSettings>(
-            Everest::ManagerSettings(bin_dir + "missing_impl_config_entry/", bin_dir + "missing_impl_config_entry/config.yaml"));
+        std::shared_ptr<Everest::ManagerSettings> rs =
+            std::make_shared<Everest::ManagerSettings>(Everest::ManagerSettings(
+                bin_dir + "missing_impl_config_entry/", bin_dir + "missing_impl_config_entry/config.yaml"));
         THEN("It should throw Everest::EverestConfigError") {
             CHECK_THROWS_AS(Everest::ManagerConfig(rs), Everest::EverestConfigError);
         }
     }
     GIVEN("A config file with an invalid type of an implementation config entry") {
-        std::shared_ptr<Everest::ManagerSettings> rs = std::make_shared<Everest::ManagerSettings>(
-            Everest::ManagerSettings(bin_dir + "invalid_config_entry_type/", bin_dir + "invalid_config_entry_type/config.yaml"));
+        std::shared_ptr<Everest::ManagerSettings> rs =
+            std::make_shared<Everest::ManagerSettings>(Everest::ManagerSettings(
+                bin_dir + "invalid_config_entry_type/", bin_dir + "invalid_config_entry_type/config.yaml"));
         THEN("It should throw Everest::EverestConfigError") {
             CHECK_THROWS_AS(Everest::ManagerConfig(rs), Everest::EverestConfigError);
         }
