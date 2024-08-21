@@ -203,4 +203,11 @@ SCENARIO("Check Config Constructor", "[!throws]") {
             CHECK_NOTHROW(Everest::ManagerConfig(rs));
         }
     }
+    GIVEN("A config file that does not exist") {
+        THEN("It should throw Everest::BootException") {
+            CHECK_THROWS_AS(Everest::ManagerSettings(bin_dir + "valid_module_config_json/",
+                                                     bin_dir + "valid_module_config_json/config.yaml"),
+                            Everest::BootException);
+        }
+    }
 }
