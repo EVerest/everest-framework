@@ -92,16 +92,16 @@ const auto TERMINAL_STYLE_ERROR = fmt::emphasis::bold | fg(fmt::terminal_color::
 const auto TERMINAL_STYLE_OK = fmt::emphasis::bold | fg(fmt::terminal_color::green);
 const auto TERMINAL_STYLE_BLUE = fmt::emphasis::bold | fg(fmt::terminal_color::blue);
 
+/// \brief Runtime settings needed to successfully run modules
 struct RuntimeSettings {
-    fs::path prefix;
-    fs::path etc_dir;
-    fs::path data_dir;
-    fs::path modules_dir;
-    fs::path logging_config_file;
-    std::string telemetry_prefix;
-    bool telemetry_enabled;
-
-    bool validate_schema;
+    fs::path prefix;      ///< Prefix for EVerest installation
+    fs::path etc_dir;     ///< Directory that contains configs, certificates
+    fs::path data_dir;    ///< Directory for general data, definitions for EVerest interfaces, types, errors an schemas
+    fs::path modules_dir; ///< Directory that contains EVerest modules
+    fs::path logging_config_file; ///< Path to the logging configuration file
+    std::string telemetry_prefix; ///< MQTT prefix for telemetry
+    bool telemetry_enabled;       ///< If telemetry is enabled
+    bool validate_schema;         ///< If schema validation for all var publishes and cmd calls is enabled
 
     explicit RuntimeSettings(const fs::path& prefix, const fs::path& etc_dir, const fs::path& data_dir,
                              const fs::path& modules_dir, const fs::path& logging_config_file,
@@ -110,35 +110,37 @@ struct RuntimeSettings {
     explicit RuntimeSettings(const nlohmann::json& json);
 };
 
+/// \brief Settings needed by the manager to load and validate a config
+
 struct ManagerSettings {
-    fs::path prefix;
-    fs::path etc_dir;
-    fs::path data_dir;
-    fs::path logging_config_file;
+    fs::path prefix;   ///< Prefix for EVerest installation
+    fs::path etc_dir;  ///< Directory that contains configs, certificates
+    fs::path data_dir; ///< Directory for general data, definitions for EVerest interfaces, types, errors an schemas
+    fs::path logging_config_file; ///< Path to the logging configuration file
 
-    fs::path configs_dir;
-    fs::path schemas_dir;
-    fs::path modules_dir;
-    fs::path interfaces_dir;
-    fs::path types_dir;
-    fs::path errors_dir;
-    fs::path config_file;
-    fs::path www_dir;
-    int controller_port;
-    int controller_rpc_timeout_ms;
+    fs::path configs_dir;          ///< Directory that contains EVerest configs
+    fs::path schemas_dir;          ///< Directory that contains schemas for config, manifest, interfaces, etc.
+    fs::path modules_dir;          ///< Directory that contains EVerest modules
+    fs::path interfaces_dir;       ///< Directory that contains interface definitions
+    fs::path types_dir;            ///< Directory that contains type definitions
+    fs::path errors_dir;           ///< Directory that contains error definitions
+    fs::path config_file;          ///< Path to the loaded config file
+    fs::path www_dir;              ///< Directory that contains the everest-admin-panel
+    int controller_port;           ///< Websocket port of the controller
+    int controller_rpc_timeout_ms; ///< RPC timeout for controller commands
 
-    std::string run_as_user;
+    std::string run_as_user; ///< Username under which EVerest should run
 
-    std::string version_information;
+    std::string version_information; ///< Version information string reported on startup of the manager
 
-    nlohmann::json config;
+    nlohmann::json config; ///< Parsed json of the config_file
 
-    bool validate_schema;
+    bool validate_schema; ///< If schema validation for all var publishes and cmd calls is enabled
 
-    std::shared_ptr<MQTTSettings> mqtt_settings;
+    std::shared_ptr<MQTTSettings> mqtt_settings; ///< MQTT connection settings
 
-    std::string telemetry_prefix;
-    bool telemetry_enabled;
+    std::string telemetry_prefix; ///< MQTT prefix for telemetry
+    bool telemetry_enabled;       ///< If telemetry is enabled
 
     ManagerSettings(const std::string& prefix, const std::string& config);
 
@@ -148,6 +150,7 @@ struct ManagerSettings {
 // NOTE: this function needs the be called with a pre-initialized ModuleInfo struct
 void populate_module_info_path_from_runtime_settings(ModuleInfo&, std::shared_ptr<RuntimeSettings> rs);
 
+/// \brief Callbacks that need to be registered for modules
 struct ModuleCallbacks {
     std::function<void(ModuleAdapter module_adapter)> register_module_adapter;
     std::function<std::vector<cmd>(const json& connections)> everest_register;
@@ -162,10 +165,11 @@ struct ModuleCallbacks {
                     const std::function<void()>& ready);
 };
 
+///\brief Version information
 struct VersionInformation {
-    std::string project_name;
-    std::string project_version;
-    std::string git_version;
+    std::string project_name;    ///< CMake project name
+    std::string project_version; ///< Human readable version number
+    std::string git_version;     ///< Git version containing tag and branch information
 };
 
 class ModuleLoader {

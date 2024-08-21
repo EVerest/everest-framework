@@ -45,6 +45,9 @@ struct schemas {
 ///
 const static std::regex type_uri_regex{R"(^((?:\/[a-zA-Z0-9\-\_]+)+#\/[a-zA-Z0-9\-\_]+)$)"};
 
+///
+/// \brief Base class for configs
+///
 class ConfigBase {
 protected:
     json main;
@@ -177,6 +180,10 @@ public:
     std::optional<Mapping> get_3_tier_model_mapping(const std::string& module_id, const std::string& impl_id);
 };
 
+///
+/// \brief Config intended to be created by the manager for validation and serialization. Contains config and manifest
+/// parsing
+///
 class ManagerConfig : public ConfigBase {
 private:
     std::shared_ptr<ManagerSettings> ms;
@@ -241,7 +248,8 @@ public:
 };
 
 ///
-/// \brief Contains config and manifest parsing
+/// \brief Contains intended to be used by modules using a pre-parsed and validated config json serialized from
+/// ManagerConfig
 ///
 class Config : public ConfigBase {
 private:
