@@ -154,4 +154,16 @@ SCENARIO("Check Config Constructor", "[!throws]") {
             CHECK_NOTHROW(Everest::ManagerConfig(rs));
         }
     }
+    GIVEN("A valid config with a valid module and a user-config applied") {
+        std::shared_ptr<Everest::ManagerSettings> rs =
+            std::make_shared<Everest::ManagerSettings>(Everest::ManagerSettings(
+                bin_dir + "valid_module_config_userconfig/", bin_dir + "valid_module_config_userconfig/config.yaml"));
+        THEN("It should not throw at all") {
+            CHECK_NOTHROW([&]() {
+                auto mc = Everest::ManagerConfig(rs);
+                auto main = mc.get_main_config();
+                CHECK(main.at("valid_module").at("config_module").at("valid_config_entry") == "hi");
+            }());
+        }
+    }
 }
