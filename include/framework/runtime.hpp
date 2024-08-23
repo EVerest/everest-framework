@@ -178,6 +178,7 @@ private:
     std::shared_ptr<MQTTSettings> mqtt_settings;
     std::string module_id;
     std::string original_process_name;
+    std::string application_name;
     ModuleCallbacks callbacks;
     VersionInformation version_information;
     fs::path logging_config_file;

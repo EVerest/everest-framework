@@ -431,6 +431,12 @@ int ModuleLoader::initialize() {
         }
 
         const std::string module_identifier = config.printable_identifier(this->module_id);
+        auto module_name = config.get_module_name(this->module_id);
+        if ((this->application_name != module_name) and (this->application_name != module_identifier)) {
+            EVLOG_error << fmt::format(
+                "Module id '{}': Expected a '{}' module, but it looks like you started a '{}' module.", this->module_id,
+                module_name, this->application_name);
+        }
         EVLOG_debug << fmt::format("Initializing framework for module {}...", module_identifier);
         EVLOG_verbose << fmt::format("Setting process name to: '{}'...", module_identifier);
         int prctl_return = prctl(PR_SET_NAME, module_identifier.c_str());
@@ -572,6 +578,13 @@ bool ModuleLoader::parse_command_line(int argc, char* argv[]) {
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
     po::notify(vm);
+
+    if (argc > 0) {
+        std::string argv0 = argv[0];
+        if (not argv0.empty()) {
+            this->application_name = fs::path(argv0).stem().string();
+        }
+    }
 
     if (vm.count("help") != 0) {
         std::cout << desc << "\n";
