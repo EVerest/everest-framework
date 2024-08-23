@@ -181,6 +181,7 @@ private:
     ModuleCallbacks callbacks;
     VersionInformation version_information;
     fs::path logging_config_file;
+    bool should_exit = false;
 
     bool parse_command_line(int argc, char* argv[]);
 

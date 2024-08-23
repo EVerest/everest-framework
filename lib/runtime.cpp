@@ -392,11 +392,15 @@ ModuleLoader::ModuleLoader(int argc, char* argv[], ModuleCallbacks callbacks,
                            const VersionInformation version_information) :
     runtime_settings(nullptr), mqtt_settings(nullptr), callbacks(callbacks), version_information(version_information) {
     if (!this->parse_command_line(argc, argv)) {
+        this->should_exit = true;
         return;
     }
 }
 
 int ModuleLoader::initialize() {
+    if (this->should_exit) {
+        return 0;
+    }
     Logging::init(this->logging_config_file.string(), this->module_id);
 
     auto start_time = std::chrono::system_clock::now();
