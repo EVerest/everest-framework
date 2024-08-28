@@ -19,7 +19,7 @@
 
 namespace boost::program_options {
 class variables_map; // forward declaration
-}
+} // namespace boost::program_options
 
 namespace Everest {
 

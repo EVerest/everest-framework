@@ -98,7 +98,7 @@ protected:
 public:
     ///
     /// \brief Create a ConfigBase with the provided \p mqtt_settings
-    ConfigBase(std::shared_ptr<MQTTSettings> mqtt_settings) : mqtt_settings(mqtt_settings){};
+    explicit ConfigBase(std::shared_ptr<MQTTSettings> mqtt_settings) : mqtt_settings(mqtt_settings){};
 
     ///
     /// \brief turns then given \p module_id into a printable identifier
@@ -236,7 +236,7 @@ private:
 public:
     ///
     /// \brief Create a ManagerConfig from the provided ManagerSettings \p ms
-    ManagerConfig(std::shared_ptr<ManagerSettings> ms);
+    explicit ManagerConfig(std::shared_ptr<ManagerSettings> ms);
 
     ///
     /// \brief Serialize the config to json
