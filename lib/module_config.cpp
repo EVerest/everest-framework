@@ -34,7 +34,7 @@ json get_module_config(const MQTTSettings& mqtt_settings, const std::string& mod
     };
 
     std::shared_ptr<TypedHandler> res_token =
-        std::make_shared<TypedHandler>(HandlerType::Internal, std::make_shared<Handler>(res_handler));
+        std::make_shared<TypedHandler>(HandlerType::GetConfig, std::make_shared<Handler>(res_handler));
     mqtt.register_handler(config_topic, res_token, QOS::QOS2);
 
     json config_publish_data = json::object({{"type", "full"}});

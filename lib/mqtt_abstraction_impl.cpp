@@ -210,7 +210,7 @@ json MQTTAbstractionImpl::get(const std::string& topic, QOS qos) {
     Handler res_handler = [this, &res_promise](json data) { res_promise.set_value(std::move(data)); };
 
     std::shared_ptr<TypedHandler> res_token =
-        std::make_shared<TypedHandler>(HandlerType::Internal, std::make_shared<Handler>(res_handler));
+        std::make_shared<TypedHandler>(HandlerType::GetConfig, std::make_shared<Handler>(res_handler));
     this->register_handler(topic, res_token, QOS::QOS2);
 
     json config_publish_data = json::object({{"type", "full"}});
@@ -422,8 +422,8 @@ void MQTTAbstractionImpl::register_handler(const std::string& topic, std::shared
         EVLOG_debug << fmt::format("Registering external MQTT handler {} on topic {}", fmt::ptr(&handler->handler),
                                    topic);
         break;
-    case HandlerType::Internal:
-        EVLOG_debug << fmt::format("Registering internal MQTT handler {} on topic {}", fmt::ptr(&handler->handler),
+    case HandlerType::GetConfig:
+        EVLOG_debug << fmt::format("Registering get config MQTT handler {} on topic {}", fmt::ptr(&handler->handler),
                                    topic);
         break;
     default:
