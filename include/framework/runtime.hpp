@@ -6,16 +6,16 @@
 #include <filesystem>
 #include <string>
 
-#include <everest/logging.hpp>
 #include <fmt/color.h>
 #include <fmt/core.h>
-#include <framework/ModuleAdapter.hpp>
 #include <sys/prctl.h>
 
+#include <framework/ModuleAdapter.hpp>
 #include <utils/module_config.hpp>
 #include <utils/yaml_loader.hpp>
 
 #include <everest/compile_time_settings.hpp>
+#include <everest/logging.hpp>
 
 namespace boost::program_options {
 class variables_map; // forward declaration
