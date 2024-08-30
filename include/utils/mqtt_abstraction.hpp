@@ -91,6 +91,14 @@ public:
     json get(const std::string& topic, QOS qos);
 
     ///
+    /// \brief Get MQTT topic prefix for the "everest" topic
+    const std::string& get_everest_prefix() const;
+
+    ///
+    /// \brief Get MQTT topic prefix for external topics
+    const std::string& get_external_prefix() const;
+
+    ///
     /// \copydoc MQTTAbstractionImpl::spawn_main_loop_thread()
     std::future<void> spawn_main_loop_thread();
 
@@ -104,6 +112,8 @@ public:
 
 private:
     std::unique_ptr<MQTTAbstractionImpl> mqtt_abstraction;
+    std::string everest_prefix;
+    std::string external_prefix;
 };
 } // namespace Everest
 

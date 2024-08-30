@@ -24,7 +24,8 @@ MQTTSettings::MQTTSettings(const std::string& mqtt_broker_host, int mqtt_broker_
     socket(false) {
 }
 
-MQTTAbstraction::MQTTAbstraction(const MQTTSettings& mqtt_settings) {
+MQTTAbstraction::MQTTAbstraction(const MQTTSettings& mqtt_settings) :
+    everest_prefix(mqtt_settings.everest_prefix), external_prefix(mqtt_settings.external_prefix) {
     if (mqtt_settings.socket) {
         mqtt_abstraction = std::make_unique<MQTTAbstractionImpl>(
             mqtt_settings.broker_socket_path, mqtt_settings.everest_prefix, mqtt_settings.external_prefix);
@@ -85,6 +86,16 @@ void MQTTAbstraction::unsubscribe(const std::string& topic) {
 json MQTTAbstraction::get(const std::string& topic, QOS qos) {
     BOOST_LOG_FUNCTION();
     return mqtt_abstraction->get(topic, qos);
+}
+
+const std::string& MQTTAbstraction::get_everest_prefix() const {
+    BOOST_LOG_FUNCTION();
+    return everest_prefix;
+}
+
+const std::string& MQTTAbstraction::get_external_prefix() const {
+    BOOST_LOG_FUNCTION();
+    return external_prefix;
 }
 
 std::future<void> MQTTAbstraction::spawn_main_loop_thread() {
