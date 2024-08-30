@@ -188,7 +188,7 @@ if(EVEREST_FRAMEWORK_BUILD_TESTING)
         EXECUTABLE ctest --output-on-failure
         BASE_DIRECTORY "${PROJECT_SOURCE_DIR}"
         DEPENDENCIES ${PROJECT_NAME}_tests everest::framework
-        EXCLUDE "${CMAKE_SOURCE_DIR}/tests" "${CMAKE_BINARY_DIR}/*" "${CPM_SOURCE_CACHE}"
+        EXCLUDE "${CMAKE_BINARY_DIR}/*" "${CPM_SOURCE_CACHE}"
     )
 
     setup_target_for_coverage_lcov(
