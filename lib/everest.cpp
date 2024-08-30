@@ -40,8 +40,8 @@ Everest::Everest(std::string module_id_, const Config& config_, bool validate_da
     module_id(std::move(module_id_)),
     remote_cmd_res_timeout(remote_cmd_res_timeout_seconds),
     validate_data_with_schema(validate_data_with_schema),
-    mqtt_everest_prefix(mqtt_settings.mqtt_everest_prefix),
-    mqtt_external_prefix(mqtt_settings.mqtt_external_prefix),
+    mqtt_everest_prefix(mqtt_settings.everest_prefix),
+    mqtt_external_prefix(mqtt_settings.external_prefix),
     telemetry_prefix(telemetry_prefix),
     telemetry_enabled(telemetry_enabled) {
     BOOST_LOG_FUNCTION();

@@ -463,13 +463,13 @@ int ModuleLoader::initialize() {
         EVLOG_debug << fmt::format("Initializing module {}...", module_identifier);
 
         if (!everest.connect()) {
-            if (this->mqtt_settings->mqtt_broker_socket_path.empty()) {
+            if (this->mqtt_settings->broker_socket_path.empty()) {
                 EVLOG_error << fmt::format("Cannot connect to MQTT broker at {}:{}",
-                                           this->mqtt_settings->mqtt_broker_host,
-                                           this->mqtt_settings->mqtt_broker_port);
+                                           this->mqtt_settings->broker_host,
+                                           this->mqtt_settings->broker_port);
             } else {
                 EVLOG_error << fmt::format("Cannot connect to MQTT broker socket at {}",
-                                           this->mqtt_settings->mqtt_broker_socket_path);
+                                           this->mqtt_settings->broker_socket_path);
             }
             return 1;
         }

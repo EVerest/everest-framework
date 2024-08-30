@@ -117,15 +117,15 @@ static void exec_cpp_module(system::SubProcess& proc_handle, const ModuleStartIn
         "--log_config",
         rs.logging_config_file.string(),
         "--mqtt_everest_prefix",
-        mqtt_settings.mqtt_everest_prefix,
+        mqtt_settings.everest_prefix,
         "--mqtt_external_prefix",
-        mqtt_settings.mqtt_external_prefix}; // TODO: check if this is empty and do not append if needed?
+        mqtt_settings.external_prefix}; // TODO: check if this is empty and do not append if needed?
 
     if (mqtt_settings.socket) {
-        arguments.insert(arguments.end(), {"--mqtt_broker_socket_path", mqtt_settings.mqtt_broker_socket_path});
+        arguments.insert(arguments.end(), {"--mqtt_broker_socket_path", mqtt_settings.broker_socket_path});
     } else {
-        arguments.insert(arguments.end(), {"--mqtt_broker_host", mqtt_settings.mqtt_broker_host, "--mqtt_broker_port",
-                                           std::to_string(mqtt_settings.mqtt_broker_port)});
+        arguments.insert(arguments.end(), {"--mqtt_broker_host", mqtt_settings.broker_host, "--mqtt_broker_port",
+                                           std::to_string(mqtt_settings.broker_port)});
     }
 
     auto argv_list = arguments_to_exec_argv(arguments);
@@ -148,13 +148,13 @@ static void exec_javascript_module(system::SubProcess& proc_handle, const Module
     setenv("EV_MODULE", module_info.name.c_str(), 1);
     setenv("EV_PREFIX", rs.prefix.c_str(), 0);
     setenv("EV_LOG_CONF_FILE", rs.logging_config_file.c_str(), 0);
-    setenv("EV_MQTT_EVEREST_PREFIX", mqtt_settings.mqtt_everest_prefix.c_str(), 0);
-    setenv("EV_MQTT_EXTERNAL_PREFIX", mqtt_settings.mqtt_external_prefix.c_str(), 0);
+    setenv("EV_MQTT_EVEREST_PREFIX", mqtt_settings.everest_prefix.c_str(), 0);
+    setenv("EV_MQTT_EXTERNAL_PREFIX", mqtt_settings.external_prefix.c_str(), 0);
     if (mqtt_settings.socket) {
-        setenv("EV_MQTT_BROKER_SOCKET_PATH", mqtt_settings.mqtt_broker_socket_path.c_str(), 0);
+        setenv("EV_MQTT_BROKER_SOCKET_PATH", mqtt_settings.broker_socket_path.c_str(), 0);
     } else {
-        setenv("EV_MQTT_BROKER_HOST", mqtt_settings.mqtt_broker_host.c_str(), 0);
-        setenv("EV_MQTT_BROKER_PORT", std::to_string(mqtt_settings.mqtt_broker_port).c_str(), 0);
+        setenv("EV_MQTT_BROKER_HOST", mqtt_settings.broker_host.c_str(), 0);
+        setenv("EV_MQTT_BROKER_PORT", std::to_string(mqtt_settings.broker_port).c_str(), 0);
     }
 
     if (rs.validate_schema) {
@@ -191,13 +191,13 @@ static void exec_python_module(system::SubProcess& proc_handle, const ModuleStar
     setenv("EV_MODULE", module_info.name.c_str(), 1);
     setenv("EV_PREFIX", rs.prefix.c_str(), 0);
     setenv("EV_LOG_CONF_FILE", rs.logging_config_file.c_str(), 0);
-    setenv("EV_MQTT_EVEREST_PREFIX", mqtt_settings.mqtt_everest_prefix.c_str(), 0);
-    setenv("EV_MQTT_EXTERNAL_PREFIX", mqtt_settings.mqtt_external_prefix.c_str(), 0);
+    setenv("EV_MQTT_EVEREST_PREFIX", mqtt_settings.everest_prefix.c_str(), 0);
+    setenv("EV_MQTT_EXTERNAL_PREFIX", mqtt_settings.external_prefix.c_str(), 0);
     if (mqtt_settings.socket) {
-        setenv("EV_MQTT_BROKER_SOCKET_PATH", mqtt_settings.mqtt_broker_socket_path.c_str(), 0);
+        setenv("EV_MQTT_BROKER_SOCKET_PATH", mqtt_settings.broker_socket_path.c_str(), 0);
     } else {
-        setenv("EV_MQTT_BROKER_HOST", mqtt_settings.mqtt_broker_host.c_str(), 0);
-        setenv("EV_MQTT_BROKER_PORT", std::to_string(mqtt_settings.mqtt_broker_port).c_str(), 0);
+        setenv("EV_MQTT_BROKER_HOST", mqtt_settings.broker_host.c_str(), 0);
+        setenv("EV_MQTT_BROKER_PORT", std::to_string(mqtt_settings.broker_port).c_str(), 0);
     }
 
     setenv("PYTHONPATH", pythonpath.c_str(), 0);
@@ -326,41 +326,38 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
     for (auto& interface_definition : interface_definitions.items()) {
         interface_names.push_back(interface_definition.key());
     }
-    mqtt_abstraction.publish(fmt::format("{}interfaces", ms->mqtt_settings->mqtt_everest_prefix), interface_names,
-                             QOS::QOS2, true);
+    mqtt_abstraction.publish(fmt::format("{}interfaces", ms->mqtt_settings->everest_prefix), interface_names, QOS::QOS2,
+                             true);
 
     for (const auto& interface_definition : interface_definitions.items()) {
-        mqtt_abstraction.publish(fmt::format("{}interface_definitions/{}", ms->mqtt_settings->mqtt_everest_prefix,
-                                             interface_definition.key()),
-                                 interface_definition.value(), QOS::QOS2, true);
+        mqtt_abstraction.publish(
+            fmt::format("{}interface_definitions/{}", ms->mqtt_settings->everest_prefix, interface_definition.key()),
+            interface_definition.value(), QOS::QOS2, true);
     }
 
     // TODO: maybe split this up into individual entries to keep message sizes as small as possible
     auto types = config.get_types();
-    mqtt_abstraction.publish(fmt::format("{}types", ms->mqtt_settings->mqtt_everest_prefix), types, QOS::QOS2, true);
+    mqtt_abstraction.publish(fmt::format("{}types", ms->mqtt_settings->everest_prefix), types, QOS::QOS2, true);
 
     auto module_provides = config.get_interfaces();
-    mqtt_abstraction.publish(fmt::format("{}module_provides", ms->mqtt_settings->mqtt_everest_prefix), module_provides,
+    mqtt_abstraction.publish(fmt::format("{}module_provides", ms->mqtt_settings->everest_prefix), module_provides,
                              QOS::QOS2, true);
 
     auto settings = config.get_settings();
-    mqtt_abstraction.publish(fmt::format("{}settings", ms->mqtt_settings->mqtt_everest_prefix), settings, QOS::QOS2,
-                             true);
+    mqtt_abstraction.publish(fmt::format("{}settings", ms->mqtt_settings->everest_prefix), settings, QOS::QOS2, true);
 
     auto schemas = config.get_schemas();
-    mqtt_abstraction.publish(fmt::format("{}schemas", ms->mqtt_settings->mqtt_everest_prefix), schemas, QOS::QOS2,
-                             true);
+    mqtt_abstraction.publish(fmt::format("{}schemas", ms->mqtt_settings->everest_prefix), schemas, QOS::QOS2, true);
 
     auto manifests = config.get_manifests();
-    mqtt_abstraction.publish(fmt::format("{}manifests", ms->mqtt_settings->mqtt_everest_prefix), manifests, QOS::QOS2,
-                             true);
+    mqtt_abstraction.publish(fmt::format("{}manifests", ms->mqtt_settings->everest_prefix), manifests, QOS::QOS2, true);
 
     auto error_types_map = config.get_error_types_map();
-    mqtt_abstraction.publish(fmt::format("{}error_types_map", ms->mqtt_settings->mqtt_everest_prefix), error_types_map,
+    mqtt_abstraction.publish(fmt::format("{}error_types_map", ms->mqtt_settings->everest_prefix), error_types_map,
                              QOS::QOS2, true);
 
     auto module_config_cache = config.get_module_config_cache();
-    mqtt_abstraction.publish(fmt::format("{}module_config_cache", ms->mqtt_settings->mqtt_everest_prefix),
+    mqtt_abstraction.publish(fmt::format("{}module_config_cache", ms->mqtt_settings->everest_prefix),
                              module_config_cache, QOS::QOS2, true);
 
     for (const auto& module : serialized_config.at("module_names").items()) {
@@ -404,7 +401,7 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
         }
 
         Handler module_ready_handler = [module_name, &mqtt_abstraction, &config, standalone_modules,
-                                        mqtt_everest_prefix = ms->mqtt_settings->mqtt_everest_prefix,
+                                        mqtt_everest_prefix = ms->mqtt_settings->everest_prefix,
                                         &status_fifo](nlohmann::json json) {
             EVLOG_debug << fmt::format("received module ready signal for module: {}({})", module_name, json.dump());
             std::unique_lock<std::mutex> lock(modules_ready_mutex);
@@ -627,11 +624,10 @@ int boot(const po::variables_map& vm) {
     EVLOG_info << ms->version_information;
     EVLOG_info << "";
 
-    if (ms->mqtt_settings->mqtt_broker_socket_path.empty()) {
-        EVLOG_info << "Using MQTT broker " << ms->mqtt_settings->mqtt_broker_host << ":"
-                   << ms->mqtt_settings->mqtt_broker_port;
+    if (ms->mqtt_settings->broker_socket_path.empty()) {
+        EVLOG_info << "Using MQTT broker " << ms->mqtt_settings->broker_host << ":" << ms->mqtt_settings->broker_port;
     } else {
-        EVLOG_info << "Using MQTT broker unix domain sockets:" << ms->mqtt_settings->mqtt_broker_socket_path;
+        EVLOG_info << "Using MQTT broker unix domain sockets:" << ms->mqtt_settings->broker_socket_path;
     }
     if (ms->runtime_settings->telemetry_enabled) {
         EVLOG_info << "Telemetry enabled";
@@ -747,12 +743,12 @@ int boot(const po::variables_map& vm) {
     auto mqtt_abstraction = MQTTAbstraction(*ms->mqtt_settings);
 
     if (!mqtt_abstraction.connect()) {
-        if (ms->mqtt_settings->mqtt_broker_socket_path.empty()) {
-            EVLOG_error << fmt::format("Cannot connect to MQTT broker at {}:{}", ms->mqtt_settings->mqtt_broker_host,
-                                       ms->mqtt_settings->mqtt_broker_port);
+        if (ms->mqtt_settings->broker_socket_path.empty()) {
+            EVLOG_error << fmt::format("Cannot connect to MQTT broker at {}:{}", ms->mqtt_settings->broker_host,
+                                       ms->mqtt_settings->broker_port);
         } else {
             EVLOG_error << fmt::format("Cannot connect to MQTT broker socket at {}",
-                                       ms->mqtt_settings->mqtt_broker_socket_path);
+                                       ms->mqtt_settings->broker_socket_path);
         }
         return EXIT_FAILURE;
     }

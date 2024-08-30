@@ -9,30 +9,29 @@ namespace Everest {
 
 MQTTSettings::MQTTSettings(const std::string& mqtt_broker_socket_path, const std::string& mqtt_everest_prefix,
                            const std::string& mqtt_external_prefix) :
-    mqtt_broker_socket_path(mqtt_broker_socket_path),
-    mqtt_everest_prefix(mqtt_everest_prefix),
-    mqtt_external_prefix(mqtt_external_prefix),
+    broker_socket_path(mqtt_broker_socket_path),
+    everest_prefix(mqtt_everest_prefix),
+    external_prefix(mqtt_external_prefix),
     socket(true) {
 }
 
 MQTTSettings::MQTTSettings(const std::string& mqtt_broker_host, int mqtt_broker_port,
                            const std::string& mqtt_everest_prefix, const std::string& mqtt_external_prefix) :
-    mqtt_broker_host(mqtt_broker_host),
-    mqtt_broker_port(mqtt_broker_port),
-    mqtt_everest_prefix(mqtt_everest_prefix),
-    mqtt_external_prefix(mqtt_external_prefix),
+    broker_host(mqtt_broker_host),
+    broker_port(mqtt_broker_port),
+    everest_prefix(mqtt_everest_prefix),
+    external_prefix(mqtt_external_prefix),
     socket(false) {
 }
 
 MQTTAbstraction::MQTTAbstraction(const MQTTSettings& mqtt_settings) {
     if (mqtt_settings.socket) {
-        mqtt_abstraction = std::make_unique<MQTTAbstractionImpl>(mqtt_settings.mqtt_broker_socket_path,
-                                                                 mqtt_settings.mqtt_everest_prefix,
-                                                                 mqtt_settings.mqtt_external_prefix);
-    } else {
         mqtt_abstraction = std::make_unique<MQTTAbstractionImpl>(
-            mqtt_settings.mqtt_broker_host, std::to_string(mqtt_settings.mqtt_broker_port),
-            mqtt_settings.mqtt_everest_prefix, mqtt_settings.mqtt_external_prefix);
+            mqtt_settings.broker_socket_path, mqtt_settings.everest_prefix, mqtt_settings.external_prefix);
+    } else {
+        mqtt_abstraction =
+            std::make_unique<MQTTAbstractionImpl>(mqtt_settings.broker_host, std::to_string(mqtt_settings.broker_port),
+                                                  mqtt_settings.everest_prefix, mqtt_settings.external_prefix);
     }
 }
 

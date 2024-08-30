@@ -1118,13 +1118,13 @@ std::optional<TelemetryConfig> Config::get_telemetry_config() {
 std::string ConfigBase::mqtt_prefix(const std::string& module_id, const std::string& impl_id) {
     BOOST_LOG_FUNCTION();
 
-    return fmt::format("{}modules/{}/impl/{}", this->mqtt_settings.mqtt_everest_prefix, module_id, impl_id);
+    return fmt::format("{}modules/{}/impl/{}", this->mqtt_settings.everest_prefix, module_id, impl_id);
 }
 
 std::string ConfigBase::mqtt_module_prefix(const std::string& module_id) {
     BOOST_LOG_FUNCTION();
 
-    return fmt::format("{}modules/{}", this->mqtt_settings.mqtt_everest_prefix, module_id);
+    return fmt::format("{}modules/{}", this->mqtt_settings.everest_prefix, module_id);
 }
 
 json ConfigBase::extract_implementation_info(const std::string& module_id, const std::string& impl_id) const {
