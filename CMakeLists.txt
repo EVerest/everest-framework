@@ -195,7 +195,7 @@ if(EVEREST_FRAMEWORK_BUILD_TESTING)
         NAME ${PROJECT_NAME}_lcov_coverage
         EXECUTABLE ctest --output-on-failure
         DEPENDENCIES ${PROJECT_NAME}_tests everest::framework
-        EXCLUDE "${CMAKE_BINARY_DIR}"
+        EXCLUDE "${CMAKE_BINARY_DIR}/*" "${CPM_SOURCE_CACHE}"
         LCOV_ARGS "--no-external" "--ignore-errors=inconsistent,source,gcov"
     )
 else()
