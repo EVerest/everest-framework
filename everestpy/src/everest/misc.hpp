@@ -16,8 +16,8 @@ public:
 
     RuntimeSession();
 
-    std::shared_ptr<Everest::RuntimeSettings> get_runtime_settings() const {
-        return rs;
+    const Everest::RuntimeSettings& get_runtime_settings() const {
+        return *rs;
     }
 
     const Everest::MQTTSettings& get_mqtt_settings() const {
@@ -29,7 +29,7 @@ public:
     }
 
 private:
-    std::shared_ptr<Everest::RuntimeSettings> rs;
+    Everest::RuntimeSettings* rs;
     Everest::MQTTSettings* mqtt_settings;
     std::unique_ptr<Everest::Config> config;
 };

@@ -27,10 +27,10 @@ std::string parse_string_option(const po::variables_map& vm, const char* option)
     return vm[option].as<std::string>();
 }
 
-void populate_module_info_path_from_runtime_settings(ModuleInfo& mi, std::shared_ptr<RuntimeSettings> rs) {
-    mi.paths.etc = rs->etc_dir;
-    mi.paths.libexec = rs->modules_dir / mi.name;
-    mi.paths.share = rs->data_dir / defaults::MODULES_DIR / mi.name;
+void populate_module_info_path_from_runtime_settings(ModuleInfo& mi, const RuntimeSettings& rs) {
+    mi.paths.etc = rs.etc_dir;
+    mi.paths.libexec = rs.modules_dir / mi.name;
+    mi.paths.share = rs.data_dir / defaults::MODULES_DIR / mi.name;
 }
 
 RuntimeSettings::RuntimeSettings(const fs::path& prefix, const fs::path& etc_dir, const fs::path& data_dir,
@@ -375,9 +375,9 @@ ManagerSettings::ManagerSettings(const std::string& prefix_, const std::string& 
     }
 }
 
-std::shared_ptr<RuntimeSettings> ManagerSettings::get_runtime_settings() {
-    return std::make_shared<RuntimeSettings>(prefix, etc_dir, data_dir, modules_dir, logging_config_file,
-                                             telemetry_prefix, telemetry_enabled, validate_schema);
+RuntimeSettings ManagerSettings::get_runtime_settings() {
+    return RuntimeSettings(prefix, etc_dir, data_dir, modules_dir, logging_config_file, telemetry_prefix,
+                           telemetry_enabled, validate_schema);
 }
 
 ModuleCallbacks::ModuleCallbacks(const std::function<void(ModuleAdapter module_adapter)>& register_module_adapter,
@@ -409,7 +409,7 @@ int ModuleLoader::initialize() {
     EVLOG_debug << "Module " << fmt::format(TERMINAL_STYLE_OK, "{}", module_id) << " get_config() ["
                 << std::chrono::duration_cast<std::chrono::milliseconds>(get_config_time - start_time).count() << "ms]";
 
-    this->runtime_settings = std::make_shared<RuntimeSettings>(result.at("settings"));
+    this->runtime_settings = new RuntimeSettings(result.at("settings"));
 
     if (!this->runtime_settings) {
         return 0;
@@ -529,7 +529,7 @@ int ModuleLoader::initialize() {
 
         auto module_configs = config.get_module_configs(this->module_id);
         auto module_info = config.get_module_info(this->module_id);
-        populate_module_info_path_from_runtime_settings(module_info, rs);
+        populate_module_info_path_from_runtime_settings(module_info, *rs);
         module_info.telemetry_enabled = everest.is_telemetry_enabled();
 
         this->callbacks.init(module_configs, module_info);

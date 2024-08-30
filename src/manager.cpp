@@ -106,16 +106,16 @@ static std::vector<char*> arguments_to_exec_argv(std::vector<std::string>& argum
 }
 
 static void exec_cpp_module(system::SubProcess& proc_handle, const ModuleStartInfo& module_info,
-                            std::shared_ptr<RuntimeSettings> rs, const MQTTSettings& mqtt_settings) {
+                            const RuntimeSettings& rs, const MQTTSettings& mqtt_settings) {
     const auto exec_binary = module_info.path.c_str();
     std::vector<std::string> arguments = {
         module_info.printable_name,
         "--prefix",
-        rs->prefix.string(),
+        rs.prefix.string(),
         "--module",
         module_info.name,
         "--log_config",
-        rs->logging_config_file.string(),
+        rs.logging_config_file.string(),
         "--mqtt_everest_prefix",
         mqtt_settings.mqtt_everest_prefix,
         "--mqtt_external_prefix",
@@ -138,16 +138,16 @@ static void exec_cpp_module(system::SubProcess& proc_handle, const ModuleStartIn
 }
 
 static void exec_javascript_module(system::SubProcess& proc_handle, const ModuleStartInfo& module_info,
-                                   std::shared_ptr<RuntimeSettings> rs, const MQTTSettings& mqtt_settings) {
+                                   const RuntimeSettings& rs, const MQTTSettings& mqtt_settings) {
     // instead of using setenv, using execvpe might be a better way for a controlled environment!
 
     // FIXME (aw): everest directory layout
-    const auto node_modules_path = rs->prefix / defaults::LIB_DIR / defaults::NAMESPACE / "node_modules";
+    const auto node_modules_path = rs.prefix / defaults::LIB_DIR / defaults::NAMESPACE / "node_modules";
     setenv("NODE_PATH", node_modules_path.c_str(), 0);
 
     setenv("EV_MODULE", module_info.name.c_str(), 1);
-    setenv("EV_PREFIX", rs->prefix.c_str(), 0);
-    setenv("EV_LOG_CONF_FILE", rs->logging_config_file.c_str(), 0);
+    setenv("EV_PREFIX", rs.prefix.c_str(), 0);
+    setenv("EV_LOG_CONF_FILE", rs.logging_config_file.c_str(), 0);
     setenv("EV_MQTT_EVEREST_PREFIX", mqtt_settings.mqtt_everest_prefix.c_str(), 0);
     setenv("EV_MQTT_EXTERNAL_PREFIX", mqtt_settings.mqtt_external_prefix.c_str(), 0);
     if (mqtt_settings.socket) {
@@ -157,11 +157,11 @@ static void exec_javascript_module(system::SubProcess& proc_handle, const Module
         setenv("EV_MQTT_BROKER_PORT", std::to_string(mqtt_settings.mqtt_broker_port).c_str(), 0);
     }
 
-    if (rs->validate_schema) {
+    if (rs.validate_schema) {
         setenv("EV_VALIDATE_SCHEMA", "1", 1);
     }
 
-    if (!rs->validate_schema) {
+    if (!rs.validate_schema) {
         setenv("EV_DONT_VALIDATE_SCHEMA", "", 0);
     }
 
@@ -183,14 +183,14 @@ static void exec_javascript_module(system::SubProcess& proc_handle, const Module
 }
 
 static void exec_python_module(system::SubProcess& proc_handle, const ModuleStartInfo& module_info,
-                               std::shared_ptr<RuntimeSettings> rs, const MQTTSettings& mqtt_settings) {
+                               const RuntimeSettings& rs, const MQTTSettings& mqtt_settings) {
     // instead of using setenv, using execvpe might be a better way for a controlled environment!
 
-    const auto pythonpath = rs->prefix / defaults::LIB_DIR / defaults::NAMESPACE / "everestpy";
+    const auto pythonpath = rs.prefix / defaults::LIB_DIR / defaults::NAMESPACE / "everestpy";
 
     setenv("EV_MODULE", module_info.name.c_str(), 1);
-    setenv("EV_PREFIX", rs->prefix.c_str(), 0);
-    setenv("EV_LOG_CONF_FILE", rs->logging_config_file.c_str(), 0);
+    setenv("EV_PREFIX", rs.prefix.c_str(), 0);
+    setenv("EV_LOG_CONF_FILE", rs.logging_config_file.c_str(), 0);
     setenv("EV_MQTT_EVEREST_PREFIX", mqtt_settings.mqtt_everest_prefix.c_str(), 0);
     setenv("EV_MQTT_EXTERNAL_PREFIX", mqtt_settings.mqtt_external_prefix.c_str(), 0);
     if (mqtt_settings.socket) {
@@ -202,11 +202,11 @@ static void exec_python_module(system::SubProcess& proc_handle, const ModuleStar
 
     setenv("PYTHONPATH", pythonpath.c_str(), 0);
 
-    if (rs->validate_schema) {
+    if (rs.validate_schema) {
         setenv("EV_VALIDATE_SCHEMA", "1", 1);
     }
 
-    if (!rs->validate_schema) {
+    if (!rs.validate_schema) {
         setenv("EV_DONT_VALIDATE_SCHEMA", "", 0);
     }
 
@@ -223,7 +223,7 @@ static void exec_python_module(system::SubProcess& proc_handle, const ModuleStar
                                                 strerror(errno)));
 }
 
-static void exec_module(std::shared_ptr<RuntimeSettings> rs, const MQTTSettings& mqtt_settings,
+static void exec_module(const RuntimeSettings& rs, const MQTTSettings& mqtt_settings,
                         const ModuleStartInfo& module, system::SubProcess& proc_handle) {
     switch (module.language) {
     case ModuleStartInfo::Language::cpp:

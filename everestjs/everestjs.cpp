@@ -595,7 +595,7 @@ static Napi::Value boot_module(const Napi::CallbackInfo& info) {
 
         const auto result = Everest::ModuleConfig::get_config(*mqtt_settings, module_id);
 
-        auto rs = std::make_shared<Everest::RuntimeSettings>(result.at("settings"));
+        auto rs = new Everest::RuntimeSettings(result.at("settings"));
 
         auto config = std::make_unique<Everest::Config>(*mqtt_settings, result);
         if (!config->contains(module_id)) {
@@ -871,7 +871,7 @@ static Napi::Value boot_module(const Napi::CallbackInfo& info) {
         json module_config = config->get_module_json_config(module_id);
 
         auto module_info = config->get_module_info(module_id);
-        populate_module_info_path_from_runtime_settings(module_info, rs);
+        populate_module_info_path_from_runtime_settings(module_info, *rs);
 
         auto module_config_prop = Napi::Object::New(env);
         auto module_config_impl_prop = Napi::Object::New(env);

@@ -434,7 +434,7 @@ ManagerConfig::ManagerConfig(std::shared_ptr<ManagerSettings> ms) : ConfigBase(*
         }
 
         auto config = complete_config.at("active_modules");
-        this->settings = *ms->get_runtime_settings();
+        this->settings = ms->get_runtime_settings();
         this->parse(config);
     } catch (const std::exception& e) {
         EVLOG_AND_THROW(EverestConfigError(fmt::format("Failed to load and parse config file: {}", e.what())));

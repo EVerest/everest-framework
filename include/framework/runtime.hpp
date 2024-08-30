@@ -144,11 +144,11 @@ struct ManagerSettings {
 
     ManagerSettings(const std::string& prefix, const std::string& config);
 
-    std::shared_ptr<RuntimeSettings> get_runtime_settings();
+    RuntimeSettings get_runtime_settings();
 };
 
 // NOTE: this function needs the be called with a pre-initialized ModuleInfo struct
-void populate_module_info_path_from_runtime_settings(ModuleInfo&, std::shared_ptr<RuntimeSettings> rs);
+void populate_module_info_path_from_runtime_settings(ModuleInfo&, const RuntimeSettings& rs);
 
 /// \brief Callbacks that need to be registered for modules
 struct ModuleCallbacks {
@@ -174,7 +174,7 @@ struct VersionInformation {
 
 class ModuleLoader {
 private:
-    std::shared_ptr<RuntimeSettings> runtime_settings;
+    RuntimeSettings* runtime_settings;
     MQTTSettings* mqtt_settings;
     std::string module_id;
     std::string original_process_name;

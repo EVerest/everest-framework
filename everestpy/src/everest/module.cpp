@@ -13,8 +13,8 @@ std::unique_ptr<Everest::Everest> Module::create_everest_instance(const std::str
                                                                   const RuntimeSession& session) {
     const auto& rs = session.get_runtime_settings();
     const auto& mqtt_settings = session.get_mqtt_settings();
-    return std::make_unique<Everest::Everest>(module_id, session.get_config(), rs->validate_schema, mqtt_settings,
-                                              rs->telemetry_prefix, rs->telemetry_enabled);
+    return std::make_unique<Everest::Everest>(module_id, session.get_config(), rs.validate_schema, mqtt_settings,
+                                              rs.telemetry_prefix, rs.telemetry_enabled);
 }
 
 Module::Module(const RuntimeSession& session) : Module(get_variable_from_env("EV_MODULE"), session) {
