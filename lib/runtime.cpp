@@ -73,6 +73,7 @@ ManagerSettings::ManagerSettings(const std::string& prefix_, const std::string& 
         }
     }
 
+    fs::path prefix;
     if (prefix_.length() != 0) {
         // user provided
         prefix = assert_dir(prefix_, "User provided prefix");
@@ -135,6 +136,7 @@ ManagerSettings::ManagerSettings(const std::string& prefix_, const std::string& 
         }
     }
 
+    fs::path etc_dir;
     {
         // etc directory
         const auto default_etc_dir = fs::path(defaults::SYSCONF_DIR) / defaults::NAMESPACE;
@@ -146,6 +148,7 @@ ManagerSettings::ManagerSettings(const std::string& prefix_, const std::string& 
         etc_dir = assert_dir(etc_dir.string(), "Default etc directory");
     }
 
+    fs::path data_dir;
     {
         // share directory
         data_dir =
@@ -178,6 +181,7 @@ ManagerSettings::ManagerSettings(const std::string& prefix_, const std::string& 
         interfaces_dir = assert_dir(default_interfaces_dir, "Default interface directory");
     }
 
+    fs::path modules_dir;
     const auto settings_modules_dir_it = settings.find("modules_dir");
     if (settings_modules_dir_it != settings.end()) {
         const auto settings_modules_dir = get_prefixed_path_from_json(*settings_modules_dir_it, prefix);
@@ -214,6 +218,7 @@ ManagerSettings::ManagerSettings(const std::string& prefix_, const std::string& 
         www_dir = assert_dir(default_www_dir, "Default www directory");
     }
 
+    fs::path logging_config_file;
     const auto settings_logging_config_file_it = settings.find("logging_config_file");
     if (settings_logging_config_file_it != settings.end()) {
         const auto settings_logging_config_file = get_prefixed_path_from_json(*settings_logging_config_file_it, prefix);
@@ -348,6 +353,7 @@ ManagerSettings::ManagerSettings(const std::string& prefix_, const std::string& 
         version_information = "unknown";
     }
 
+    std::string telemetry_prefix;
     const auto settings_telemetry_prefix_it = settings.find("telemetry_prefix");
     if (settings_telemetry_prefix_it != settings.end()) {
         telemetry_prefix = settings_telemetry_prefix_it->get<std::string>();
@@ -360,6 +366,7 @@ ManagerSettings::ManagerSettings(const std::string& prefix_, const std::string& 
         telemetry_prefix = telemetry_prefix += "/";
     }
 
+    bool telemetry_enabled = defaults::TELEMETRY_ENABLED;
     const auto settings_telemetry_enabled_it = settings.find("telemetry_enabled");
     if (settings_telemetry_enabled_it != settings.end()) {
         telemetry_enabled = settings_telemetry_enabled_it->get<bool>();
@@ -367,17 +374,20 @@ ManagerSettings::ManagerSettings(const std::string& prefix_, const std::string& 
         telemetry_enabled = defaults::TELEMETRY_ENABLED;
     }
 
+    bool validate_schema = defaults::VALIDATE_SCHEMA;
     const auto settings_validate_schema_it = settings.find("validate_schema");
     if (settings_validate_schema_it != settings.end()) {
         validate_schema = settings_validate_schema_it->get<bool>();
     } else {
         validate_schema = defaults::VALIDATE_SCHEMA;
     }
+
+    runtime_settings = new RuntimeSettings(prefix, etc_dir, data_dir, modules_dir, logging_config_file,
+                                           telemetry_prefix, telemetry_enabled, validate_schema);
 }
 
-RuntimeSettings ManagerSettings::get_runtime_settings() {
-    return RuntimeSettings(prefix, etc_dir, data_dir, modules_dir, logging_config_file, telemetry_prefix,
-                           telemetry_enabled, validate_schema);
+const RuntimeSettings& ManagerSettings::get_runtime_settings() {
+    return *runtime_settings;
 }
 
 ModuleCallbacks::ModuleCallbacks(const std::function<void(ModuleAdapter module_adapter)>& register_module_adapter,

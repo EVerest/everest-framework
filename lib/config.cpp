@@ -241,7 +241,7 @@ void ManagerConfig::load_and_validate_manifest(const std::string& module_id, con
     EVLOG_debug << fmt::format("Found module {}, loading and verifying manifest...", printable_identifier(module_id));
 
     // load and validate module manifest.json
-    fs::path manifest_path = this->ms->modules_dir / module_name / "manifest.yaml";
+    fs::path manifest_path = this->ms->runtime_settings->modules_dir / module_name / "manifest.yaml";
     try {
 
         if (module_name != "ProbeModule") {
@@ -464,7 +464,7 @@ Config::Config(const MQTTSettings& mqtt_settings, json serialized_config) : Conf
 void ManagerConfig::parse(json config) {
     this->main = config;
     // load type files
-    if (ms->validate_schema) {
+    if (ms->runtime_settings->validate_schema) {
         int total_time_validation_ms = 0, total_time_parsing_ms = 0;
         for (auto const& types_entry : fs::recursive_directory_iterator(this->ms->types_dir)) {
             auto start_time = std::chrono::system_clock::now();
@@ -496,7 +496,7 @@ void ManagerConfig::parse(json config) {
     }
 
     // load error files
-    if (ms->validate_schema) {
+    if (ms->runtime_settings->validate_schema) {
         int total_time_validation_ms = 0, total_time_parsing_ms = 0;
         for (auto const& errors_entry : fs::recursive_directory_iterator(this->ms->errors_dir)) {
             auto start_time = std::chrono::system_clock::now();

@@ -223,8 +223,8 @@ static void exec_python_module(system::SubProcess& proc_handle, const ModuleStar
                                                 strerror(errno)));
 }
 
-static void exec_module(const RuntimeSettings& rs, const MQTTSettings& mqtt_settings,
-                        const ModuleStartInfo& module, system::SubProcess& proc_handle) {
+static void exec_module(const RuntimeSettings& rs, const MQTTSettings& mqtt_settings, const ModuleStartInfo& module,
+                        system::SubProcess& proc_handle) {
     switch (module.language) {
     case ModuleStartInfo::Language::cpp:
         exec_cpp_module(proc_handle, module, rs, mqtt_settings);
@@ -467,7 +467,7 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
         std::string binary_filename = fmt::format("{}", module_type);
         std::string javascript_library_filename = "index.js";
         std::string python_filename = "module.py";
-        auto module_path = ms->modules_dir / module_type;
+        auto module_path = ms->runtime_settings->modules_dir / module_type;
         const auto printable_module_name = config.printable_identifier(module_name);
         auto binary_path = module_path / binary_filename;
         auto javascript_library_path = module_path / javascript_library_filename;
@@ -568,19 +568,20 @@ static ControllerHandle start_controller(std::shared_ptr<ManagerSettings> ms) {
     close(controller_socket);
 
     // send initial config to controller
-    controller_ipc::send_message(manager_socket, {
-                                                     {"method", "boot"},
-                                                     {"params",
-                                                      {
-                                                          {"module_dir", ms->modules_dir.string()},
-                                                          {"interface_dir", ms->interfaces_dir.string()},
-                                                          {"www_dir", ms->www_dir.string()},
-                                                          {"configs_dir", ms->configs_dir.string()},
-                                                          {"logging_config_file", ms->logging_config_file.string()},
-                                                          {"controller_port", ms->controller_port},
-                                                          {"controller_rpc_timeout_ms", ms->controller_rpc_timeout_ms},
-                                                      }},
-                                                 });
+    controller_ipc::send_message(manager_socket,
+                                 {
+                                     {"method", "boot"},
+                                     {"params",
+                                      {
+                                          {"module_dir", ms->runtime_settings->modules_dir.string()},
+                                          {"interface_dir", ms->interfaces_dir.string()},
+                                          {"www_dir", ms->www_dir.string()},
+                                          {"configs_dir", ms->configs_dir.string()},
+                                          {"logging_config_file", ms->runtime_settings->logging_config_file.string()},
+                                          {"controller_port", ms->controller_port},
+                                          {"controller_rpc_timeout_ms", ms->controller_rpc_timeout_ms},
+                                      }},
+                                 });
 
     return {proc_handle.check_child_executed(), manager_socket};
 }
@@ -594,7 +595,7 @@ int boot(const po::variables_map& vm) {
 
     std::shared_ptr<ManagerSettings> ms = std::make_shared<ManagerSettings>(prefix_opt, config_opt);
 
-    Logging::init(ms->logging_config_file.string());
+    Logging::init(ms->runtime_settings->logging_config_file.string());
 
     EVLOG_info << "  \033[0;1;35;95m_\033[0;1;31;91m__\033[0;1;33;93m__\033[0;1;32;92m__\033[0;1;36;96m_\033[0m      "
                   "\033[0;1;31;91m_\033[0;1;33;93m_\033[0m                \033[0;1;36;96m_\033[0m   ";
@@ -632,7 +633,7 @@ int boot(const po::variables_map& vm) {
     } else {
         EVLOG_info << "Using MQTT broker unix domain sockets:" << ms->mqtt_settings->mqtt_broker_socket_path;
     }
-    if (ms->telemetry_enabled) {
+    if (ms->runtime_settings->telemetry_enabled) {
         EVLOG_info << "Telemetry enabled";
     }
     if (not ms->run_as_user.empty()) {
@@ -643,14 +644,15 @@ int boot(const po::variables_map& vm) {
     auto controller_handle = start_controller(ms);
 #endif
 
-    EVLOG_verbose << fmt::format("EVerest prefix was set to {}", ms->prefix.string());
+    EVLOG_verbose << fmt::format("EVerest prefix was set to {}", ms->runtime_settings->prefix.string());
 
     // dump all manifests if requested and terminate afterwards
     if (vm.count("dumpmanifests")) {
         auto dumpmanifests_path = fs::path(vm["dumpmanifests"].as<std::string>());
         EVLOG_debug << fmt::format("Dumping all known validated manifests into '{}'", dumpmanifests_path.string());
 
-        auto manifests = Config::load_all_manifests(ms->modules_dir.string(), ms->schemas_dir.string());
+        auto manifests =
+            Config::load_all_manifests(ms->runtime_settings->modules_dir.string(), ms->schemas_dir.string());
 
         for (const auto& module : manifests.items()) {
             std::string filename = module.key() + ".yaml";

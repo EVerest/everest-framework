@@ -113,14 +113,8 @@ struct RuntimeSettings {
 /// \brief Settings needed by the manager to load and validate a config
 
 struct ManagerSettings {
-    fs::path prefix;   ///< Prefix for EVerest installation
-    fs::path etc_dir;  ///< Directory that contains configs, certificates
-    fs::path data_dir; ///< Directory for general data, definitions for EVerest interfaces, types, errors an schemas
-    fs::path logging_config_file; ///< Path to the logging configuration file
-
     fs::path configs_dir;          ///< Directory that contains EVerest configs
     fs::path schemas_dir;          ///< Directory that contains schemas for config, manifest, interfaces, etc.
-    fs::path modules_dir;          ///< Directory that contains EVerest modules
     fs::path interfaces_dir;       ///< Directory that contains interface definitions
     fs::path types_dir;            ///< Directory that contains type definitions
     fs::path errors_dir;           ///< Directory that contains error definitions
@@ -135,16 +129,12 @@ struct ManagerSettings {
 
     nlohmann::json config; ///< Parsed json of the config_file
 
-    bool validate_schema; ///< If schema validation for all var publishes and cmd calls is enabled
-
     MQTTSettings* mqtt_settings; ///< MQTT connection settings
-
-    std::string telemetry_prefix; ///< MQTT prefix for telemetry
-    bool telemetry_enabled;       ///< If telemetry is enabled
+    RuntimeSettings* runtime_settings; ///< Runtime settings needed to successfully run modules
 
     ManagerSettings(const std::string& prefix, const std::string& config);
 
-    RuntimeSettings get_runtime_settings();
+    const RuntimeSettings& get_runtime_settings();
 };
 
 // NOTE: this function needs the be called with a pre-initialized ModuleInfo struct
