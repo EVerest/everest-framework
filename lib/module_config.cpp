@@ -67,7 +67,7 @@ std::string get_prefixed_path_from_json(const nlohmann::json& value, const fs::p
     return settings_configs_dir;
 }
 
-json ModuleConfig::get_config(std::shared_ptr<MQTTSettings> mqtt_settings, const std::string& module_id) {
+json ModuleConfig::get_config(const MQTTSettings& mqtt_settings, const std::string& module_id) {
     auto mqtt = MQTTAbstraction(mqtt_settings);
     if (not mqtt.connect()) {
         EVLOG_error << "Could not connect";
@@ -75,8 +75,8 @@ json ModuleConfig::get_config(std::shared_ptr<MQTTSettings> mqtt_settings, const
     }
     mqtt.spawn_main_loop_thread();
 
-    auto get_config_topic = fmt::format("{}modules/{}/get_config", mqtt_settings->mqtt_everest_prefix, module_id);
-    auto config_topic = fmt::format("{}modules/{}/config", mqtt_settings->mqtt_everest_prefix, module_id);
+    auto get_config_topic = fmt::format("{}modules/{}/get_config", mqtt_settings.mqtt_everest_prefix, module_id);
+    auto config_topic = fmt::format("{}modules/{}/config", mqtt_settings.mqtt_everest_prefix, module_id);
     std::promise<json> res_promise;
     std::future<json> res_future = res_promise.get_future();
 
@@ -114,42 +114,42 @@ json ModuleConfig::get_config(std::shared_ptr<MQTTSettings> mqtt_settings, const
 
     // TODO: disconnect initial mqtt or do we keep this open for additional config updates later on?
 
-    auto interface_names_topic = fmt::format("{}interfaces", mqtt_settings->mqtt_everest_prefix);
+    auto interface_names_topic = fmt::format("{}interfaces", mqtt_settings.mqtt_everest_prefix);
     auto interface_names = mqtt.get(interface_names_topic, QOS::QOS2);
     auto interface_definitions = json::object();
     for (auto& interface : interface_names) {
         auto interface_topic =
-            fmt::format("{}interface_definitions/{}", mqtt_settings->mqtt_everest_prefix, interface.get<std::string>());
+            fmt::format("{}interface_definitions/{}", mqtt_settings.mqtt_everest_prefix, interface.get<std::string>());
         auto interface_definition = mqtt.get(interface_topic, QOS::QOS2);
         interface_definitions[interface] = interface_definition;
     }
 
     result["interface_definitions"] = interface_definitions;
 
-    auto types_topic = fmt::format("{}types", mqtt_settings->mqtt_everest_prefix);
+    auto types_topic = fmt::format("{}types", mqtt_settings.mqtt_everest_prefix);
     result["types"] = mqtt.get(types_topic, QOS::QOS2);
 
-    auto module_provides_topic = fmt::format("{}module_provides", mqtt_settings->mqtt_everest_prefix);
+    auto module_provides_topic = fmt::format("{}module_provides", mqtt_settings.mqtt_everest_prefix);
     auto module_provides = mqtt.get(module_provides_topic, QOS::QOS2);
     result["module_provides"] = module_provides;
 
-    auto settings_topic = fmt::format("{}settings", mqtt_settings->mqtt_everest_prefix);
+    auto settings_topic = fmt::format("{}settings", mqtt_settings.mqtt_everest_prefix);
     auto settings = mqtt.get(settings_topic, QOS::QOS2);
     result["settings"] = settings;
 
-    auto schemas_topic = fmt::format("{}schemas", mqtt_settings->mqtt_everest_prefix);
+    auto schemas_topic = fmt::format("{}schemas", mqtt_settings.mqtt_everest_prefix);
     auto schemas = mqtt.get(schemas_topic, QOS::QOS2);
     result["schemas"] = schemas;
 
-    auto manifests_topic = fmt::format("{}manifests", mqtt_settings->mqtt_everest_prefix);
+    auto manifests_topic = fmt::format("{}manifests", mqtt_settings.mqtt_everest_prefix);
     auto manifests = mqtt.get(manifests_topic, QOS::QOS2);
     result["manifests"] = manifests;
 
-    auto error_types_map_topic = fmt::format("{}error_types_map", mqtt_settings->mqtt_everest_prefix);
+    auto error_types_map_topic = fmt::format("{}error_types_map", mqtt_settings.mqtt_everest_prefix);
     auto error_types_map = mqtt.get(error_types_map_topic, QOS::QOS2);
     result["error_map"] = error_types_map;
 
-    auto module_config_cache_topic = fmt::format("{}module_config_cache", mqtt_settings->mqtt_everest_prefix);
+    auto module_config_cache_topic = fmt::format("{}module_config_cache", mqtt_settings.mqtt_everest_prefix);
     auto module_config_cache = mqtt.get(module_config_cache_topic, QOS::QOS2);
     result["module_config_cache"] = module_config_cache;
 

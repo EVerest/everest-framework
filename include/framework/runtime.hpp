@@ -137,7 +137,7 @@ struct ManagerSettings {
 
     bool validate_schema; ///< If schema validation for all var publishes and cmd calls is enabled
 
-    std::shared_ptr<MQTTSettings> mqtt_settings; ///< MQTT connection settings
+    MQTTSettings* mqtt_settings; ///< MQTT connection settings
 
     std::string telemetry_prefix; ///< MQTT prefix for telemetry
     bool telemetry_enabled;       ///< If telemetry is enabled
@@ -175,7 +175,7 @@ struct VersionInformation {
 class ModuleLoader {
 private:
     std::shared_ptr<RuntimeSettings> runtime_settings;
-    std::shared_ptr<MQTTSettings> mqtt_settings;
+    MQTTSettings* mqtt_settings;
     std::string module_id;
     std::string original_process_name;
     std::string application_name;

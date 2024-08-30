@@ -48,8 +48,7 @@ struct ErrorFactory;
 class Everest {
 public:
     Everest(std::string module_id, const Config& config, bool validate_data_with_schema,
-            std::shared_ptr<MQTTSettings> mqtt_settings, const std::string& telemetry_prefix,
-            bool telemetry_enabled);
+            const MQTTSettings& mqtt_settings, const std::string& telemetry_prefix, bool telemetry_enabled);
 
     // forbid copy assignment and copy construction
     // NOTE (aw): move assignment and construction are also not supported because we're creating explicit references to

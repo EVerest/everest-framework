@@ -395,7 +395,7 @@ std::tuple<json, int> ManagerConfig::load_and_validate_with_schema(const fs::pat
     return {json_to_validate, validation_ms};
 }
 
-ManagerConfig::ManagerConfig(std::shared_ptr<ManagerSettings> ms) : ConfigBase(ms->mqtt_settings), ms(ms) {
+ManagerConfig::ManagerConfig(std::shared_ptr<ManagerSettings> ms) : ConfigBase(*ms->mqtt_settings), ms(ms) {
     BOOST_LOG_FUNCTION();
 
     this->manifests = json({});
@@ -441,7 +441,7 @@ ManagerConfig::ManagerConfig(std::shared_ptr<ManagerSettings> ms) : ConfigBase(m
     }
 }
 
-Config::Config(std::shared_ptr<MQTTSettings> mqtt_settings, json serialized_config) : ConfigBase(mqtt_settings) {
+Config::Config(const MQTTSettings& mqtt_settings, json serialized_config) : ConfigBase(mqtt_settings) {
     this->main = serialized_config.value("module_config", json({}));
     this->manifests = serialized_config.value("manifests", json({}));
     this->interfaces = serialized_config.value("module_provides", json({}));
@@ -1118,13 +1118,13 @@ std::optional<TelemetryConfig> Config::get_telemetry_config() {
 std::string ConfigBase::mqtt_prefix(const std::string& module_id, const std::string& impl_id) {
     BOOST_LOG_FUNCTION();
 
-    return fmt::format("{}modules/{}/impl/{}", this->mqtt_settings->mqtt_everest_prefix, module_id, impl_id);
+    return fmt::format("{}modules/{}/impl/{}", this->mqtt_settings.mqtt_everest_prefix, module_id, impl_id);
 }
 
 std::string ConfigBase::mqtt_module_prefix(const std::string& module_id) {
     BOOST_LOG_FUNCTION();
 
-    return fmt::format("{}modules/{}", this->mqtt_settings->mqtt_everest_prefix, module_id);
+    return fmt::format("{}modules/{}", this->mqtt_settings.mqtt_everest_prefix, module_id);
 }
 
 json ConfigBase::extract_implementation_info(const std::string& module_id, const std::string& impl_id) const {

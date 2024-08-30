@@ -330,11 +330,10 @@ ManagerSettings::ManagerSettings(const std::string& prefix_, const std::string& 
     }
 
     if (not mqtt_broker_socket_path.empty()) {
-        this->mqtt_settings =
-            std::make_shared<MQTTSettings>(mqtt_broker_socket_path, mqtt_everest_prefix, mqtt_external_prefix);
+        this->mqtt_settings = new MQTTSettings(mqtt_broker_socket_path, mqtt_everest_prefix, mqtt_external_prefix);
     } else {
-        this->mqtt_settings = std::make_shared<MQTTSettings>(mqtt_broker_host, mqtt_broker_port, mqtt_everest_prefix,
-                                                             mqtt_external_prefix);
+        this->mqtt_settings =
+            new MQTTSettings(mqtt_broker_host, mqtt_broker_port, mqtt_everest_prefix, mqtt_external_prefix);
     }
 
     config = config_;
@@ -405,7 +404,7 @@ int ModuleLoader::initialize() {
 
     auto start_time = std::chrono::system_clock::now();
 
-    auto result = ModuleConfig::get_config(this->mqtt_settings, this->module_id);
+    auto result = ModuleConfig::get_config(*this->mqtt_settings, this->module_id);
     auto get_config_time = std::chrono::system_clock::now();
     EVLOG_debug << "Module " << fmt::format(TERMINAL_STYLE_OK, "{}", module_id) << " get_config() ["
                 << std::chrono::duration_cast<std::chrono::milliseconds>(get_config_time - start_time).count() << "ms]";
@@ -418,7 +417,7 @@ int ModuleLoader::initialize() {
 
     auto& rs = this->runtime_settings;
     try {
-        Config config = Config(this->mqtt_settings, result);
+        Config config = Config(*this->mqtt_settings, result);
         auto config_instantiation_time = std::chrono::system_clock::now();
         EVLOG_debug
             << "Module " << fmt::format(TERMINAL_STYLE_OK, "{}", module_id) << " after Config() instantiation ["
@@ -446,7 +445,7 @@ int ModuleLoader::initialize() {
         }
         Logging::update_process_name(module_identifier);
 
-        auto everest = Everest(this->module_id, config, rs->validate_schema, this->mqtt_settings, rs->telemetry_prefix,
+        auto everest = Everest(this->module_id, config, rs->validate_schema, *this->mqtt_settings, rs->telemetry_prefix,
                                rs->telemetry_enabled);
 
         // module import
@@ -669,11 +668,10 @@ bool ModuleLoader::parse_command_line(int argc, char* argv[]) {
     }
 
     if (not mqtt_broker_socket_path.empty()) {
-        this->mqtt_settings =
-            std::make_shared<MQTTSettings>(mqtt_broker_socket_path, mqtt_everest_prefix, mqtt_external_prefix);
+        this->mqtt_settings = new MQTTSettings(mqtt_broker_socket_path, mqtt_everest_prefix, mqtt_external_prefix);
     } else {
-        this->mqtt_settings = std::make_shared<MQTTSettings>(mqtt_broker_host, mqtt_broker_port, mqtt_everest_prefix,
-                                                             mqtt_external_prefix);
+        this->mqtt_settings =
+            new MQTTSettings(mqtt_broker_host, mqtt_broker_port, mqtt_everest_prefix, mqtt_external_prefix);
     }
 
     if (vm.count("log_config") != 0) {

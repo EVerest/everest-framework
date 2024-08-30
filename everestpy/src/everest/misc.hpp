@@ -20,8 +20,8 @@ public:
         return rs;
     }
 
-    std::shared_ptr<Everest::MQTTSettings> get_mqtt_settings() const {
-        return mqtt_settings;
+    const Everest::MQTTSettings& get_mqtt_settings() const {
+        return *mqtt_settings;
     }
 
     Everest::Config& get_config() const {
@@ -30,7 +30,7 @@ public:
 
 private:
     std::shared_ptr<Everest::RuntimeSettings> rs;
-    std::shared_ptr<Everest::MQTTSettings> mqtt_settings;
+    Everest::MQTTSettings* mqtt_settings;
     std::unique_ptr<Everest::Config> config;
 };
 

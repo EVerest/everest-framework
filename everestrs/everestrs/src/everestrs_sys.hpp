@@ -18,7 +18,7 @@ enum class ConfigTypes : uint8_t;
 class Module {
 public:
     Module(const std::string& module_id, const std::string& prefix, const std::string& conf,
-           std::shared_ptr<Everest::MQTTSettings> mqtt_settings);
+           const Everest::MQTTSettings& mqtt_settings);
 
     JsonBlob initialize() const;
     JsonBlob get_interface(rust::Str interface_name) const;
@@ -33,7 +33,7 @@ public:
 
 private:
     const std::string module_id_;
-    std::shared_ptr<Everest::MQTTSettings> mqtt_settings_;
+    const Everest::MQTTSettings& mqtt_settings_;
     std::shared_ptr<Everest::RuntimeSettings> rs_;
     std::shared_ptr<Everest::Config> config_;
     std::unique_ptr<Everest::Everest> handle_;

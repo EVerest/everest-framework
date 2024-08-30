@@ -67,7 +67,7 @@ inline ConfigField get_config_field(const std::string& _name, int _value) {
 } // namespace
 
 Module::Module(const std::string& module_id, const std::string& prefix, const std::string& log_config,
-               std::shared_ptr<Everest::MQTTSettings> mqtt_settings) :
+               const Everest::MQTTSettings& mqtt_settings) :
     module_id_(module_id), mqtt_settings_(mqtt_settings) {
 
     Everest::Logging::init(log_config, module_id);
@@ -139,17 +139,17 @@ std::shared_ptr<Module> create_module(rust::Str module_name, rust::Str prefix, r
                                       rust::Str mqtt_broker_port, rust::Str mqtt_everest_prefix,
                                       rust::Str mqtt_external_prefix) {
     auto socket_path = std::string(mqtt_broker_socket_path);
-    std::shared_ptr<Everest::MQTTSettings> mqtt_settings;
+    Everest::MQTTSettings* mqtt_settings;
     if (not socket_path.empty()) {
-        mqtt_settings = std::make_shared<Everest::MQTTSettings>(socket_path, std::string(mqtt_everest_prefix),
-                                                                std::string(mqtt_external_prefix));
+        mqtt_settings =
+            new Everest::MQTTSettings(socket_path, std::string(mqtt_everest_prefix), std::string(mqtt_external_prefix));
     } else {
-        mqtt_settings = std::make_shared<Everest::MQTTSettings>(
-            std::string(mqtt_broker_host), std::stoi(std::string(mqtt_broker_port)), std::string(mqtt_everest_prefix),
-            std::string(mqtt_external_prefix));
+        mqtt_settings =
+            new Everest::MQTTSettings(std::string(mqtt_broker_host), std::stoi(std::string(mqtt_broker_port)),
+                                      std::string(mqtt_everest_prefix), std::string(mqtt_external_prefix));
     }
-    mod =
-        std::make_shared<Module>(std::string(module_name), std::string(prefix), std::string(log_config), mqtt_settings);
+    mod = std::make_shared<Module>(std::string(module_name), std::string(prefix), std::string(log_config),
+                                   *mqtt_settings);
     return mod;
 }
 

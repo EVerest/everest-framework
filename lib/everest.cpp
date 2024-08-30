@@ -33,15 +33,15 @@ const auto remote_cmd_res_timeout_seconds = 300;
 const std::array<std::string, 3> TELEMETRY_RESERVED_KEYS = {{"connector_id"}};
 
 Everest::Everest(std::string module_id_, const Config& config_, bool validate_data_with_schema,
-                 std::shared_ptr<MQTTSettings> mqtt_settings, const std::string& telemetry_prefix,
+                 const MQTTSettings& mqtt_settings, const std::string& telemetry_prefix,
                  bool telemetry_enabled) :
     mqtt_abstraction(mqtt_settings),
     config(std::move(config_)),
     module_id(std::move(module_id_)),
     remote_cmd_res_timeout(remote_cmd_res_timeout_seconds),
     validate_data_with_schema(validate_data_with_schema),
-    mqtt_everest_prefix(mqtt_settings->mqtt_everest_prefix),
-    mqtt_external_prefix(mqtt_settings->mqtt_external_prefix),
+    mqtt_everest_prefix(mqtt_settings.mqtt_everest_prefix),
+    mqtt_external_prefix(mqtt_settings.mqtt_external_prefix),
     telemetry_prefix(telemetry_prefix),
     telemetry_enabled(telemetry_enabled) {
     BOOST_LOG_FUNCTION();

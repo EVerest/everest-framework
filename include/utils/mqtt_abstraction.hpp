@@ -42,7 +42,7 @@ struct MQTTSettings {
 class MQTTAbstraction {
 public:
     /// \brief Create a MQTTAbstraction with the provideded \p mqtt_settings
-    explicit MQTTAbstraction(std::shared_ptr<MQTTSettings> mqtt_settings);
+    explicit MQTTAbstraction(const MQTTSettings& mqtt_settings);
 
     // forbid copy assignment and copy construction
     MQTTAbstraction(MQTTAbstraction const&) = delete;

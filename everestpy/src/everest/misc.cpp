@@ -23,7 +23,7 @@ const std::string get_variable_from_env(const std::string& variable, const std::
     return value;
 }
 
-static std::shared_ptr<Everest::MQTTSettings> get_mqtt_settings_from_env() {
+static Everest::MQTTSettings* get_mqtt_settings_from_env() {
     const auto mqtt_everest_prefix =
         get_variable_from_env("EV_MQTT_EVEREST_PREFIX", Everest::defaults::MQTT_EVEREST_PREFIX);
     const auto mqtt_external_prefix =
@@ -32,7 +32,7 @@ static std::shared_ptr<Everest::MQTTSettings> get_mqtt_settings_from_env() {
     const auto mqtt_broker_host = std::getenv("EV_MQTT_BROKER_HOST");
     const auto mqtt_broker_port = std::getenv("EV_MQTT_BROKER_PORT");
 
-    std::shared_ptr<Everest::MQTTSettings> mqtt_settings;
+    Everest::MQTTSettings* mqtt_settings;
     if (mqtt_broker_socket_path == nullptr) {
         if (mqtt_broker_host == nullptr or mqtt_broker_port == nullptr) {
             throw std::runtime_error("If EV_MQTT_BROKER_SOCKET_PATH is not set EV_MQTT_BROKER_HOST and "
@@ -44,11 +44,10 @@ static std::shared_ptr<Everest::MQTTSettings> get_mqtt_settings_from_env() {
         } catch (...) {
             EVLOG_warning << "Could not parse MQTT broker port, using default: " << mqtt_broker_port_;
         }
-        mqtt_settings = std::make_shared<Everest::MQTTSettings>(mqtt_broker_host, mqtt_broker_port_,
-                                                                mqtt_everest_prefix, mqtt_external_prefix);
-    } else {
         mqtt_settings =
-            std::make_shared<Everest::MQTTSettings>(mqtt_broker_socket_path, mqtt_everest_prefix, mqtt_external_prefix);
+            new Everest::MQTTSettings(mqtt_broker_host, mqtt_broker_port_, mqtt_everest_prefix, mqtt_external_prefix);
+    } else {
+        mqtt_settings = new Everest::MQTTSettings(mqtt_broker_socket_path, mqtt_everest_prefix, mqtt_external_prefix);
     }
 
     return mqtt_settings;
@@ -70,9 +69,9 @@ RuntimeSession::RuntimeSession() {
 
     this->mqtt_settings = get_mqtt_settings_from_env();
 
-    auto result = Everest::ModuleConfig::get_config(mqtt_settings, module_id);
+    const auto result = Everest::ModuleConfig::get_config(*mqtt_settings, module_id);
     this->rs = std::make_shared<Everest::RuntimeSettings>(result.at("settings"));
-    this->config = std::make_unique<Everest::Config>(mqtt_settings, result);
+    this->config = std::make_unique<Everest::Config>(*mqtt_settings, result);
 }
 
 ModuleSetup create_setup_from_config(const std::string& module_id, Everest::Config& config) {

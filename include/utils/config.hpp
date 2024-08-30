@@ -66,7 +66,7 @@ protected:
 
     error::ErrorTypeMap error_map;
 
-    std::shared_ptr<MQTTSettings> mqtt_settings;
+    const MQTTSettings& mqtt_settings;
 
     ///
     /// \brief extracts information about the provided module given via \p module_id from the config and manifest
@@ -98,7 +98,7 @@ protected:
 public:
     ///
     /// \brief Create a ConfigBase with the provided \p mqtt_settings
-    explicit ConfigBase(std::shared_ptr<MQTTSettings> mqtt_settings) : mqtt_settings(mqtt_settings){};
+    explicit ConfigBase(const MQTTSettings& mqtt_settings) : mqtt_settings(mqtt_settings){};
 
     ///
     /// \brief turns then given \p module_id into a printable identifier
@@ -272,7 +272,7 @@ public:
 
     ///
     /// \brief creates a new Config object form the given \p mqtt_settings and \p config
-    explicit Config(std::shared_ptr<MQTTSettings> mqtt_settings, json config);
+    explicit Config(const MQTTSettings& mqtt_settings, json config);
 
     ///
     /// \brief checks if the given \p module_id provides the requirement given in \p requirement_id

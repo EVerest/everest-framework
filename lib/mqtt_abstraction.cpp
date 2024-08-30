@@ -24,15 +24,15 @@ MQTTSettings::MQTTSettings(const std::string& mqtt_broker_host, int mqtt_broker_
     socket(false) {
 }
 
-MQTTAbstraction::MQTTAbstraction(const std::shared_ptr<MQTTSettings> mqtt_settings) {
-    if (mqtt_settings->socket) {
-        mqtt_abstraction = std::make_unique<MQTTAbstractionImpl>(mqtt_settings->mqtt_broker_socket_path,
-                                                                 mqtt_settings->mqtt_everest_prefix,
-                                                                 mqtt_settings->mqtt_external_prefix);
+MQTTAbstraction::MQTTAbstraction(const MQTTSettings& mqtt_settings) {
+    if (mqtt_settings.socket) {
+        mqtt_abstraction = std::make_unique<MQTTAbstractionImpl>(mqtt_settings.mqtt_broker_socket_path,
+                                                                 mqtt_settings.mqtt_everest_prefix,
+                                                                 mqtt_settings.mqtt_external_prefix);
     } else {
         mqtt_abstraction = std::make_unique<MQTTAbstractionImpl>(
-            mqtt_settings->mqtt_broker_host, std::to_string(mqtt_settings->mqtt_broker_port),
-            mqtt_settings->mqtt_everest_prefix, mqtt_settings->mqtt_external_prefix);
+            mqtt_settings.mqtt_broker_host, std::to_string(mqtt_settings.mqtt_broker_port),
+            mqtt_settings.mqtt_everest_prefix, mqtt_settings.mqtt_external_prefix);
     }
 }
 

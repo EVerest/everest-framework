@@ -26,7 +26,7 @@ public:
     ModuleConfig() = default;
 
     /// \brief get config from manager via mqtt
-    static json get_config(std::shared_ptr<MQTTSettings> mqtt_settings, const std::string& module_id);
+    static json get_config(const MQTTSettings& mqtt_settings, const std::string& module_id);
 };
 
 /// \brief Check if the provided \p path is a directory

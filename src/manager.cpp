@@ -106,7 +106,7 @@ static std::vector<char*> arguments_to_exec_argv(std::vector<std::string>& argum
 }
 
 static void exec_cpp_module(system::SubProcess& proc_handle, const ModuleStartInfo& module_info,
-                            std::shared_ptr<RuntimeSettings> rs, std::shared_ptr<MQTTSettings> mqtt_settings) {
+                            std::shared_ptr<RuntimeSettings> rs, const MQTTSettings& mqtt_settings) {
     const auto exec_binary = module_info.path.c_str();
     std::vector<std::string> arguments = {
         module_info.printable_name,
@@ -117,15 +117,15 @@ static void exec_cpp_module(system::SubProcess& proc_handle, const ModuleStartIn
         "--log_config",
         rs->logging_config_file.string(),
         "--mqtt_everest_prefix",
-        mqtt_settings->mqtt_everest_prefix,
+        mqtt_settings.mqtt_everest_prefix,
         "--mqtt_external_prefix",
-        mqtt_settings->mqtt_external_prefix}; // TODO: check if this is empty and do not append if needed?
+        mqtt_settings.mqtt_external_prefix}; // TODO: check if this is empty and do not append if needed?
 
-    if (mqtt_settings->socket) {
-        arguments.insert(arguments.end(), {"--mqtt_broker_socket_path", mqtt_settings->mqtt_broker_socket_path});
+    if (mqtt_settings.socket) {
+        arguments.insert(arguments.end(), {"--mqtt_broker_socket_path", mqtt_settings.mqtt_broker_socket_path});
     } else {
-        arguments.insert(arguments.end(), {"--mqtt_broker_host", mqtt_settings->mqtt_broker_host, "--mqtt_broker_port",
-                                           std::to_string(mqtt_settings->mqtt_broker_port)});
+        arguments.insert(arguments.end(), {"--mqtt_broker_host", mqtt_settings.mqtt_broker_host, "--mqtt_broker_port",
+                                           std::to_string(mqtt_settings.mqtt_broker_port)});
     }
 
     auto argv_list = arguments_to_exec_argv(arguments);
@@ -138,7 +138,7 @@ static void exec_cpp_module(system::SubProcess& proc_handle, const ModuleStartIn
 }
 
 static void exec_javascript_module(system::SubProcess& proc_handle, const ModuleStartInfo& module_info,
-                                   std::shared_ptr<RuntimeSettings> rs, std::shared_ptr<MQTTSettings> mqtt_settings) {
+                                   std::shared_ptr<RuntimeSettings> rs, const MQTTSettings& mqtt_settings) {
     // instead of using setenv, using execvpe might be a better way for a controlled environment!
 
     // FIXME (aw): everest directory layout
@@ -148,13 +148,13 @@ static void exec_javascript_module(system::SubProcess& proc_handle, const Module
     setenv("EV_MODULE", module_info.name.c_str(), 1);
     setenv("EV_PREFIX", rs->prefix.c_str(), 0);
     setenv("EV_LOG_CONF_FILE", rs->logging_config_file.c_str(), 0);
-    setenv("EV_MQTT_EVEREST_PREFIX", mqtt_settings->mqtt_everest_prefix.c_str(), 0);
-    setenv("EV_MQTT_EXTERNAL_PREFIX", mqtt_settings->mqtt_external_prefix.c_str(), 0);
-    if (mqtt_settings->socket) {
-        setenv("EV_MQTT_BROKER_SOCKET_PATH", mqtt_settings->mqtt_broker_socket_path.c_str(), 0);
+    setenv("EV_MQTT_EVEREST_PREFIX", mqtt_settings.mqtt_everest_prefix.c_str(), 0);
+    setenv("EV_MQTT_EXTERNAL_PREFIX", mqtt_settings.mqtt_external_prefix.c_str(), 0);
+    if (mqtt_settings.socket) {
+        setenv("EV_MQTT_BROKER_SOCKET_PATH", mqtt_settings.mqtt_broker_socket_path.c_str(), 0);
     } else {
-        setenv("EV_MQTT_BROKER_HOST", mqtt_settings->mqtt_broker_host.c_str(), 0);
-        setenv("EV_MQTT_BROKER_PORT", std::to_string(mqtt_settings->mqtt_broker_port).c_str(), 0);
+        setenv("EV_MQTT_BROKER_HOST", mqtt_settings.mqtt_broker_host.c_str(), 0);
+        setenv("EV_MQTT_BROKER_PORT", std::to_string(mqtt_settings.mqtt_broker_port).c_str(), 0);
     }
 
     if (rs->validate_schema) {
@@ -183,7 +183,7 @@ static void exec_javascript_module(system::SubProcess& proc_handle, const Module
 }
 
 static void exec_python_module(system::SubProcess& proc_handle, const ModuleStartInfo& module_info,
-                               std::shared_ptr<RuntimeSettings> rs, std::shared_ptr<MQTTSettings> mqtt_settings) {
+                               std::shared_ptr<RuntimeSettings> rs, const MQTTSettings& mqtt_settings) {
     // instead of using setenv, using execvpe might be a better way for a controlled environment!
 
     const auto pythonpath = rs->prefix / defaults::LIB_DIR / defaults::NAMESPACE / "everestpy";
@@ -191,13 +191,13 @@ static void exec_python_module(system::SubProcess& proc_handle, const ModuleStar
     setenv("EV_MODULE", module_info.name.c_str(), 1);
     setenv("EV_PREFIX", rs->prefix.c_str(), 0);
     setenv("EV_LOG_CONF_FILE", rs->logging_config_file.c_str(), 0);
-    setenv("EV_MQTT_EVEREST_PREFIX", mqtt_settings->mqtt_everest_prefix.c_str(), 0);
-    setenv("EV_MQTT_EXTERNAL_PREFIX", mqtt_settings->mqtt_external_prefix.c_str(), 0);
-    if (mqtt_settings->socket) {
-        setenv("EV_MQTT_BROKER_SOCKET_PATH", mqtt_settings->mqtt_broker_socket_path.c_str(), 0);
+    setenv("EV_MQTT_EVEREST_PREFIX", mqtt_settings.mqtt_everest_prefix.c_str(), 0);
+    setenv("EV_MQTT_EXTERNAL_PREFIX", mqtt_settings.mqtt_external_prefix.c_str(), 0);
+    if (mqtt_settings.socket) {
+        setenv("EV_MQTT_BROKER_SOCKET_PATH", mqtt_settings.mqtt_broker_socket_path.c_str(), 0);
     } else {
-        setenv("EV_MQTT_BROKER_HOST", mqtt_settings->mqtt_broker_host.c_str(), 0);
-        setenv("EV_MQTT_BROKER_PORT", std::to_string(mqtt_settings->mqtt_broker_port).c_str(), 0);
+        setenv("EV_MQTT_BROKER_HOST", mqtt_settings.mqtt_broker_host.c_str(), 0);
+        setenv("EV_MQTT_BROKER_PORT", std::to_string(mqtt_settings.mqtt_broker_port).c_str(), 0);
     }
 
     setenv("PYTHONPATH", pythonpath.c_str(), 0);
@@ -223,7 +223,7 @@ static void exec_python_module(system::SubProcess& proc_handle, const ModuleStar
                                                 strerror(errno)));
 }
 
-static void exec_module(std::shared_ptr<RuntimeSettings> rs, std::shared_ptr<MQTTSettings> mqtt_settings,
+static void exec_module(std::shared_ptr<RuntimeSettings> rs, const MQTTSettings& mqtt_settings,
                         const ModuleStartInfo& module, system::SubProcess& proc_handle) {
     switch (module.language) {
     case ModuleStartInfo::Language::cpp:
@@ -256,7 +256,7 @@ static std::map<pid_t, std::string> spawn_modules(const std::vector<ModuleStartI
             // first, check if we need any capabilities
 
             try {
-                exec_module(rs, mqtt_settings, module, proc_handle);
+                exec_module(rs, *mqtt_settings, module, proc_handle);
             } catch (const std::exception& err) {
                 proc_handle.send_error_and_exit(err.what());
             }
@@ -742,7 +742,7 @@ int boot(const po::variables_map& vm) {
     // create StatusFifo object
     auto status_fifo = StatusFifo::create_from_path(vm["status-fifo"].as<std::string>());
 
-    auto mqtt_abstraction = MQTTAbstraction(ms->mqtt_settings);
+    auto mqtt_abstraction = MQTTAbstraction(*ms->mqtt_settings);
 
     if (!mqtt_abstraction.connect()) {
         if (ms->mqtt_settings->mqtt_broker_socket_path.empty()) {
