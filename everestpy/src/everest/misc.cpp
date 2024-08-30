@@ -32,7 +32,6 @@ static Everest::MQTTSettings* get_mqtt_settings_from_env() {
     const auto mqtt_broker_host = std::getenv("EV_MQTT_BROKER_HOST");
     const auto mqtt_broker_port = std::getenv("EV_MQTT_BROKER_PORT");
 
-    Everest::MQTTSettings* mqtt_settings;
     if (mqtt_broker_socket_path == nullptr) {
         if (mqtt_broker_host == nullptr or mqtt_broker_port == nullptr) {
             throw std::runtime_error("If EV_MQTT_BROKER_SOCKET_PATH is not set EV_MQTT_BROKER_HOST and "
@@ -44,13 +43,11 @@ static Everest::MQTTSettings* get_mqtt_settings_from_env() {
         } catch (...) {
             EVLOG_warning << "Could not parse MQTT broker port, using default: " << mqtt_broker_port_;
         }
-        mqtt_settings =
-            new Everest::MQTTSettings(mqtt_broker_host, mqtt_broker_port_, mqtt_everest_prefix, mqtt_external_prefix);
+        return new Everest::MQTTSettings(mqtt_broker_host, mqtt_broker_port_, mqtt_everest_prefix,
+                                         mqtt_external_prefix);
     } else {
-        mqtt_settings = new Everest::MQTTSettings(mqtt_broker_socket_path, mqtt_everest_prefix, mqtt_external_prefix);
+        return new Everest::MQTTSettings(mqtt_broker_socket_path, mqtt_everest_prefix, mqtt_external_prefix);
     }
-
-    return mqtt_settings;
 }
 
 /// This is just kept for compatibility
