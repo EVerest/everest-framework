@@ -5,7 +5,7 @@
 #include <cstdlib>
 #include <stdexcept>
 
-std::string get_variable_from_env(const std::string& variable) {
+const std::string get_variable_from_env(const std::string& variable) {
     const auto value = std::getenv(variable.c_str());
     if (value == nullptr) {
         throw std::runtime_error(variable + " needed for everestpy");
@@ -14,7 +14,7 @@ std::string get_variable_from_env(const std::string& variable) {
     return value;
 }
 
-std::string get_variable_from_env(const std::string& variable, const std::string& default_value) {
+const std::string get_variable_from_env(const std::string& variable, const std::string& default_value) {
     const auto value = std::getenv(variable.c_str());
     if (value == nullptr) {
         return default_value;
@@ -61,7 +61,7 @@ RuntimeSession::RuntimeSession(const std::string& prefix, const std::string& con
 }
 
 RuntimeSession::RuntimeSession() {
-    auto module_id = get_variable_from_env("EV_MODULE");
+    const auto module_id = get_variable_from_env("EV_MODULE");
 
     namespace fs = std::filesystem;
     fs::path logging_config_file =

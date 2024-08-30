@@ -7,7 +7,8 @@
 
 #include <framework/runtime.hpp>
 
-std::string get_variable_from_env(const std::string& variable);
+const std::string get_variable_from_env(const std::string& variable);
+const std::string get_variable_from_env(const std::string& variable, const std::string& default_value);
 
 class RuntimeSession {
 public:
