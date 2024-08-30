@@ -5,6 +5,8 @@
 #include <cstdlib>
 #include <stdexcept>
 
+#include <utils/filesystem.hpp>
+
 const std::string get_variable_from_env(const std::string& variable) {
     const auto value = std::getenv(variable.c_str());
     if (value == nullptr) {

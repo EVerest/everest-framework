@@ -26,6 +26,7 @@ target_sources(framework
         error/error_factory.cpp
         everest.cpp
         formatter.cpp
+        filesystem.cpp
         message_queue.cpp
         module_config.cpp
         mqtt_abstraction.cpp

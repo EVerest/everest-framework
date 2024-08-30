@@ -8,6 +8,7 @@
 #include <utils/error/error_manager_impl.hpp>
 #include <utils/error/error_manager_req.hpp>
 #include <utils/error/error_state_monitor.hpp>
+#include <utils/filesystem.hpp>
 
 #include <algorithm>
 #include <cstdlib>

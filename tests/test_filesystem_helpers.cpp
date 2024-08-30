@@ -2,9 +2,8 @@
 // Copyright Pionix GmbH and Contributors to EVerest
 #include <catch2/catch_all.hpp>
 
-#include <framework/runtime.hpp>
 #include <tests/helpers.hpp>
-#include <utils/module_config.hpp>
+#include <utils/filesystem.hpp>
 
 namespace fs = std::filesystem;
 
