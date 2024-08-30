@@ -1315,3 +1315,21 @@ void ConfigBase::parse_3_tier_model_mapping() {
 }
 
 } // namespace Everest
+
+NLOHMANN_JSON_NAMESPACE_BEGIN
+void adl_serializer<Everest::schemas>::to_json(nlohmann::json& j, const Everest::schemas& s) {
+    j = {{"config", s.config},
+         {"manifest", s.manifest},
+         {"interface", s.interface},
+         {"type", s.type},
+         {"error_declaration_list", s.error_declaration_list}};
+}
+
+void adl_serializer<Everest::schemas>::from_json(const nlohmann::json& j, Everest::schemas& s) {
+    s.config = j.at("config");
+    s.manifest = j.at("manifest");
+    s.interface = j.at("interface");
+    s.type = j.at("type");
+    s.error_declaration_list = j.at("error_declaration_list");
+}
+NLOHMANN_JSON_NAMESPACE_END

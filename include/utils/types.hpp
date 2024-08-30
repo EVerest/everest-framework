@@ -127,57 +127,16 @@ bool operator!=(const ImplementationIdentifier& lhs, const ImplementationIdentif
 
 NLOHMANN_JSON_NAMESPACE_BEGIN
 template <> struct adl_serializer<Mapping> {
-    static void to_json(json& j, const Mapping& m) {
-        j = {{"evse", m.evse}};
-        if (m.connector.has_value()) {
-            j["connector"] = m.connector.value();
-        }
-    }
-    static Mapping from_json(const json& j) {
-        auto m = Mapping(j.at("evse").get<int>());
-        if (j.contains("connector")) {
-            m.connector = j.at("connector").get<int>();
-        }
-        return m;
-    }
+    static void to_json(json& j, const Mapping& m);
+    static Mapping from_json(const json& j);
 };
 template <> struct adl_serializer<TelemetryConfig> {
-    static void to_json(json& j, const TelemetryConfig& t) {
-        j = {{"id", t.id}};
-    }
-    static TelemetryConfig from_json(const json& j) {
-        auto t = TelemetryConfig(j.at("id").get<int>());
-        return t;
-    }
+    static void to_json(json& j, const TelemetryConfig& t);
+    static TelemetryConfig from_json(const json& j);
 };
 template <> struct adl_serializer<ModuleTierMappings> {
-    static void to_json(json& j, const ModuleTierMappings& m) {
-        if (m.module.has_value()) {
-            j = {{"module", m.module.value()}};
-        }
-        if (m.implementations.size() > 0) {
-            j["implementations"] = json::object();
-            for (auto& impl_mapping : m.implementations) {
-                if (impl_mapping.second.has_value()) {
-                    j["implementations"][impl_mapping.first] = impl_mapping.second.value();
-                }
-            }
-        }
-    }
-    static ModuleTierMappings from_json(const json& j) {
-        ModuleTierMappings m;
-        if (!j.is_null()) {
-            if (j.contains("module")) {
-                m.module = j.at("module");
-            }
-            if (j.contains("implementations")) {
-                for (auto& impl : j.at("implementations").items()) {
-                    m.implementations[impl.key()] = impl.value();
-                }
-            }
-        }
-        return m;
-    }
+    static void to_json(json& j, const ModuleTierMappings& m);
+    static ModuleTierMappings from_json(const json& j);
 };
 NLOHMANN_JSON_NAMESPACE_END
 

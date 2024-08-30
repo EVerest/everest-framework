@@ -353,21 +353,9 @@ public:
 
 NLOHMANN_JSON_NAMESPACE_BEGIN
 template <> struct adl_serializer<Everest::schemas> {
-    static void to_json(nlohmann::json& j, const Everest::schemas& s) {
-        j = {{"config", s.config},
-             {"manifest", s.manifest},
-             {"interface", s.interface},
-             {"type", s.type},
-             {"error_declaration_list", s.error_declaration_list}};
-    }
+    static void to_json(nlohmann::json& j, const Everest::schemas& s);
 
-    static void from_json(const nlohmann::json& j, Everest::schemas& s) {
-        s.config = j.at("config");
-        s.manifest = j.at("manifest");
-        s.interface = j.at("interface");
-        s.type = j.at("type");
-        s.error_declaration_list = j.at("error_declaration_list");
-    }
+    static void from_json(const nlohmann::json& j, Everest::schemas& s);
 };
 NLOHMANN_JSON_NAMESPACE_END
 
