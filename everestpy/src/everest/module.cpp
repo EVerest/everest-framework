@@ -17,16 +17,7 @@ std::unique_ptr<Everest::Everest> Module::create_everest_instance(const std::str
                                               rs->telemetry_prefix, rs->telemetry_enabled);
 }
 
-static std::string get_ev_module_from_env() {
-    const auto module_id = std::getenv("EV_MODULE");
-    if (module_id == nullptr) {
-        throw std::runtime_error("EV_MODULE needed for everestpy");
-    }
-
-    return module_id;
-}
-
-Module::Module(const RuntimeSession& session) : Module(get_ev_module_from_env(), session) {
+Module::Module(const RuntimeSession& session) : Module(get_variable_from_env("EV_MODULE"), session) {
 }
 
 Module::Module(const std::string& module_id_, const RuntimeSession& session_) :

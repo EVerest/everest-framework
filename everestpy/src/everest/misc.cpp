@@ -5,31 +5,13 @@
 #include <cstdlib>
 #include <stdexcept>
 
-static std::string get_ev_prefix_from_env() {
-    const auto prefix = std::getenv("EV_PREFIX");
-    if (prefix == nullptr) {
-        throw std::runtime_error("EV_PREFIX needed for everestpy");
+std::string get_variable_from_env(const std::string& variable) {
+    const auto value = std::getenv(variable.c_str());
+    if (value == nullptr) {
+        throw std::runtime_error(variable + " needed for everestpy");
     }
 
-    return prefix;
-}
-
-static std::string get_ev_log_conf_file_from_env() {
-    const auto logging_config_file = std::getenv("EV_LOG_CONF_FILE");
-    if (logging_config_file == nullptr) {
-        throw std::runtime_error("EV_LOG_CONF_FILE needed for everestpy");
-    }
-
-    return logging_config_file;
-}
-
-static std::string get_ev_module_from_env() {
-    const auto module_id = std::getenv("EV_MODULE");
-    if (module_id == nullptr) {
-        throw std::runtime_error("EV_MODULE needed for everestpy");
-    }
-
-    return module_id;
+    return value;
 }
 
 static std::shared_ptr<Everest::MQTTSettings> get_mqtt_settings_from_env() {
@@ -68,10 +50,11 @@ RuntimeSession::RuntimeSession(const std::string& prefix, const std::string& con
 }
 
 RuntimeSession::RuntimeSession() {
-    auto module_id = get_ev_module_from_env();
+    auto module_id = get_variable_from_env("EV_MODULE");
 
     namespace fs = std::filesystem;
-    fs::path logging_config_file = Everest::assert_file(get_ev_log_conf_file_from_env(), "Default logging config");
+    fs::path logging_config_file =
+        Everest::assert_file(get_variable_from_env("EV_LOG_CONF_FILE"), "Default logging config");
     Everest::Logging::init(logging_config_file.string(), module_id);
 
     this->mqtt_settings = get_mqtt_settings_from_env();

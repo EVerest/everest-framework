@@ -7,6 +7,8 @@
 
 #include <framework/runtime.hpp>
 
+std::string get_variable_from_env(const std::string& variable);
+
 class RuntimeSession {
 public:
     RuntimeSession(const std::string& prefix, const std::string& config_file);
