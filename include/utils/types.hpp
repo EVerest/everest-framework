@@ -142,4 +142,10 @@ NLOHMANN_JSON_NAMESPACE_END
 
 #define EVCALLBACK(function) [](auto&& PH1) { function(std::forward<decltype(PH1)>(PH1)); }
 
+namespace Everest {
+struct BootException : public std::runtime_error {
+    using std::runtime_error::runtime_error;
+};
+} // namespace Everest
+
 #endif // UTILS_TYPES_HPP

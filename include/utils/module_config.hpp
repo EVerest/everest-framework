@@ -14,10 +14,6 @@ namespace Everest {
 using json = nlohmann::json;
 namespace fs = std::filesystem;
 
-struct BootException : public std::runtime_error {
-    using std::runtime_error::runtime_error;
-};
-
 ///
 /// \brief Contains helpers for the module config loading
 ///
