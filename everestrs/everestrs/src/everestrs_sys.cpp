@@ -72,7 +72,7 @@ Module::Module(const std::string& module_id, const std::string& prefix, const st
 
     Everest::Logging::init(log_config, module_id);
 
-    auto result = Everest::ModuleConfig::get_config(this->mqtt_settings_, this->module_id_);
+    auto result = Everest::get_module_config(this->mqtt_settings_, this->module_id_);
 
     this->rs_ = std::make_shared<Everest::RuntimeSettings>(result.at("settings"));
 

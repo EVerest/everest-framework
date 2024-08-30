@@ -1,16 +1,20 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Pionix GmbH and Contributors to EVerest
 
+#include <future>
+
 #include <fmt/core.h>
 
 #include <everest/exceptions.hpp>
 #include <everest/logging.hpp>
 
 #include <utils/module_config.hpp>
+#include <utils/types.hpp>
 
 namespace Everest {
+using json = nlohmann::json;
 
-json ModuleConfig::get_config(const MQTTSettings& mqtt_settings, const std::string& module_id) {
+json get_module_config(const MQTTSettings& mqtt_settings, const std::string& module_id) {
     auto mqtt = MQTTAbstraction(mqtt_settings);
     if (not mqtt.connect()) {
         EVLOG_error << "Could not connect";

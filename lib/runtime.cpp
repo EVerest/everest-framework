@@ -415,7 +415,7 @@ int ModuleLoader::initialize() {
 
     auto start_time = std::chrono::system_clock::now();
 
-    auto result = ModuleConfig::get_config(*this->mqtt_settings, this->module_id);
+    auto result = get_module_config(*this->mqtt_settings, this->module_id);
     auto get_config_time = std::chrono::system_clock::now();
     EVLOG_debug << "Module " << fmt::format(TERMINAL_STYLE_OK, "{}", module_id) << " get_config() ["
                 << std::chrono::duration_cast<std::chrono::milliseconds>(get_config_time - start_time).count() << "ms]";

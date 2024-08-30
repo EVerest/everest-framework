@@ -594,7 +594,7 @@ static Napi::Value boot_module(const Napi::CallbackInfo& info) {
                 new Everest::MQTTSettings(mqtt_broker_socket_path, mqtt_everest_prefix, mqtt_external_prefix);
         }
 
-        const auto result = Everest::ModuleConfig::get_config(*mqtt_settings, module_id);
+        const auto result = Everest::get_module_config(*mqtt_settings, module_id);
 
         auto rs = new Everest::RuntimeSettings(result.at("settings"));
 
