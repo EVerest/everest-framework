@@ -14,9 +14,20 @@ std::string get_variable_from_env(const std::string& variable) {
     return value;
 }
 
+std::string get_variable_from_env(const std::string& variable, const std::string& default_value) {
+    const auto value = std::getenv(variable.c_str());
+    if (value == nullptr) {
+        return default_value;
+    }
+
+    return value;
+}
+
 static std::shared_ptr<Everest::MQTTSettings> get_mqtt_settings_from_env() {
-    const auto mqtt_everest_prefix = std::getenv("EV_MQTT_EVEREST_PREFIX");
-    const auto mqtt_external_prefix = std::getenv("EV_MQTT_EXTERNAL_PREFIX");
+    const auto mqtt_everest_prefix =
+        get_variable_from_env("EV_MQTT_EVEREST_PREFIX", Everest::defaults::MQTT_EVEREST_PREFIX);
+    const auto mqtt_external_prefix =
+        get_variable_from_env("EV_MQTT_EXTERNAL_PREFIX", Everest::defaults::MQTT_EXTERNAL_PREFIX);
     const auto mqtt_broker_socket_path = std::getenv("EV_MQTT_BROKER_SOCKET_PATH");
     const auto mqtt_broker_host = std::getenv("EV_MQTT_BROKER_HOST");
     const auto mqtt_broker_port = std::getenv("EV_MQTT_BROKER_PORT");
