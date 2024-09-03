@@ -16,22 +16,12 @@ public:
 
     RuntimeSession();
 
-    const Everest::RuntimeSettings& get_runtime_settings() const {
-        return *rs;
-    }
-
     const Everest::MQTTSettings& get_mqtt_settings() const {
         return *mqtt_settings;
     }
 
-    Everest::Config& get_config() const {
-        return *config;
-    }
-
 private:
-    Everest::RuntimeSettings* rs;
     Everest::MQTTSettings* mqtt_settings;
-    std::unique_ptr<Everest::Config> config;
 };
 
 struct Fulfillment {

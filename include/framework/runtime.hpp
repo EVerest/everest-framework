@@ -166,6 +166,7 @@ class ModuleLoader {
 private:
     RuntimeSettings* runtime_settings;
     MQTTSettings* mqtt_settings;
+    std::shared_ptr<MQTTAbstraction> mqtt;
     std::string module_id;
     std::string original_process_name;
     std::string application_name;

@@ -9,7 +9,7 @@
 
 namespace Everest {
 /// \brief get config from manager via mqtt
-nlohmann::json get_module_config(const MQTTSettings& mqtt_settings, const std::string& module_id);
+nlohmann::json get_module_config(std::shared_ptr<MQTTAbstraction> mqtt, const std::string& module_id);
 } // namespace Everest
 
 #endif // UTILS_MODULE_CONFIG_HPP

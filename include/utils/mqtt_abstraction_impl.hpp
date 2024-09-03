@@ -88,7 +88,11 @@ public:
     ///
     /// \brief Spawn a thread running the mqtt main loop
     /// \returns a future, which will be fulfilled on thread termination
-    std::future<void> spawn_main_loop_thread();
+    std::shared_future<void> spawn_main_loop_thread();
+
+    ///
+    /// \returns the main loop future, which will be fulfilled on thread termination
+    std::shared_future<void> get_main_loop_future();
 
     ///
     /// \brief subscribes to the given \p topic and registers a callback \p handler that is called when a message
@@ -120,6 +124,7 @@ private:
     std::mutex messages_before_connected_mutex;
 
     Thread mqtt_mainloop_thread;
+    std::shared_future<void> main_loop_future;
 
     std::string mqtt_server_socket_path;
     std::string mqtt_server_address;

@@ -71,15 +71,18 @@ Module::Module(const std::string& module_id, const std::string& prefix, const st
     module_id_(module_id), mqtt_settings_(mqtt_settings) {
 
     Everest::Logging::init(log_config, module_id);
+    this->mqtt_abstraction_ = std::make_shared<Everest::MQTTAbstraction>(this->mqtt_settings_);
+    this->mqtt_abstraction_->connect();
+    this->mqtt_abstraction_->spawn_main_loop_thread();
 
-    auto result = Everest::get_module_config(this->mqtt_settings_, this->module_id_);
+    const auto result = Everest::get_module_config(this->mqtt_abstraction_, this->module_id_);
 
     this->rs_ = std::make_shared<Everest::RuntimeSettings>(result.at("settings"));
 
     config_ = std::make_shared<Everest::Config>(this->mqtt_settings_, result);
 
     handle_ = std::make_unique<Everest::Everest>(this->module_id_, *this->config_, this->rs_->validate_schema,
-                                                 this->mqtt_settings_, this->rs_->telemetry_prefix,
+                                                 this->mqtt_abstraction_, this->rs_->telemetry_prefix,
                                                  this->rs_->telemetry_enabled);
 }
 

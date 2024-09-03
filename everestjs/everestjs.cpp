@@ -594,7 +594,11 @@ static Napi::Value boot_module(const Napi::CallbackInfo& info) {
                 new Everest::MQTTSettings(mqtt_broker_socket_path, mqtt_everest_prefix, mqtt_external_prefix);
         }
 
-        const auto result = Everest::get_module_config(*mqtt_settings, module_id);
+        auto mqtt = std::make_shared<Everest::MQTTAbstraction>(*mqtt_settings);
+        mqtt->connect();
+        mqtt->spawn_main_loop_thread();
+
+        const auto result = Everest::get_module_config(mqtt, module_id);
 
         auto rs = new Everest::RuntimeSettings(result.at("settings"));
 
@@ -925,7 +929,7 @@ static Napi::Value boot_module(const Napi::CallbackInfo& info) {
         module_this.DefineProperty(Napi::PropertyDescriptor::Value("info", module_info_prop, napi_enumerable));
 
         // connect to mqtt server and start mqtt mainloop thread
-        auto everest_handle = std::make_unique<Everest::Everest>(module_id, *config, validate_schema, *mqtt_settings,
+        auto everest_handle = std::make_unique<Everest::Everest>(module_id, *config, validate_schema, mqtt,
                                                                  rs->telemetry_prefix, rs->telemetry_enabled);
 
         ctx = new EvModCtx(std::move(everest_handle), module_manifest, env);

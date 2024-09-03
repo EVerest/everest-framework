@@ -67,10 +67,6 @@ RuntimeSession::RuntimeSession() {
     Everest::Logging::init(logging_config_file.string(), module_id);
 
     this->mqtt_settings = get_mqtt_settings_from_env();
-
-    const auto result = Everest::get_module_config(*mqtt_settings, module_id);
-    this->rs = new Everest::RuntimeSettings(result.at("settings"));
-    this->config = std::make_unique<Everest::Config>(*mqtt_settings, result);
 }
 
 ModuleSetup create_setup_from_config(const std::string& module_id, Everest::Config& config) {

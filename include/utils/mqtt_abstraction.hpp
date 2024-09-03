@@ -100,7 +100,11 @@ public:
 
     ///
     /// \copydoc MQTTAbstractionImpl::spawn_main_loop_thread()
-    std::future<void> spawn_main_loop_thread();
+    std::shared_future<void> spawn_main_loop_thread();
+
+    ///
+    /// \copydoc MQTTAbstractionImpl::get_main_loop_future()
+    std::shared_future<void> get_main_loop_future();
 
     ///
     /// \copydoc MQTTAbstractionImpl::register_handler(const std::string&, std::shared_ptr<TypedHandler>, QOS)

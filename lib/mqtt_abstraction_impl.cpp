@@ -91,6 +91,10 @@ MQTTAbstractionImpl::~MQTTAbstractionImpl() {
 bool MQTTAbstractionImpl::connect() {
     BOOST_LOG_FUNCTION();
 
+    if (this->mqtt_is_connected) {
+        return true;
+    }
+
     if (!this->mqtt_server_socket_path.empty()) {
         EVLOG_debug << fmt::format("Connecting to MQTT broker: {}", this->mqtt_server_socket_path);
         return connectBroker(this->mqtt_server_socket_path);
@@ -240,7 +244,7 @@ void MQTTAbstractionImpl::notify_write_data() {
     eventfd_write(this->event_fd, 1);
 }
 
-std::future<void> MQTTAbstractionImpl::spawn_main_loop_thread() {
+std::shared_future<void> MQTTAbstractionImpl::spawn_main_loop_thread() {
     BOOST_LOG_FUNCTION();
 
     std::packaged_task<void(void)> task([this]() {
@@ -299,9 +303,14 @@ std::future<void> MQTTAbstractionImpl::spawn_main_loop_thread() {
         }
     });
 
-    auto future = task.get_future();
+    this->main_loop_future = task.get_future();
     this->mqtt_mainloop_thread = std::thread(std::move(task));
-    return future;
+    return this->main_loop_future;
+}
+
+std::shared_future<void> MQTTAbstractionImpl::get_main_loop_future() {
+    BOOST_LOG_FUNCTION();
+    return this->main_loop_future;
 }
 
 void MQTTAbstractionImpl::on_mqtt_message(std::shared_ptr<Message> message) {

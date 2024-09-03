@@ -98,9 +98,14 @@ const std::string& MQTTAbstraction::get_external_prefix() const {
     return external_prefix;
 }
 
-std::future<void> MQTTAbstraction::spawn_main_loop_thread() {
+std::shared_future<void> MQTTAbstraction::spawn_main_loop_thread() {
     BOOST_LOG_FUNCTION();
     return mqtt_abstraction->spawn_main_loop_thread();
+}
+
+std::shared_future<void> MQTTAbstraction::get_main_loop_future() {
+    BOOST_LOG_FUNCTION();
+    return mqtt_abstraction->get_main_loop_future();
 }
 
 void MQTTAbstraction::register_handler(const std::string& topic, std::shared_ptr<TypedHandler> handler, QOS qos) {

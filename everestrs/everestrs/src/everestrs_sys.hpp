@@ -34,6 +34,7 @@ public:
 private:
     const std::string module_id_;
     const Everest::MQTTSettings& mqtt_settings_;
+    std::shared_ptr<Everest::MQTTAbstraction> mqtt_abstraction_;
     std::shared_ptr<Everest::RuntimeSettings> rs_;
     std::shared_ptr<Everest::Config> config_;
     std::unique_ptr<Everest::Everest> handle_;

@@ -415,7 +415,11 @@ int ModuleLoader::initialize() {
 
     auto start_time = std::chrono::system_clock::now();
 
-    auto result = get_module_config(*this->mqtt_settings, this->module_id);
+    this->mqtt = std::make_shared<MQTTAbstraction>(*this->mqtt_settings);
+    this->mqtt->connect();
+    this->mqtt->spawn_main_loop_thread();
+
+    const auto result = get_module_config(this->mqtt, this->module_id);
     auto get_config_time = std::chrono::system_clock::now();
     EVLOG_debug << "Module " << fmt::format(TERMINAL_STYLE_OK, "{}", module_id) << " get_config() ["
                 << std::chrono::duration_cast<std::chrono::milliseconds>(get_config_time - start_time).count() << "ms]";
@@ -456,7 +460,7 @@ int ModuleLoader::initialize() {
         }
         Logging::update_process_name(module_identifier);
 
-        auto everest = Everest(this->module_id, config, rs->validate_schema, *this->mqtt_settings, rs->telemetry_prefix,
+        auto everest = Everest(this->module_id, config, rs->validate_schema, this->mqtt, rs->telemetry_prefix,
                                rs->telemetry_enabled);
 
         // module import
