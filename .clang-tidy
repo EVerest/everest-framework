@@ -1,4 +1,6 @@
 Checks: >
+    bugprone*,
+    misc-const-correctness,
     -llvmlibc*,
     -fuchsia-overloaded-operator,
     -fuchsia-statically-constructed-objects,
@@ -6,7 +8,6 @@ Checks: >
     -modernize-use-trailing-return-type,
     -abseil-string-find-startswith,
     -abseil-string-find-str-contains,
-    bugprone*,
     -readability-identifier-length,
     -fuchsia-default-arguments-calls,
     -fuchsia-default-arguments-declarations,
