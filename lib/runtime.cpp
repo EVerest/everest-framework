@@ -468,8 +468,7 @@ int ModuleLoader::initialize() {
 
         if (!everest.connect()) {
             if (this->mqtt_settings->broker_socket_path.empty()) {
-                EVLOG_error << fmt::format("Cannot connect to MQTT broker at {}:{}",
-                                           this->mqtt_settings->broker_host,
+                EVLOG_error << fmt::format("Cannot connect to MQTT broker at {}:{}", this->mqtt_settings->broker_host,
                                            this->mqtt_settings->broker_port);
             } else {
                 EVLOG_error << fmt::format("Cannot connect to MQTT broker socket at {}",

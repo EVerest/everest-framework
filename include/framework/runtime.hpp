@@ -129,7 +129,7 @@ struct ManagerSettings {
 
     nlohmann::json config; ///< Parsed json of the config_file
 
-    MQTTSettings* mqtt_settings; ///< MQTT connection settings
+    MQTTSettings* mqtt_settings;       ///< MQTT connection settings
     RuntimeSettings* runtime_settings; ///< Runtime settings needed to successfully run modules
 
     ManagerSettings(const std::string& prefix, const std::string& config);
@@ -179,7 +179,7 @@ private:
 
 public:
     explicit ModuleLoader(int argc, char* argv[], ModuleCallbacks callbacks) :
-        ModuleLoader(argc, argv, callbacks, {"undefined project", "undefined version", "undefined git version"}){};
+        ModuleLoader(argc, argv, callbacks, {"undefined project", "undefined version", "undefined git version"}) {};
     explicit ModuleLoader(int argc, char* argv[], ModuleCallbacks callbacks,
                           const VersionInformation version_information);
 
