@@ -32,7 +32,7 @@ json get_module_config(std::shared_ptr<MQTTAbstraction> mqtt, const std::string&
         std::make_shared<TypedHandler>(HandlerType::GetConfig, std::make_shared<Handler>(res_handler));
     mqtt->register_handler(config_topic, res_token, QOS::QOS2);
 
-    json config_publish_data = json::object({{"type", "full"}});
+    const json config_publish_data = json::object({{"type", "full"}});
 
     mqtt->publish(get_config_topic, config_publish_data, QOS::QOS2);
 
@@ -54,8 +54,8 @@ json get_module_config(std::shared_ptr<MQTTAbstraction> mqtt, const std::string&
     }
     mqtt->unregister_handler(config_topic, res_token);
 
-    auto interface_names_topic = fmt::format("{}interfaces", everest_prefix);
-    auto interface_names = mqtt->get(interface_names_topic, QOS::QOS2);
+    const auto interface_names_topic = fmt::format("{}interfaces", everest_prefix);
+    const auto interface_names = mqtt->get(interface_names_topic, QOS::QOS2);
     auto interface_definitions = json::object();
     for (auto& interface : interface_names) {
         auto interface_topic = fmt::format("{}interface_definitions/{}", everest_prefix, interface.get<std::string>());
@@ -65,31 +65,31 @@ json get_module_config(std::shared_ptr<MQTTAbstraction> mqtt, const std::string&
 
     result["interface_definitions"] = interface_definitions;
 
-    auto types_topic = fmt::format("{}types", everest_prefix);
+    const auto types_topic = fmt::format("{}types", everest_prefix);
     result["types"] = mqtt->get(types_topic, QOS::QOS2);
 
-    auto module_provides_topic = fmt::format("{}module_provides", everest_prefix);
-    auto module_provides = mqtt->get(module_provides_topic, QOS::QOS2);
+    const auto module_provides_topic = fmt::format("{}module_provides", everest_prefix);
+    const auto module_provides = mqtt->get(module_provides_topic, QOS::QOS2);
     result["module_provides"] = module_provides;
 
-    auto settings_topic = fmt::format("{}settings", everest_prefix);
-    auto settings = mqtt->get(settings_topic, QOS::QOS2);
+    const auto settings_topic = fmt::format("{}settings", everest_prefix);
+    const auto settings = mqtt->get(settings_topic, QOS::QOS2);
     result["settings"] = settings;
 
-    auto schemas_topic = fmt::format("{}schemas", everest_prefix);
-    auto schemas = mqtt->get(schemas_topic, QOS::QOS2);
+    const auto schemas_topic = fmt::format("{}schemas", everest_prefix);
+    const auto schemas = mqtt->get(schemas_topic, QOS::QOS2);
     result["schemas"] = schemas;
 
-    auto manifests_topic = fmt::format("{}manifests", everest_prefix);
-    auto manifests = mqtt->get(manifests_topic, QOS::QOS2);
+    const auto manifests_topic = fmt::format("{}manifests", everest_prefix);
+    const auto manifests = mqtt->get(manifests_topic, QOS::QOS2);
     result["manifests"] = manifests;
 
-    auto error_types_map_topic = fmt::format("{}error_types_map", everest_prefix);
-    auto error_types_map = mqtt->get(error_types_map_topic, QOS::QOS2);
+    const auto error_types_map_topic = fmt::format("{}error_types_map", everest_prefix);
+    const auto error_types_map = mqtt->get(error_types_map_topic, QOS::QOS2);
     result["error_map"] = error_types_map;
 
-    auto module_config_cache_topic = fmt::format("{}module_config_cache", everest_prefix);
-    auto module_config_cache = mqtt->get(module_config_cache_topic, QOS::QOS2);
+    const auto module_config_cache_topic = fmt::format("{}module_config_cache", everest_prefix);
+    const auto module_config_cache = mqtt->get(module_config_cache_topic, QOS::QOS2);
     result["module_config_cache"] = module_config_cache;
 
     return result;
