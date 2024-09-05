@@ -340,7 +340,6 @@ void MQTTAbstractionImpl::on_mqtt_message(std::shared_ptr<Message> message) {
         bool found = false;
 
         std::unique_lock<std::mutex> lock(handlers_mutex);
-        std::vector<Handler> local_handlers;
         for (auto& [handler_topic, handler] : this->message_handlers) {
             bool topic_matches = false;
             if (is_everest_topic) {

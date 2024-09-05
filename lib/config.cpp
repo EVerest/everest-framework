@@ -502,9 +502,6 @@ void ManagerConfig::parse(json config) {
             auto start_time = std::chrono::system_clock::now();
             auto const& error_file_path = errors_entry.path();
             if (fs::is_regular_file(error_file_path) && error_file_path.extension() == ".yaml") {
-                auto error_path =
-                    std::string("/") + fs::relative(error_file_path, this->ms->errors_dir).stem().string();
-
                 try {
                     // load and validate error file
                     EVLOG_verbose << fmt::format("Loading error file at: {}", fs::canonical(error_file_path).c_str());
@@ -555,7 +552,6 @@ void ManagerConfig::parse(json config) {
     for (auto& element : this->main.items()) {
         const auto& module_id = element.key();
         auto& module_config = element.value();
-        std::string module_name = module_config.at("module");
         if (module_config.contains("telemetry")) {
             const auto& telemetry = module_config.at("telemetry");
             if (telemetry.contains("id")) {
