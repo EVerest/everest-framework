@@ -375,9 +375,9 @@ void ManagerConfig::load_and_validate_manifest(const std::string& module_id, con
     }
 }
 
-std::tuple<json, int> ManagerConfig::load_and_validate_with_schema(const fs::path& file_path, const json& schema) {
-    json json_to_validate = load_yaml(file_path);
-    auto validation_ms = 0;
+std::tuple<json, int64_t> ManagerConfig::load_and_validate_with_schema(const fs::path& file_path, const json& schema) {
+    const json json_to_validate = load_yaml(file_path);
+    int64_t validation_ms = 0;
 
     auto start_time_validate = std::chrono::system_clock::now();
     json_validator validator(Config::loader, Config::format_checker);
@@ -465,7 +465,7 @@ void ManagerConfig::parse(json config) {
     this->main = config;
     // load type files
     if (ms->runtime_settings->validate_schema) {
-        int total_time_validation_ms = 0, total_time_parsing_ms = 0;
+        int64_t total_time_validation_ms = 0, total_time_parsing_ms = 0;
         for (auto const& types_entry : fs::recursive_directory_iterator(this->ms->types_dir)) {
             auto start_time = std::chrono::system_clock::now();
             auto const& type_file_path = types_entry.path();
@@ -497,7 +497,7 @@ void ManagerConfig::parse(json config) {
 
     // load error files
     if (ms->runtime_settings->validate_schema) {
-        int total_time_validation_ms = 0, total_time_parsing_ms = 0;
+        int64_t total_time_validation_ms = 0, total_time_parsing_ms = 0;
         for (auto const& errors_entry : fs::recursive_directory_iterator(this->ms->errors_dir)) {
             auto start_time = std::chrono::system_clock::now();
             auto const& error_file_path = errors_entry.path();
