@@ -123,8 +123,7 @@ void MQTTAbstractionImpl::publish(const std::string& topic, const json& json) {
 void MQTTAbstractionImpl::publish(const std::string& topic, const json& json, QOS qos, bool retain) {
     BOOST_LOG_FUNCTION();
 
-    std::string data = json.dump();
-    publish(topic, data, qos, retain);
+    publish(topic, json.dump(), qos, retain);
 }
 
 void MQTTAbstractionImpl::publish(const std::string& topic, const std::string& data) {
@@ -231,7 +230,6 @@ json MQTTAbstractionImpl::get(const std::string& topic, QOS qos) {
     if (res_future_status == std::future_status::timeout) {
         EVLOG_AND_THROW(EverestTimeoutError(fmt::format("Timeout while waiting for result of get()")));
     } else if (res_future_status == std::future_status::ready) {
-        EVLOG_verbose << "res future ready";
         result = res_future.get();
     }
     this->unregister_handler(topic, res_token);
