@@ -841,7 +841,7 @@ int boot(const po::variables_map& vm) {
 
                 try {
                     // check the config
-                    auto cfg = ManagerConfig(ms);
+                    auto cfg = ManagerConfig(ManagerSettings(prefix_opt, check_config_file_path));
                     controller_handle.send_message({{"id", payload.at("id")}});
                 } catch (const std::exception& e) {
                     controller_handle.send_message({{"result", e.what()}, {"id", payload.at("id")}});
