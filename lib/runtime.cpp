@@ -387,7 +387,7 @@ ManagerSettings::ManagerSettings(const std::string& prefix_, const std::string& 
                                            telemetry_prefix, telemetry_enabled, validate_schema);
 }
 
-const RuntimeSettings& ManagerSettings::get_runtime_settings() {
+const RuntimeSettings& ManagerSettings::get_runtime_settings() const {
     return *runtime_settings;
 }
 

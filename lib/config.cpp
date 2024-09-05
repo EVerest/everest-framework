@@ -241,7 +241,7 @@ void ManagerConfig::load_and_validate_manifest(const std::string& module_id, con
     EVLOG_debug << fmt::format("Found module {}, loading and verifying manifest...", printable_identifier(module_id));
 
     // load and validate module manifest.json
-    const fs::path manifest_path = this->ms->runtime_settings->modules_dir / module_name / "manifest.yaml";
+    const fs::path manifest_path = this->ms.runtime_settings->modules_dir / module_name / "manifest.yaml";
     try {
 
         if (module_name != "ProbeModule") {
@@ -316,7 +316,8 @@ void ManagerConfig::load_and_validate_manifest(const std::string& module_id, con
             "Validating implementation config of {} against json schemas defined in module mainfest...",
             printable_identifier(module_id, impl_id));
 
-        const json config_map = module_config.value("config_implementation", json::object()).value(impl_id, json::object());
+        const json config_map =
+            module_config.value("config_implementation", json::object()).value(impl_id, json::object());
         const json config_map_schema =
             this->manifests[module_config["module"].get<std::string>()]["provides"][impl_id]["config"];
 
@@ -395,18 +396,18 @@ std::tuple<json, int64_t> ManagerConfig::load_and_validate_with_schema(const fs:
     return {json_to_validate, validation_ms};
 }
 
-ManagerConfig::ManagerConfig(std::shared_ptr<ManagerSettings> ms) : ConfigBase(*ms->mqtt_settings), ms(ms) {
+ManagerConfig::ManagerConfig(const ManagerSettings& ms) : ConfigBase(*ms.mqtt_settings), ms(ms) {
     BOOST_LOG_FUNCTION();
 
     this->manifests = json({});
     this->interfaces = json({});
     this->interface_definitions = json({});
     this->types = json({});
-    this->_schemas = Config::load_schemas(this->ms->schemas_dir);
-    this->error_map = error::ErrorTypeMap(this->ms->errors_dir);
+    this->_schemas = Config::load_schemas(this->ms.schemas_dir);
+    this->error_map = error::ErrorTypeMap(this->ms.errors_dir);
 
     // load and process config file
-    const fs::path config_path = ms->config_file;
+    const fs::path config_path = this->ms.config_file;
 
     try {
         EVLOG_info << fmt::format("Loading config file at: {}", fs::canonical(config_path).string());
@@ -434,7 +435,7 @@ ManagerConfig::ManagerConfig(std::shared_ptr<ManagerSettings> ms) : ConfigBase(*
         }
 
         auto config = complete_config.at("active_modules");
-        this->settings = ms->get_runtime_settings();
+        this->settings = this->ms.get_runtime_settings();
         this->parse(config);
     } catch (const std::exception& e) {
         EVLOG_AND_THROW(EverestConfigError(fmt::format("Failed to load and parse config file: {}", e.what())));
@@ -464,13 +465,13 @@ Config::Config(const MQTTSettings& mqtt_settings, json serialized_config) : Conf
 void ManagerConfig::parse(json config) {
     this->main = config;
     // load type files
-    if (ms->runtime_settings->validate_schema) {
+    if (this->ms.runtime_settings->validate_schema) {
         int64_t total_time_validation_ms = 0, total_time_parsing_ms = 0;
-        for (auto const& types_entry : fs::recursive_directory_iterator(this->ms->types_dir)) {
+        for (auto const& types_entry : fs::recursive_directory_iterator(this->ms.types_dir)) {
             auto start_time = std::chrono::system_clock::now();
             auto const& type_file_path = types_entry.path();
             if (fs::is_regular_file(type_file_path) && type_file_path.extension() == ".yaml") {
-                auto type_path = std::string("/") + fs::relative(type_file_path, this->ms->types_dir).stem().string();
+                auto type_path = std::string("/") + fs::relative(type_file_path, this->ms.types_dir).stem().string();
 
                 try {
                     // load and validate type file, store validated result in this->types
@@ -496,9 +497,9 @@ void ManagerConfig::parse(json config) {
     }
 
     // load error files
-    if (ms->runtime_settings->validate_schema) {
+    if (this->ms.runtime_settings->validate_schema) {
         int64_t total_time_validation_ms = 0, total_time_parsing_ms = 0;
-        for (auto const& errors_entry : fs::recursive_directory_iterator(this->ms->errors_dir)) {
+        for (auto const& errors_entry : fs::recursive_directory_iterator(this->ms.errors_dir)) {
             auto start_time = std::chrono::system_clock::now();
             auto const& error_file_path = errors_entry.path();
             if (fs::is_regular_file(error_file_path) && error_file_path.extension() == ".yaml") {
@@ -613,7 +614,7 @@ std::list<json> ManagerConfig::resolve_error_ref(const std::string& reference) {
         err_name = err_ref.substr(result + 2);
         is_error_list = false;
     }
-    const fs::path path = this->ms->errors_dir / (err_namespace + ".yaml");
+    const fs::path path = this->ms.errors_dir / (err_namespace + ".yaml");
     json error_json = load_yaml(path);
     std::list<json> errors;
     if (is_error_list) {
@@ -658,7 +659,7 @@ json ManagerConfig::replace_error_refs(json& interface_json) {
 
 json ManagerConfig::load_interface_file(const std::string& intf_name) {
     BOOST_LOG_FUNCTION();
-    const fs::path intf_path = this->ms->interfaces_dir / (intf_name + ".yaml");
+    const fs::path intf_path = this->ms.interfaces_dir / (intf_name + ".yaml");
     try {
         EVLOG_debug << fmt::format("Loading interface file at: {}", fs::canonical(intf_path).string());
 
@@ -863,7 +864,7 @@ json ConfigBase::get_interface_definitions() {
     return this->interface_definitions;
 }
 
-json ConfigBase::get_settings() {
+const json ConfigBase::get_settings() {
     BOOST_LOG_FUNCTION();
     return this->settings;
 }

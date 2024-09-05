@@ -149,7 +149,7 @@ public:
 
     ///
     /// \returns a json object that contains the settings
-    json get_settings();
+    const json get_settings();
 
     ///
     /// \returns a json object that contains the schemas
@@ -186,7 +186,7 @@ public:
 ///
 class ManagerConfig : public ConfigBase {
 private:
-    std::shared_ptr<ManagerSettings> ms;
+    const ManagerSettings& ms;
     std::unordered_map<std::string, std::optional<TelemetryConfig>> telemetry_configs;
 
     ///
@@ -236,7 +236,7 @@ private:
 public:
     ///
     /// \brief Create a ManagerConfig from the provided ManagerSettings \p ms
-    explicit ManagerConfig(std::shared_ptr<ManagerSettings> ms);
+    explicit ManagerConfig(const ManagerSettings& ms);
 
     ///
     /// \brief Serialize the config to json
@@ -253,8 +253,6 @@ public:
 ///
 class Config : public ConfigBase {
 private:
-    std::shared_ptr<RuntimeSettings> rs;
-
     std::optional<TelemetryConfig> telemetry_config;
 
 public:

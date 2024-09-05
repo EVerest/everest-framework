@@ -134,7 +134,7 @@ struct ManagerSettings {
 
     ManagerSettings(const std::string& prefix, const std::string& config);
 
-    const RuntimeSettings& get_runtime_settings();
+    const RuntimeSettings& get_runtime_settings() const;
 };
 
 // NOTE: this function needs the be called with a pre-initialized ModuleInfo struct
