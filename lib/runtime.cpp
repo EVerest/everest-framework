@@ -453,7 +453,7 @@ int ModuleLoader::initialize() {
         }
         EVLOG_debug << fmt::format("Initializing framework for module {}...", module_identifier);
         EVLOG_verbose << fmt::format("Setting process name to: '{}'...", module_identifier);
-        int prctl_return = prctl(PR_SET_NAME, module_identifier.c_str());
+        const int prctl_return = prctl(PR_SET_NAME, module_identifier.c_str());
         if (prctl_return == 1) {
             EVLOG_warning << fmt::format("Could not set process name to '{}', it remains '{}'", module_identifier,
                                          this->original_process_name);
@@ -534,7 +534,7 @@ int ModuleLoader::initialize() {
         this->callbacks.register_module_adapter(module_adapter);
 
         // FIXME (aw): would be nice to move this config related thing toward the module_init function
-        std::vector<cmd> cmds =
+        const std::vector<cmd> cmds =
             this->callbacks.everest_register(config.get_main_config()[this->module_id]["connections"]);
 
         for (auto const& command : cmds) {
@@ -593,7 +593,7 @@ bool ModuleLoader::parse_command_line(int argc, char* argv[]) {
     po::notify(vm);
 
     if (argc > 0) {
-        std::string argv0 = argv[0];
+        const std::string argv0 = argv[0];
         if (not argv0.empty()) {
             this->application_name = fs::path(argv0).stem().string();
         }

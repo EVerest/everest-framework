@@ -400,9 +400,9 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
                                       fmt::join(capabilities.begin(), capabilities.end(), " "));
         }
 
-        Handler module_ready_handler = [module_name, &mqtt_abstraction, &config, standalone_modules,
-                                        mqtt_everest_prefix = ms->mqtt_settings->everest_prefix,
-                                        &status_fifo](nlohmann::json json) {
+        const Handler module_ready_handler = [module_name, &mqtt_abstraction, &config, standalone_modules,
+                                              mqtt_everest_prefix = ms->mqtt_settings->everest_prefix,
+                                              &status_fifo](nlohmann::json json) {
             EVLOG_debug << fmt::format("received module ready signal for module: {}({})", module_name, json.dump());
             std::unique_lock<std::mutex> lock(modules_ready_mutex);
             // FIXME (aw): here are race conditions, if the ready handler gets called while modules are shut down!
@@ -439,18 +439,18 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
             }
         };
 
-        std::string ready_topic = fmt::format("{}/ready", config.mqtt_module_prefix(module_name));
+        const std::string ready_topic = fmt::format("{}/ready", config.mqtt_module_prefix(module_name));
         module_it->second.ready_token =
             std::make_shared<TypedHandler>(HandlerType::ExternalMQTT, std::make_shared<Handler>(module_ready_handler));
         mqtt_abstraction.register_handler(ready_topic, module_it->second.ready_token, QOS::QOS2);
 
-        std::string config_topic = fmt::format("{}/config", config.mqtt_module_prefix(module_name));
-        Handler module_get_config_handler = [module_name, config_topic, serialized_mod_config,
-                                             &mqtt_abstraction](nlohmann::json json) {
+        const std::string config_topic = fmt::format("{}/config", config.mqtt_module_prefix(module_name));
+        const Handler module_get_config_handler = [module_name, config_topic, serialized_mod_config,
+                                                   &mqtt_abstraction](nlohmann::json json) {
             mqtt_abstraction.publish(config_topic, serialized_mod_config.dump());
         };
 
-        std::string get_config_topic = fmt::format("{}/get_config", config.mqtt_module_prefix(module_name));
+        const std::string get_config_topic = fmt::format("{}/get_config", config.mqtt_module_prefix(module_name));
         module_it->second.get_config_token = std::make_shared<TypedHandler>(
             HandlerType::ExternalMQTT, std::make_shared<Handler>(module_get_config_handler));
         mqtt_abstraction.register_handler(get_config_topic, module_it->second.get_config_token, QOS::QOS2);
@@ -461,9 +461,9 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
             continue;
         }
 
-        std::string binary_filename = fmt::format("{}", module_type);
-        std::string javascript_library_filename = "index.js";
-        std::string python_filename = "module.py";
+        const std::string binary_filename = fmt::format("{}", module_type);
+        const std::string javascript_library_filename = "index.js";
+        const std::string python_filename = "module.py";
         auto module_path = ms->runtime_settings->modules_dir / module_type;
         const auto printable_module_name = config.printable_identifier(module_name);
         auto binary_path = module_path / binary_filename;
@@ -585,7 +585,7 @@ static ControllerHandle start_controller(std::shared_ptr<ManagerSettings> ms) {
 #endif
 
 int boot(const po::variables_map& vm) {
-    bool check = (vm.count("check") != 0);
+    const bool check = (vm.count("check") != 0);
 
     const auto prefix_opt = parse_string_option(vm, "prefix");
     const auto config_opt = parse_string_option(vm, "config");
@@ -651,7 +651,7 @@ int boot(const po::variables_map& vm) {
             Config::load_all_manifests(ms->runtime_settings->modules_dir.string(), ms->schemas_dir.string());
 
         for (const auto& module : manifests.items()) {
-            std::string filename = module.key() + ".yaml";
+            const std::string filename = module.key() + ".yaml";
             auto module_output_path = dumpmanifests_path / filename;
             // FIXME (aw): should we check if the directory exists?
             std::ofstream output_stream(module_output_path);
@@ -697,7 +697,7 @@ int boot(const po::variables_map& vm) {
         auto manifests = config->get_manifests();
 
         for (const auto& module : manifests.items()) {
-            std::string filename = module.key() + ".json";
+            const std::string filename = module.key() + ".json";
             auto module_output_path = dump_path / filename;
             std::ofstream output_stream(module_output_path);
 
@@ -718,7 +718,7 @@ int boot(const po::variables_map& vm) {
 
     const auto& main_config = config->get_main_config();
     for (const auto& module : main_config.items()) {
-        std::string module_id = module.key();
+        const std::string module_id = module.key();
         // check if standalone parameter is set
         const auto& module_config = main_config.at(module_id);
         if (module_config.value("standalone", false)) {

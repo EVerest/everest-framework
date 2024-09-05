@@ -62,7 +62,7 @@ RuntimeSession::RuntimeSession() {
     const auto module_id = get_variable_from_env("EV_MODULE");
 
     namespace fs = std::filesystem;
-    fs::path logging_config_file =
+    const fs::path logging_config_file =
         Everest::assert_file(get_variable_from_env("EV_LOG_CONF_FILE"), "Default logging config");
     Everest::Logging::init(logging_config_file.string(), module_id);
 

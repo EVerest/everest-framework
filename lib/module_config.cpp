@@ -17,18 +17,18 @@ using json = nlohmann::json;
 json get_module_config(std::shared_ptr<MQTTAbstraction> mqtt, const std::string& module_id) {
     const auto& everest_prefix = mqtt->get_everest_prefix();
 
-    auto get_config_topic = fmt::format("{}modules/{}/get_config", everest_prefix, module_id);
-    auto config_topic = fmt::format("{}modules/{}/config", everest_prefix, module_id);
+    const auto get_config_topic = fmt::format("{}modules/{}/get_config", everest_prefix, module_id);
+    const auto config_topic = fmt::format("{}modules/{}/config", everest_prefix, module_id);
     std::promise<json> res_promise;
     std::future<json> res_future = res_promise.get_future();
 
-    Handler res_handler = [module_id, &res_promise](json data) {
+    const Handler res_handler = [module_id, &res_promise](json data) {
         EVLOG_verbose << fmt::format("Incoming config for {}", module_id);
 
         res_promise.set_value(std::move(data));
     };
 
-    std::shared_ptr<TypedHandler> res_token =
+    const std::shared_ptr<TypedHandler> res_token =
         std::make_shared<TypedHandler>(HandlerType::GetConfig, std::make_shared<Handler>(res_handler));
     mqtt->register_handler(config_topic, res_token, QOS::QOS2);
 
@@ -37,7 +37,7 @@ json get_module_config(std::shared_ptr<MQTTAbstraction> mqtt, const std::string&
     mqtt->publish(get_config_topic, config_publish_data, QOS::QOS2);
 
     // wait for result future
-    std::chrono::time_point<std::chrono::steady_clock> res_wait =
+    const std::chrono::time_point<std::chrono::steady_clock> res_wait =
         std::chrono::steady_clock::now() + std::chrono::seconds(10);
     std::future_status res_future_status;
     do {

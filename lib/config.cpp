@@ -65,8 +65,8 @@ static ParsedConfigMap parse_config_map(const json& config_map_schema, const jso
     json parsed_config_map{};
 
     std::set<std::string> unknown_config_entries;
-    std::set<std::string> config_map_keys = Config::keys(config_map);
-    std::set<std::string> config_map_schema_keys = Config::keys(config_map_schema);
+    const std::set<std::string> config_map_keys = Config::keys(config_map);
+    const std::set<std::string> config_map_schema_keys = Config::keys(config_map_schema);
 
     std::set_difference(config_map_keys.begin(), config_map_keys.end(), config_map_schema_keys.begin(),
                         config_map_schema_keys.end(),
@@ -74,7 +74,7 @@ static ParsedConfigMap parse_config_map(const json& config_map_schema, const jso
 
     // validate each config entry
     for (auto& config_entry_el : config_map_schema.items()) {
-        std::string config_entry_name = config_entry_el.key();
+        const std::string config_entry_name = config_entry_el.key();
         json config_entry = config_entry_el.value();
 
         // only convenience exception, would be catched by schema validation below if not thrown here
@@ -241,7 +241,7 @@ void ManagerConfig::load_and_validate_manifest(const std::string& module_id, con
     EVLOG_debug << fmt::format("Found module {}, loading and verifying manifest...", printable_identifier(module_id));
 
     // load and validate module manifest.json
-    fs::path manifest_path = this->ms->runtime_settings->modules_dir / module_name / "manifest.yaml";
+    const fs::path manifest_path = this->ms->runtime_settings->modules_dir / module_name / "manifest.yaml";
     try {
 
         if (module_name != "ProbeModule") {
@@ -283,7 +283,7 @@ void ManagerConfig::load_and_validate_manifest(const std::string& module_id, con
         }
     }
 
-    std::set<std::string> provided_impls = Config::keys(this->manifests[module_name]["provides"]);
+    const std::set<std::string> provided_impls = Config::keys(this->manifests[module_name]["provides"]);
 
     this->interfaces[module_name] = json({});
     this->module_config_cache[module_name].provides_impl = provided_impls;
@@ -299,7 +299,7 @@ void ManagerConfig::load_and_validate_manifest(const std::string& module_id, con
 
     // check if config only contains impl_ids listed in manifest file
     std::set<std::string> unknown_impls_in_config;
-    std::set<std::string> configured_impls = Config::keys(this->main[module_id]["config_implementation"]);
+    const std::set<std::string> configured_impls = Config::keys(this->main[module_id]["config_implementation"]);
 
     std::set_difference(configured_impls.begin(), configured_impls.end(), provided_impls.begin(), provided_impls.end(),
                         std::inserter(unknown_impls_in_config, unknown_impls_in_config.end()));
@@ -316,8 +316,8 @@ void ManagerConfig::load_and_validate_manifest(const std::string& module_id, con
             "Validating implementation config of {} against json schemas defined in module mainfest...",
             printable_identifier(module_id, impl_id));
 
-        json config_map = module_config.value("config_implementation", json::object()).value(impl_id, json::object());
-        json config_map_schema =
+        const json config_map = module_config.value("config_implementation", json::object()).value(impl_id, json::object());
+        const json config_map_schema =
             this->manifests[module_config["module"].get<std::string>()]["provides"][impl_id]["config"];
 
         try {
@@ -346,8 +346,8 @@ void ManagerConfig::load_and_validate_manifest(const std::string& module_id, con
 
     // validate config for !module
     {
-        json config_map = module_config["config_module"];
-        json config_map_schema = this->manifests[module_config["module"].get<std::string>()]["config"];
+        const json config_map = module_config["config_module"];
+        const json config_map_schema = this->manifests[module_config["module"].get<std::string>()]["config"];
 
         try {
             auto parsed_config_map = parse_config_map(config_map_schema, config_map);
@@ -406,7 +406,7 @@ ManagerConfig::ManagerConfig(std::shared_ptr<ManagerSettings> ms) : ConfigBase(*
     this->error_map = error::ErrorTypeMap(this->ms->errors_dir);
 
     // load and process config file
-    fs::path config_path = ms->config_file;
+    const fs::path config_path = ms->config_file;
 
     try {
         EVLOG_info << fmt::format("Loading config file at: {}", fs::canonical(config_path).string());
@@ -602,8 +602,8 @@ json ManagerConfig::resolve_interface(const std::string& intf_name) {
 
 std::list<json> ManagerConfig::resolve_error_ref(const std::string& reference) {
     BOOST_LOG_FUNCTION();
-    std::string ref_prefix = "/errors/";
-    std::string err_ref = reference.substr(ref_prefix.length());
+    const std::string ref_prefix = "/errors/";
+    const std::string err_ref = reference.substr(ref_prefix.length());
     auto result = err_ref.find("#/");
     std::string err_namespace;
     std::string err_name;
@@ -617,7 +617,7 @@ std::list<json> ManagerConfig::resolve_error_ref(const std::string& reference) {
         err_name = err_ref.substr(result + 2);
         is_error_list = false;
     }
-    fs::path path = this->ms->errors_dir / (err_namespace + ".yaml");
+    const fs::path path = this->ms->errors_dir / (err_namespace + ".yaml");
     json error_json = load_yaml(path);
     std::list<json> errors;
     if (is_error_list) {
@@ -662,7 +662,7 @@ json ManagerConfig::replace_error_refs(json& interface_json) {
 
 json ManagerConfig::load_interface_file(const std::string& intf_name) {
     BOOST_LOG_FUNCTION();
-    fs::path intf_path = this->ms->interfaces_dir / (intf_name + ".yaml");
+    const fs::path intf_path = this->ms->interfaces_dir / (intf_name + ".yaml");
     try {
         EVLOG_debug << fmt::format("Loading interface file at: {}", fs::canonical(intf_path).string());
 
@@ -753,7 +753,7 @@ json Config::resolve_requirement(const std::string& module_id, const std::string
 
     // check for connections for this requirement
     auto& module_config = this->main[module_id];
-    std::string module_name = module_name_it->second;
+    const std::string module_name = module_name_it->second;
     auto& requirement = this->manifests[module_name]["requires"][requirement_id];
     if (!module_config["connections"].contains(requirement_id)) {
         return json::array(); // return an empty array if our config does not contain any connections for this
@@ -773,15 +773,15 @@ std::list<Requirement> Config::get_requirements(const std::string& module_id) co
 
     std::list<Requirement> res;
 
-    std::string module_name = get_module_name(module_id);
+    const std::string module_name = get_module_name(module_id);
     for (const std::string& req_id : Config::keys(this->manifests.at(module_name).at("requires"))) {
-        json resolved_req = this->resolve_requirement(module_id, req_id);
+        const json resolved_req = this->resolve_requirement(module_id, req_id);
         if (!resolved_req.is_array()) {
-            Requirement req(req_id, 0);
+            const Requirement req(req_id, 0);
             res.push_back(req);
         } else {
             for (size_t i = 0; i < resolved_req.size(); i++) {
-                Requirement req(req_id, i);
+                const Requirement req(req_id, i);
                 res.push_back(req);
             }
         }
@@ -821,9 +821,9 @@ ModuleConfigs Config::get_module_configs(const std::string& module_id) const {
                 (conf_map.key() == "!module") ? manifest["config"] : manifest["provides"][conf_map.key()]["config"];
             ConfigMap processed_conf_map;
             for (auto& entry : conf_map.value().items()) {
-                json entry_type = config_schema[entry.key()]["type"];
+                const json entry_type = config_schema[entry.key()]["type"];
                 ConfigEntry value;
-                json data = entry.value();
+                const json data = entry.value();
 
                 if (data.is_string()) {
                     value = data.get<std::string>();
@@ -963,12 +963,12 @@ json Config::load_all_manifests(const std::string& modules_dir, const std::strin
 
     json manifests = json({});
 
-    schemas schemas = Config::load_schemas(schemas_dir);
+    const schemas schemas = Config::load_schemas(schemas_dir);
 
-    fs::path modules_path = fs::path(modules_dir);
+    const fs::path modules_path = fs::path(modules_dir);
 
     for (auto&& module_path : fs::directory_iterator(modules_path)) {
-        fs::path manifest_path = module_path.path() / "manifest.yaml";
+        const fs::path manifest_path = module_path.path() / "manifest.yaml";
         if (!fs::exists(manifest_path)) {
             continue;
         }
@@ -1174,8 +1174,8 @@ void ManagerConfig::resolve_all_requirements() {
         auto& module_config = element.value();
 
         std::set<std::string> unknown_requirement_entries;
-        std::set<std::string> module_config_connections_set = Config::keys(module_config["connections"]);
-        std::set<std::string> manifest_module_requires_set =
+        const std::set<std::string> module_config_connections_set = Config::keys(module_config["connections"]);
+        const std::set<std::string> manifest_module_requires_set =
             Config::keys(this->manifests[module_config["module"].get<std::string>()]["requires"]);
 
         std::set_difference(module_config_connections_set.begin(), module_config_connections_set.end(),

@@ -162,7 +162,7 @@ void MQTTAbstractionImpl::publish(const std::string& topic, const std::string& d
         return;
     }
 
-    MQTTErrors error = mqtt_publish(&this->mqtt_client, topic.c_str(), data.c_str(), data.size(), publish_flags);
+    const MQTTErrors error = mqtt_publish(&this->mqtt_client, topic.c_str(), data.c_str(), data.size(), publish_flags);
     if (error != MQTT_OK) {
         EVLOG_error << fmt::format("MQTT Error {}", mqtt_error_str(error));
     }
@@ -211,16 +211,16 @@ json MQTTAbstractionImpl::get(const std::string& topic, QOS qos) {
     std::promise<json> res_promise;
     std::future<json> res_future = res_promise.get_future();
 
-    Handler res_handler = [this, &res_promise](json data) { res_promise.set_value(std::move(data)); };
+    const Handler res_handler = [this, &res_promise](json data) { res_promise.set_value(std::move(data)); };
 
-    std::shared_ptr<TypedHandler> res_token =
+    const std::shared_ptr<TypedHandler> res_token =
         std::make_shared<TypedHandler>(HandlerType::GetConfig, std::make_shared<Handler>(res_handler));
     this->register_handler(topic, res_token, QOS::QOS2);
 
-    json config_publish_data = json::object({{"type", "full"}});
+    const json config_publish_data = json::object({{"type", "full"}});
 
     // wait for result future
-    std::chrono::time_point<std::chrono::steady_clock> res_wait =
+    const std::chrono::time_point<std::chrono::steady_clock> res_wait =
         std::chrono::steady_clock::now() + std::chrono::seconds(10);
     std::future_status res_future_status;
     do {
@@ -280,7 +280,7 @@ std::shared_future<void> MQTTAbstractionImpl::spawn_main_loop_thread() {
                     }
 
                     // send and receive messages
-                    MQTTErrors error = mqtt_sync(&this->mqtt_client);
+                    const MQTTErrors error = mqtt_sync(&this->mqtt_client);
                     if (error != MQTT_OK) {
                         EVLOG_error << fmt::format("Error during MQTT sync: {}", mqtt_error_str(error));
 
@@ -531,7 +531,7 @@ bool MQTTAbstractionImpl::connectBroker(std::string& socket_path) {
 
     mqtt_init(&this->mqtt_client, mqtt_socket_fd, static_cast<uint8_t*>(this->sendbuf), sizeof(this->sendbuf),
               static_cast<uint8_t*>(this->recvbuf), sizeof(this->recvbuf), MQTTAbstractionImpl::publish_callback);
-    uint8_t connect_flags = MQTT_CONNECT_CLEAN_SESSION;
+    const uint8_t connect_flags = MQTT_CONNECT_CLEAN_SESSION;
     /* Send connection request to the broker. */
     if (mqtt_connect(&this->mqtt_client, nullptr, nullptr, nullptr, 0, nullptr, nullptr, connect_flags,
                      mqtt_keep_alive) == MQTT_OK) {
@@ -568,7 +568,7 @@ bool MQTTAbstractionImpl::connectBroker(const char* host, const char* port) {
 
     mqtt_init(&this->mqtt_client, mqtt_socket_fd, static_cast<uint8_t*>(this->sendbuf), sizeof(this->sendbuf),
               static_cast<uint8_t*>(this->recvbuf), sizeof(this->recvbuf), MQTTAbstractionImpl::publish_callback);
-    uint8_t connect_flags = MQTT_CONNECT_CLEAN_SESSION;
+    const uint8_t connect_flags = MQTT_CONNECT_CLEAN_SESSION;
     /* Send connection request to the broker. */
     if (mqtt_connect(&this->mqtt_client, nullptr, nullptr, nullptr, 0, nullptr, nullptr, connect_flags,
                      mqtt_keep_alive) == MQTT_OK) {
@@ -642,8 +642,8 @@ bool MQTTAbstractionImpl::check_topic_matches(const std::string& full_topic, con
     // check if the last /# matches a zero part of the topic
     // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
     if (wildcard_topic.size() >= 2) {
-        std::string start = wildcard_topic.substr(0, wildcard_topic.size() - 2);
-        std::string end = wildcard_topic.substr(wildcard_topic.size() - 2);
+        const std::string start = wildcard_topic.substr(0, wildcard_topic.size() - 2);
+        const std::string end = wildcard_topic.substr(wildcard_topic.size() - 2);
         if (end == "/#" && check_topic_matches(full_topic, start)) {
             return true;
         }
