@@ -462,7 +462,7 @@ void MQTTAbstractionImpl::unregister_handler(const std::string& topic, const Tok
     EVLOG_verbose << fmt::format("Unregistering handler {} for {}", fmt::ptr(&token), topic);
 
     const std::lock_guard<std::mutex> lock(handlers_mutex);
-    auto number_of_handlers = 0;
+    std::size_t number_of_handlers = 0;
     if (this->message_handlers.find(topic) != this->message_handlers.end()) {
         auto& topic_message_handler = this->message_handlers.at(topic);
         if (topic_message_handler.count_handlers() != 0) {

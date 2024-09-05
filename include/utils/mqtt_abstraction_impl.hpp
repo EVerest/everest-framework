@@ -3,6 +3,7 @@
 #ifndef UTILS_MQTT_ABSTRACTION_IMPL_HPP
 #define UTILS_MQTT_ABSTRACTION_IMPL_HPP
 
+#include <cstddef>
 #include <functional>
 #include <future>
 #include <map>

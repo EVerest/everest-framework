@@ -407,7 +407,7 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
             std::unique_lock<std::mutex> lock(modules_ready_mutex);
             // FIXME (aw): here are race conditions, if the ready handler gets called while modules are shut down!
             modules_ready.at(module_name).ready = json.get<bool>();
-            size_t modules_spawned = 0;
+            std::size_t modules_spawned = 0;
             for (const auto& mod : modules_ready) {
                 std::string text_ready =
                     fmt::format((mod.second.ready) ? TERMINAL_STYLE_OK : TERMINAL_STYLE_ERROR, "ready");

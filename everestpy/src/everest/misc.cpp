@@ -138,7 +138,7 @@ Interface create_everest_interface_from_definition(const json& def) {
     if (def.contains("errors")) {
         const auto& errors = def.at("errors");
 
-        int errors_size = 0;
+        std::size_t errors_size = 0;
         for (const auto& error_namespace_it : errors.items()) {
             errors_size += error_namespace_it.value().size();
         }

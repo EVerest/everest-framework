@@ -148,8 +148,8 @@ void MessageHandler::remove_handler(std::shared_ptr<TypedHandler> handler) {
     }
 }
 
-size_t MessageHandler::count_handlers() {
-    size_t count = 0;
+std::size_t MessageHandler::count_handlers() {
+    std::size_t count = 0;
     {
         const std::lock_guard<std::mutex> lock(this->handler_list_mutex);
         count = this->handlers.size();
