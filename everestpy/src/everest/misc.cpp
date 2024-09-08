@@ -27,12 +27,12 @@ const std::string get_variable_from_env(const std::string& variable, const std::
 
 static Everest::MQTTSettings* get_mqtt_settings_from_env() {
     const auto mqtt_everest_prefix =
-        get_variable_from_env("EV_MQTT_EVEREST_PREFIX", Everest::defaults::MQTT_EVEREST_PREFIX);
+        get_variable_from_env(Everest::EV_MQTT_EVEREST_PREFIX, Everest::defaults::MQTT_EVEREST_PREFIX);
     const auto mqtt_external_prefix =
-        get_variable_from_env("EV_MQTT_EXTERNAL_PREFIX", Everest::defaults::MQTT_EXTERNAL_PREFIX);
-    const auto mqtt_broker_socket_path = std::getenv("EV_MQTT_BROKER_SOCKET_PATH");
-    const auto mqtt_broker_host = std::getenv("EV_MQTT_BROKER_HOST");
-    const auto mqtt_broker_port = std::getenv("EV_MQTT_BROKER_PORT");
+        get_variable_from_env(Everest::EV_MQTT_EXTERNAL_PREFIX, Everest::defaults::MQTT_EXTERNAL_PREFIX);
+    const auto mqtt_broker_socket_path = std::getenv(Everest::EV_MQTT_BROKER_SOCKET_PATH);
+    const auto mqtt_broker_host = std::getenv(Everest::EV_MQTT_BROKER_HOST);
+    const auto mqtt_broker_port = std::getenv(Everest::EV_MQTT_BROKER_PORT);
 
     if (mqtt_broker_socket_path == nullptr) {
         if (mqtt_broker_host == nullptr or mqtt_broker_port == nullptr) {

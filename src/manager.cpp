@@ -95,6 +95,26 @@ struct ModuleStartInfo {
     std::vector<std::string> capabilities;
 };
 
+/// \brief Setup common environment variables for everestjs and everestpy
+static void setup_environment(const ModuleStartInfo& module_info, const RuntimeSettings& rs,
+                              const MQTTSettings& mqtt_settings) {
+    setenv(EV_MODULE, module_info.name.c_str(), 1);
+    setenv(EV_PREFIX, rs.prefix.c_str(), 0);
+    setenv(EV_LOG_CONF_FILE, rs.logging_config_file.c_str(), 0);
+    setenv(EV_MQTT_EVEREST_PREFIX, mqtt_settings.everest_prefix.c_str(), 0);
+    setenv(EV_MQTT_EXTERNAL_PREFIX, mqtt_settings.external_prefix.c_str(), 0);
+    if (mqtt_settings.socket) {
+        setenv(EV_MQTT_BROKER_SOCKET_PATH, mqtt_settings.broker_socket_path.c_str(), 0);
+    } else {
+        setenv(EV_MQTT_BROKER_HOST, mqtt_settings.broker_host.c_str(), 0);
+        setenv(EV_MQTT_BROKER_PORT, std::to_string(mqtt_settings.broker_port).c_str(), 0);
+    }
+
+    if (rs.validate_schema) {
+        setenv(EV_VALIDATE_SCHEMA, "1", 1);
+    }
+}
+
 static std::vector<char*> arguments_to_exec_argv(std::vector<std::string>& arguments) {
     std::vector<char*> argv_list(arguments.size() + 1);
     std::transform(arguments.begin(), arguments.end(), argv_list.begin(),
@@ -145,25 +165,7 @@ static void exec_javascript_module(system::SubProcess& proc_handle, const Module
     const auto node_modules_path = rs.prefix / defaults::LIB_DIR / defaults::NAMESPACE / "node_modules";
     setenv("NODE_PATH", node_modules_path.c_str(), 0);
 
-    setenv("EV_MODULE", module_info.name.c_str(), 1);
-    setenv("EV_PREFIX", rs.prefix.c_str(), 0);
-    setenv("EV_LOG_CONF_FILE", rs.logging_config_file.c_str(), 0);
-    setenv("EV_MQTT_EVEREST_PREFIX", mqtt_settings.everest_prefix.c_str(), 0);
-    setenv("EV_MQTT_EXTERNAL_PREFIX", mqtt_settings.external_prefix.c_str(), 0);
-    if (mqtt_settings.socket) {
-        setenv("EV_MQTT_BROKER_SOCKET_PATH", mqtt_settings.broker_socket_path.c_str(), 0);
-    } else {
-        setenv("EV_MQTT_BROKER_HOST", mqtt_settings.broker_host.c_str(), 0);
-        setenv("EV_MQTT_BROKER_PORT", std::to_string(mqtt_settings.broker_port).c_str(), 0);
-    }
-
-    if (rs.validate_schema) {
-        setenv("EV_VALIDATE_SCHEMA", "1", 1);
-    }
-
-    if (!rs.validate_schema) {
-        setenv("EV_DONT_VALIDATE_SCHEMA", "", 0);
-    }
+    setup_environment(module_info, rs, mqtt_settings);
 
     const auto node_binary = "node";
 
@@ -188,27 +190,9 @@ static void exec_python_module(system::SubProcess& proc_handle, const ModuleStar
 
     const auto pythonpath = rs.prefix / defaults::LIB_DIR / defaults::NAMESPACE / "everestpy";
 
-    setenv("EV_MODULE", module_info.name.c_str(), 1);
-    setenv("EV_PREFIX", rs.prefix.c_str(), 0);
-    setenv("EV_LOG_CONF_FILE", rs.logging_config_file.c_str(), 0);
-    setenv("EV_MQTT_EVEREST_PREFIX", mqtt_settings.everest_prefix.c_str(), 0);
-    setenv("EV_MQTT_EXTERNAL_PREFIX", mqtt_settings.external_prefix.c_str(), 0);
-    if (mqtt_settings.socket) {
-        setenv("EV_MQTT_BROKER_SOCKET_PATH", mqtt_settings.broker_socket_path.c_str(), 0);
-    } else {
-        setenv("EV_MQTT_BROKER_HOST", mqtt_settings.broker_host.c_str(), 0);
-        setenv("EV_MQTT_BROKER_PORT", std::to_string(mqtt_settings.broker_port).c_str(), 0);
-    }
-
     setenv("PYTHONPATH", pythonpath.c_str(), 0);
 
-    if (rs.validate_schema) {
-        setenv("EV_VALIDATE_SCHEMA", "1", 1);
-    }
-
-    if (!rs.validate_schema) {
-        setenv("EV_DONT_VALIDATE_SCHEMA", "", 0);
-    }
+    setup_environment(module_info, rs, mqtt_settings);
 
     const auto python_binary = "python3";
 

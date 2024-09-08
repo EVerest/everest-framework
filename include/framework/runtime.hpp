@@ -31,6 +31,15 @@ const int DUMP_INDENT = 4;
 // FIXME (aw): we should also define all other config keys and default
 //             values here as string literals
 
+inline constexpr auto EV_MODULE = "EV_MODULE";
+inline constexpr auto EV_PREFIX = "EV_PREFIX";
+inline constexpr auto EV_LOG_CONF_FILE = "EV_LOG_CONF_FILE";
+inline constexpr auto EV_MQTT_EVEREST_PREFIX = "EV_MQTT_EVEREST_PREFIX";
+inline constexpr auto EV_MQTT_EXTERNAL_PREFIX = "EV_MQTT_EXTERNAL_PREFIX";
+inline constexpr auto EV_MQTT_BROKER_SOCKET_PATH = "EV_MQTT_BROKER_SOCKET_PATH";
+inline constexpr auto EV_MQTT_BROKER_HOST = "EV_MQTT_BROKER_HOST";
+inline constexpr auto EV_MQTT_BROKER_PORT = "EV_MQTT_BROKER_PORT";
+inline constexpr auto EV_VALIDATE_SCHEMA = "EV_VALIDATE_SCHEMA";
 // FIXME (aw): this needs to be made available by
 namespace defaults {
 
