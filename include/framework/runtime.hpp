@@ -40,6 +40,8 @@ inline constexpr auto EV_MQTT_BROKER_SOCKET_PATH = "EV_MQTT_BROKER_SOCKET_PATH";
 inline constexpr auto EV_MQTT_BROKER_HOST = "EV_MQTT_BROKER_HOST";
 inline constexpr auto EV_MQTT_BROKER_PORT = "EV_MQTT_BROKER_PORT";
 inline constexpr auto EV_VALIDATE_SCHEMA = "EV_VALIDATE_SCHEMA";
+inline constexpr auto VERSION_INFORMATION_FILE = "version_information.txt";
+
 // FIXME (aw): this needs to be made available by
 namespace defaults {
 

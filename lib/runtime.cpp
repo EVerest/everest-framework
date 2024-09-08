@@ -346,7 +346,7 @@ ManagerSettings::ManagerSettings(const std::string& prefix_, const std::string& 
 
     run_as_user = settings.value("run_as_user", "");
 
-    auto version_information_path = data_dir / "version_information.txt";
+    auto version_information_path = data_dir / VERSION_INFORMATION_FILE;
     if (fs::exists(version_information_path)) {
         std::ifstream ifs(version_information_path.string());
         version_information = std::string(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
