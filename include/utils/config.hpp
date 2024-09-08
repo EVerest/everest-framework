@@ -82,19 +82,6 @@ protected:
     /// \returns a json object containing module_id, module_name, impl_id and impl_intf
     json extract_implementation_info(const std::string& module_id, const std::string& impl_id) const;
 
-    ///
-    /// \brief Parses the 3 tier model mappings in the config
-    /// You can set a EVSE id called "evse" and Connector id called "connector" for the whole module.
-    /// Additionally a "mapping" can be specified in the following way:
-    /// mapping:
-    ///   implementation_id:
-    ///     evse: 1
-    ///     connector: 1
-    /// If no mappings are found it will be assumed that the module is mapped to the charging station.
-    /// If only a module mapping is defined alle implementations are mapped to this module mapping.
-    /// Implementations can have overwritten mappings.
-    void parse_3_tier_model_mapping();
-
 public:
     ///
     /// \brief Create a ConfigBase with the provided \p mqtt_settings
@@ -232,6 +219,19 @@ private:
     ///
     /// \brief parses the provided \p config resolving types, errors, manifests, requirements and 3 tier module mappings
     void parse(json config);
+
+    ///
+    /// \brief Parses the 3 tier model mappings in the config
+    /// You can set a EVSE id called "evse" and Connector id called "connector" for the whole module.
+    /// Additionally a "mapping" can be specified in the following way:
+    /// mapping:
+    ///   implementation_id:
+    ///     evse: 1
+    ///     connector: 1
+    /// If no mappings are found it will be assumed that the module is mapped to the charging station.
+    /// If only a module mapping is defined alle implementations are mapped to this module mapping.
+    /// Implementations can have overwritten mappings.
+    void parse_3_tier_model_mapping();
 
 public:
     ///
