@@ -26,6 +26,7 @@
 
 namespace Everest {
 const auto mqtt_keep_alive = 600;
+const auto mqtt_get_timeout = 10; ///< Timeout for MQTT get in seconds
 
 MessageWithQOS::MessageWithQOS(const std::string& topic, const std::string& payload, QOS qos) :
     Message(topic, payload), qos(qos) {
@@ -220,7 +221,7 @@ json MQTTAbstractionImpl::get(const std::string& topic, QOS qos) {
 
     // wait for result future
     const std::chrono::time_point<std::chrono::steady_clock> res_wait =
-        std::chrono::steady_clock::now() + std::chrono::seconds(10);
+        std::chrono::steady_clock::now() + std::chrono::seconds(mqtt_get_timeout);
     std::future_status res_future_status;
     do {
         res_future_status = res_future.wait_until(res_wait);
