@@ -26,7 +26,7 @@ public:
         SCHEMA
     };
     ConfigParseException(ParseErrorType err_t, const std::string& entry, const std::string& what = "") :
-        err_t(err_t), entry(entry), what(what){};
+        err_t(err_t), entry(entry), what(what) {};
 
     const ParseErrorType err_t;
     const std::string entry;
@@ -234,6 +234,152 @@ static void setup_probe_module_manifest(const std::string& probe_module_id, cons
     }
 }
 
+// ConfigBase
+json ConfigBase::extract_implementation_info(const std::string& module_id) const {
+    BOOST_LOG_FUNCTION();
+
+    return extract_implementation_info(module_id, "");
+}
+
+json ConfigBase::extract_implementation_info(const std::string& module_id, const std::string& impl_id) const {
+    BOOST_LOG_FUNCTION();
+
+    if (!this->main.contains(module_id)) {
+        EVTHROW(EverestApiError(fmt::format("Module id '{}' not found in config!", module_id)));
+    }
+
+    json info;
+    info["module_id"] = module_id;
+    info["module_name"] = get_module_name(module_id);
+    info["impl_id"] = impl_id;
+    info["impl_intf"] = "";
+
+    if (!impl_id.empty()) {
+        if (!this->manifests.contains(info["module_name"])) {
+            EVTHROW(EverestApiError(fmt::format("No known manifest for module name '{}'!", info["module_name"])));
+        }
+
+        if (!this->manifests[info["module_name"].get<std::string>()]["provides"].contains(impl_id)) {
+            EVTHROW(EverestApiError(fmt::format("Implementation id '{}' not defined in manifest of module '{}'!",
+                                                impl_id, info["module_name"])));
+        }
+
+        info["impl_intf"] = this->manifests[info["module_name"].get<std::string>()]["provides"][impl_id]["interface"];
+    }
+
+    return info;
+}
+
+std::string ConfigBase::printable_identifier(const std::string& module_id) const {
+    BOOST_LOG_FUNCTION();
+
+    return printable_identifier(module_id, "");
+}
+
+std::string ConfigBase::printable_identifier(const std::string& module_id, const std::string& impl_id) const {
+    BOOST_LOG_FUNCTION();
+
+    json info = extract_implementation_info(module_id, impl_id);
+    // no implementation id yet so only return this kind of string:
+    const auto module_string =
+        fmt::format("{}:{}", info["module_id"].get<std::string>(), info["module_name"].get<std::string>());
+    if (impl_id.empty()) {
+        return module_string;
+    }
+    return fmt::format("{}->{}:{}", module_string, info["impl_id"].get<std::string>(),
+                       info["impl_intf"].get<std::string>());
+}
+
+std::string ConfigBase::get_module_name(const std::string& module_id) const {
+    return this->module_names.at(module_id);
+}
+
+std::string ConfigBase::mqtt_prefix(const std::string& module_id, const std::string& impl_id) {
+    BOOST_LOG_FUNCTION();
+
+    return fmt::format("{}modules/{}/impl/{}", this->mqtt_settings.everest_prefix, module_id, impl_id);
+}
+
+std::string ConfigBase::mqtt_module_prefix(const std::string& module_id) {
+    BOOST_LOG_FUNCTION();
+
+    return fmt::format("{}modules/{}", this->mqtt_settings.everest_prefix, module_id);
+}
+
+json ConfigBase::get_main_config() {
+    BOOST_LOG_FUNCTION();
+    return this->main;
+}
+
+bool ConfigBase::contains(const std::string& module_id) const {
+    BOOST_LOG_FUNCTION();
+    return this->main.contains(module_id);
+}
+
+const json& ConfigBase::get_manifests() {
+    BOOST_LOG_FUNCTION();
+    return this->manifests;
+}
+
+json ConfigBase::get_interface_definitions() {
+    BOOST_LOG_FUNCTION();
+    return this->interface_definitions;
+}
+
+json ConfigBase::get_interfaces() {
+    BOOST_LOG_FUNCTION();
+    return this->interfaces;
+}
+
+const json ConfigBase::get_settings() {
+    BOOST_LOG_FUNCTION();
+    return this->settings;
+}
+
+json ConfigBase::get_schemas() {
+    BOOST_LOG_FUNCTION();
+    return this->_schemas;
+}
+
+json ConfigBase::get_error_types_map() {
+    BOOST_LOG_FUNCTION();
+    return this->error_map.get_error_types_map();
+}
+
+json ConfigBase::get_types() {
+    BOOST_LOG_FUNCTION();
+    return this->types;
+}
+
+std::unordered_map<std::string, ConfigCache> ConfigBase::get_module_config_cache() {
+    BOOST_LOG_FUNCTION();
+    return this->module_config_cache;
+}
+
+std::unordered_map<std::string, ModuleTierMappings> ConfigBase::get_3_tier_model_mappings() {
+    return this->tier_mappings;
+}
+
+std::optional<ModuleTierMappings> ConfigBase::get_3_tier_model_mappings(const std::string& module_id) {
+    if (this->tier_mappings.find(module_id) == this->tier_mappings.end()) {
+        return std::nullopt;
+    }
+    return this->tier_mappings.at(module_id);
+}
+
+std::optional<Mapping> ConfigBase::get_3_tier_model_mapping(const std::string& module_id, const std::string& impl_id) {
+    auto module_tier_mappings = this->get_3_tier_model_mappings(module_id);
+    if (not module_tier_mappings.has_value()) {
+        return std::nullopt;
+    }
+    auto& mapping = module_tier_mappings.value();
+    if (mapping.implementations.find(impl_id) == mapping.implementations.end()) {
+        return std::nullopt;
+    }
+    return mapping.implementations.at(impl_id);
+}
+
+// ManagerConfig
 void ManagerConfig::load_and_validate_manifest(const std::string& module_id, const json& module_config) {
     std::string module_name = module_config["module"];
 
@@ -397,265 +543,12 @@ std::tuple<json, int64_t> ManagerConfig::load_and_validate_with_schema(const fs:
     return {json_to_validate, validation_ms};
 }
 
-ManagerConfig::ManagerConfig(const ManagerSettings& ms) : ConfigBase(*ms.mqtt_settings), ms(ms) {
-    BOOST_LOG_FUNCTION();
-
-    this->manifests = json({});
-    this->interfaces = json({});
-    this->interface_definitions = json({});
-    this->types = json({});
-    this->_schemas = Config::load_schemas(this->ms.schemas_dir);
-    this->error_map = error::ErrorTypeMap(this->ms.errors_dir);
-
-    // load and process config file
-    const fs::path config_path = this->ms.config_file;
-
-    try {
-        EVLOG_info << fmt::format("Loading config file at: {}", fs::canonical(config_path).string());
-        auto complete_config = load_yaml(config_path);
-        // try to load user config from a directory "user-config" that might be in the same parent directory as the
-        // config_file. The config is supposed to have the same name as the parent config.
-        // TODO(kai): introduce a parameter that can overwrite the location of the user config?
-        // TODO(kai): or should we introduce a "meta-config" that references all configs that should be merged here?
-        auto user_config_path = config_path.parent_path() / "user-config" / config_path.filename();
-        if (fs::exists(user_config_path)) {
-            EVLOG_info << fmt::format("Loading user-config file at: {}", fs::canonical(user_config_path).string());
-            auto user_config = load_yaml(user_config_path);
-            EVLOG_debug << "Augmenting main config with user-config entries";
-            complete_config.merge_patch(user_config);
-        } else {
-            EVLOG_verbose << "No user-config provided.";
-        }
-
-        json_validator validator(Config::loader, Config::format_checker);
-        validator.set_root_schema(this->_schemas.config);
-        auto patch = validator.validate(complete_config);
-        if (!patch.is_null()) {
-            // extend config with default values
-            complete_config = complete_config.patch(patch);
-        }
-
-        auto config = complete_config.at("active_modules");
-        this->settings = this->ms.get_runtime_settings();
-        this->parse(config);
-    } catch (const std::exception& e) {
-        EVLOG_AND_THROW(EverestConfigError(fmt::format("Failed to load and parse config file: {}", e.what())));
-    }
-}
-
-Config::Config(const MQTTSettings& mqtt_settings, json serialized_config) : ConfigBase(mqtt_settings) {
-    this->main = serialized_config.value("module_config", json({}));
-    this->manifests = serialized_config.value("manifests", json({}));
-    this->interfaces = serialized_config.value("module_provides", json({}));
-    this->interface_definitions = serialized_config.value("interface_definitions", json({}));
-    this->types = serialized_config.value("types", json({}));
-    this->module_names = serialized_config.at("module_names");
-    this->module_config_cache = serialized_config.at("module_config_cache");
-    if (serialized_config.contains("mappings") and !serialized_config.at("mappings").is_null()) {
-        this->tier_mappings = serialized_config.at("mappings");
-    }
-    if (serialized_config.contains("telemetry_config") and !serialized_config.at("telemetry_config").is_null()) {
-        this->telemetry_config = serialized_config.at("telemetry_config");
-    }
-
-    this->_schemas = serialized_config.at("schemas");
-    this->error_map = error::ErrorTypeMap();
-    this->error_map.load_error_types_map(serialized_config.at("error_map"));
-}
-
-void ManagerConfig::parse(json config) {
-    this->main = config;
-    // load type files
-    if (this->ms.runtime_settings->validate_schema) {
-        int64_t total_time_validation_ms = 0, total_time_parsing_ms = 0;
-        for (auto const& types_entry : fs::recursive_directory_iterator(this->ms.types_dir)) {
-            auto start_time = std::chrono::system_clock::now();
-            auto const& type_file_path = types_entry.path();
-            if (fs::is_regular_file(type_file_path) && type_file_path.extension() == ".yaml") {
-                auto type_path = std::string("/") + fs::relative(type_file_path, this->ms.types_dir).stem().string();
-
-                try {
-                    // load and validate type file, store validated result in this->types
-                    EVLOG_verbose << fmt::format("Loading type file at: {}", fs::canonical(type_file_path).c_str());
-
-                    auto [type_json, validate_ms] = load_and_validate_with_schema(type_file_path, this->_schemas.type);
-                    total_time_validation_ms += validate_ms;
-
-                    this->types[type_path] = type_json["types"];
-                } catch (const std::exception& e) {
-                    EVLOG_AND_THROW(EverestConfigError(fmt::format(
-                        "Failed to load and parse type file '{}', reason: {}", type_file_path.string(), e.what())));
-                }
-            }
-            auto end_time = std::chrono::system_clock::now();
-            total_time_parsing_ms +=
-                std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
-            EVLOG_debug << "Parsing of type " << types_entry.path().string() << " took: "
-                        << std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count() << "ms";
-        }
-        EVLOG_info << "- Types loaded in [" << total_time_parsing_ms - total_time_validation_ms << "ms]";
-        EVLOG_info << "- Types validated [" << total_time_validation_ms << "ms]";
-    }
-
-    // load error files
-    if (this->ms.runtime_settings->validate_schema) {
-        int64_t total_time_validation_ms = 0, total_time_parsing_ms = 0;
-        for (auto const& errors_entry : fs::recursive_directory_iterator(this->ms.errors_dir)) {
-            auto start_time = std::chrono::system_clock::now();
-            auto const& error_file_path = errors_entry.path();
-            if (fs::is_regular_file(error_file_path) && error_file_path.extension() == ".yaml") {
-                try {
-                    // load and validate error file
-                    EVLOG_verbose << fmt::format("Loading error file at: {}", fs::canonical(error_file_path).c_str());
-
-                    auto [error_json, validate_ms] =
-                        load_and_validate_with_schema(error_file_path, this->_schemas.error_declaration_list);
-                    total_time_validation_ms += validate_ms;
-
-                } catch (const std::exception& e) {
-                    EVLOG_AND_THROW(EverestConfigError(fmt::format(
-                        "Failed to load and parse error file '{}', reason: {}", error_file_path.string(), e.what())));
-                }
-            }
-            auto end_time = std::chrono::system_clock::now();
-            total_time_parsing_ms +=
-                std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
-            EVLOG_debug << "Parsing of error " << errors_entry.path().string() << " took: "
-                        << std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count() << "ms";
-        }
-        EVLOG_info << "- Errors loaded in [" << total_time_parsing_ms - total_time_validation_ms << "ms]";
-        EVLOG_info << "- Errors validated [" << total_time_validation_ms << "ms]";
-    }
-    std::optional<std::string> probe_module_id;
-
-    // load manifest files of configured modules
-    for (auto& element : this->main.items()) {
-        const auto& module_id = element.key();
-        const auto& module_config = element.value();
-
-        if (module_config.at("module") == "ProbeModule") {
-            if (probe_module_id) {
-                EVLOG_AND_THROW(EverestConfigError("Multiple instance of module type ProbeModule not supported yet"));
-            }
-            probe_module_id = module_id;
-            continue;
-        }
-
-        load_and_validate_manifest(module_id, module_config);
-    }
-
-    if (probe_module_id) {
-        setup_probe_module_manifest(*probe_module_id, this->main, this->manifests);
-
-        load_and_validate_manifest(*probe_module_id, this->main.at(*probe_module_id));
-    }
-
-    // load telemetry configs
-    for (auto& element : this->main.items()) {
-        const auto& module_id = element.key();
-        auto& module_config = element.value();
-        if (module_config.contains("telemetry")) {
-            const auto& telemetry = module_config.at("telemetry");
-            if (telemetry.contains("id")) {
-                this->telemetry_configs[module_id].emplace(TelemetryConfig{telemetry.at("id").get<int>()});
-            }
-        }
-    }
-
-    resolve_all_requirements();
-    parse_3_tier_model_mapping();
-
-    // TODO: cleanup "descriptions" from config ?
-}
-
-json ManagerConfig::serialize() {
-    auto serialized = json::object({{"main", this->main}, {"module_names", this->module_names}});
-    return serialized;
-}
-
-error::ErrorTypeMap Config::get_error_map() const {
-    return this->error_map;
-}
-
-std::string ConfigBase::get_module_name(const std::string& module_id) const {
-    return this->module_names.at(module_id);
-}
-
-bool Config::module_provides(const std::string& module_name, const std::string& impl_id) {
-    auto& provides = this->module_config_cache.at(module_name).provides_impl;
-    return (provides.find(impl_id) != provides.end());
-}
-
-json Config::get_module_cmds(const std::string& module_name, const std::string& impl_id) {
-    return this->module_config_cache.at(module_name).cmds.at(impl_id);
-}
-
 json ManagerConfig::resolve_interface(const std::string& intf_name) {
     // load and validate interface.json and mark interface as seen
     auto intf_definition = load_interface_file(intf_name);
 
     this->interface_definitions[intf_name] = intf_definition;
     return intf_definition;
-}
-
-std::list<json> ManagerConfig::resolve_error_ref(const std::string& reference) {
-    BOOST_LOG_FUNCTION();
-    const std::string ref_prefix = "/errors/";
-    const std::string err_ref = reference.substr(ref_prefix.length());
-    auto result = err_ref.find("#/");
-    std::string err_namespace;
-    std::string err_name;
-    bool is_error_list;
-    if (result == std::string::npos) {
-        err_namespace = err_ref;
-        err_name = "";
-        is_error_list = true;
-    } else {
-        err_namespace = err_ref.substr(0, result);
-        err_name = err_ref.substr(result + 2);
-        is_error_list = false;
-    }
-    const fs::path path = this->ms.errors_dir / (err_namespace + ".yaml");
-    json error_json = load_yaml(path);
-    std::list<json> errors;
-    if (is_error_list) {
-        for (auto& error : error_json.at("errors")) {
-            error["namespace"] = err_namespace;
-            errors.push_back(error);
-        }
-    } else {
-        for (auto& error : error_json.at("errors")) {
-            if (error.at("name") == err_name) {
-                error["namespace"] = err_namespace;
-                errors.push_back(error);
-                break;
-            }
-        }
-    }
-    return errors;
-}
-
-json ManagerConfig::replace_error_refs(json& interface_json) {
-    BOOST_LOG_FUNCTION();
-    if (!interface_json.contains("errors")) {
-        return interface_json;
-    }
-    json errors_new = json::object();
-    for (auto& error_entry : interface_json.at("errors")) {
-        std::list<json> errors = resolve_error_ref(error_entry.at("reference"));
-        for (auto& error : errors) {
-            if (!errors_new.contains(error.at("namespace"))) {
-                errors_new[error.at("namespace")] = json::object();
-            }
-            if (errors_new.at(error.at("namespace")).contains(error.at("name"))) {
-                EVLOG_AND_THROW(EverestConfigError(fmt::format("Error name '{}' in namespace '{}' already referenced!",
-                                                               error.at("name"), error.at("namespace"))));
-            }
-            errors_new[error.at("namespace")][error.at("name")] = error;
-        }
-    }
-    interface_json["errors"] = errors_new;
-    return interface_json;
 }
 
 json ManagerConfig::load_interface_file(const std::string& intf_name) {
@@ -736,428 +629,64 @@ json ManagerConfig::load_interface_file(const std::string& intf_name) {
     }
 }
 
-json Config::resolve_requirement(const std::string& module_id, const std::string& requirement_id) const {
+std::list<json> ManagerConfig::resolve_error_ref(const std::string& reference) {
     BOOST_LOG_FUNCTION();
-
-    // FIXME (aw): this function should throw, if the requirement id
-    //             isn't even listed in the module manifest
-    // FIXME (aw): the following if doesn't check for the requirement id
-    //             at all
-    auto module_name_it = this->module_names.find(module_id);
-    if (module_name_it == this->module_names.end()) {
-        EVLOG_AND_THROW(EverestApiError(fmt::format("Requested requirement id '{}' of module {} not found in config!",
-                                                    requirement_id, printable_identifier(module_id))));
+    const std::string ref_prefix = "/errors/";
+    const std::string err_ref = reference.substr(ref_prefix.length());
+    auto result = err_ref.find("#/");
+    std::string err_namespace;
+    std::string err_name;
+    bool is_error_list;
+    if (result == std::string::npos) {
+        err_namespace = err_ref;
+        err_name = "";
+        is_error_list = true;
+    } else {
+        err_namespace = err_ref.substr(0, result);
+        err_name = err_ref.substr(result + 2);
+        is_error_list = false;
     }
-
-    // check for connections for this requirement
-    auto& module_config = this->main[module_id];
-    const std::string module_name = module_name_it->second;
-    auto& requirement = this->manifests[module_name]["requires"][requirement_id];
-    if (!module_config["connections"].contains(requirement_id)) {
-        return json::array(); // return an empty array if our config does not contain any connections for this
-                              // requirement id
-    }
-
-    // if only one single connection entry was required, return only this one
-    // callers can check with is_array() if this is a single connection (legacy) or a connection list
-    if (requirement["min_connections"] == 1 && requirement["max_connections"] == 1) {
-        return module_config["connections"][requirement_id].at(0);
-    }
-    return module_config["connections"][requirement_id];
-}
-
-std::list<Requirement> Config::get_requirements(const std::string& module_id) const {
-    BOOST_LOG_FUNCTION();
-
-    std::list<Requirement> res;
-
-    const std::string module_name = get_module_name(module_id);
-    for (const std::string& req_id : Config::keys(this->manifests.at(module_name).at("requires"))) {
-        const json resolved_req = this->resolve_requirement(module_id, req_id);
-        if (!resolved_req.is_array()) {
-            const Requirement req(req_id, 0);
-            res.push_back(req);
-        } else {
-            for (std::size_t i = 0; i < resolved_req.size(); i++) {
-                const Requirement req(req_id, i);
-                res.push_back(req);
+    const fs::path path = this->ms.errors_dir / (err_namespace + ".yaml");
+    json error_json = load_yaml(path);
+    std::list<json> errors;
+    if (is_error_list) {
+        for (auto& error : error_json.at("errors")) {
+            error["namespace"] = err_namespace;
+            errors.push_back(error);
+        }
+    } else {
+        for (auto& error : error_json.at("errors")) {
+            if (error.at("name") == err_name) {
+                error["namespace"] = err_namespace;
+                errors.push_back(error);
+                break;
             }
         }
     }
-
-    return res;
+    return errors;
 }
 
-bool ConfigBase::contains(const std::string& module_id) const {
+json ManagerConfig::replace_error_refs(json& interface_json) {
     BOOST_LOG_FUNCTION();
-    return this->main.contains(module_id);
-}
-
-json ConfigBase::get_main_config() {
-    BOOST_LOG_FUNCTION();
-    return this->main;
-}
-
-// FIXME (aw): check if module_id does not exist
-json Config::get_module_json_config(const std::string& module_id) {
-    BOOST_LOG_FUNCTION();
-    return this->main[module_id]["config_maps"];
-}
-
-ModuleConfigs Config::get_module_configs(const std::string& module_id) const {
-    BOOST_LOG_FUNCTION();
-    ModuleConfigs module_configs;
-
-    // FIXME (aw): throw exception if module_id does not exist
-    if (contains(module_id)) {
-        const auto module_type = this->main[module_id]["module"].get<std::string>();
-        json config_maps = this->main[module_id]["config_maps"];
-        json manifest = this->manifests[module_type];
-
-        for (auto& conf_map : config_maps.items()) {
-            json config_schema =
-                (conf_map.key() == "!module") ? manifest["config"] : manifest["provides"][conf_map.key()]["config"];
-            ConfigMap processed_conf_map;
-            for (auto& entry : conf_map.value().items()) {
-                const json entry_type = config_schema[entry.key()]["type"];
-                ConfigEntry value;
-                const json data = entry.value();
-
-                if (data.is_string()) {
-                    value = data.get<std::string>();
-                } else if (data.is_number_float()) {
-                    value = data.get<double>();
-                } else if (data.is_number_integer()) {
-                    if (entry_type == "number") {
-                        value = data.get<double>();
-                    } else {
-                        value = data.get<int>();
-                    }
-                } else if (data.is_boolean()) {
-                    value = data.get<bool>();
-                } else {
-                    EVLOG_AND_THROW(EverestInternalError(
-                        fmt::format("Found a config entry: '{}' for module type '{}', which has a data type, that is "
-                                    "different from (bool, integer, number, string)",
-                                    entry.key(), module_type)));
-                }
-                processed_conf_map[entry.key()] = value;
+    if (!interface_json.contains("errors")) {
+        return interface_json;
+    }
+    json errors_new = json::object();
+    for (auto& error_entry : interface_json.at("errors")) {
+        std::list<json> errors = resolve_error_ref(error_entry.at("reference"));
+        for (auto& error : errors) {
+            if (!errors_new.contains(error.at("namespace"))) {
+                errors_new[error.at("namespace")] = json::object();
             }
-            module_configs[conf_map.key()] = processed_conf_map;
+            if (errors_new.at(error.at("namespace")).contains(error.at("name"))) {
+                EVLOG_AND_THROW(EverestConfigError(fmt::format("Error name '{}' in namespace '{}' already referenced!",
+                                                               error.at("name"), error.at("namespace"))));
+            }
+            errors_new[error.at("namespace")][error.at("name")] = error;
         }
     }
-
-    return module_configs;
-}
-
-const json& ConfigBase::get_manifests() {
-    BOOST_LOG_FUNCTION();
-    return this->manifests;
-}
-
-json ConfigBase::get_interfaces() {
-    BOOST_LOG_FUNCTION();
-    return this->interfaces;
-}
-
-json ConfigBase::get_interface_definitions() {
-    BOOST_LOG_FUNCTION();
-    return this->interface_definitions;
-}
-
-const json ConfigBase::get_settings() {
-    BOOST_LOG_FUNCTION();
-    return this->settings;
-}
-
-json ConfigBase::get_schemas() {
-    BOOST_LOG_FUNCTION();
-    return this->_schemas;
-}
-
-json ConfigBase::get_error_types_map() {
-    BOOST_LOG_FUNCTION();
-    return this->error_map.get_error_types_map();
-}
-
-json ConfigBase::get_types() {
-    BOOST_LOG_FUNCTION();
-    return this->types;
-}
-
-std::unordered_map<std::string, ConfigCache> ConfigBase::get_module_config_cache() {
-    BOOST_LOG_FUNCTION();
-    return this->module_config_cache;
-}
-
-json Config::get_interface_definition(const std::string& interface_name) {
-    BOOST_LOG_FUNCTION();
-    return this->interface_definitions.value(interface_name, json());
-}
-
-std::unordered_map<std::string, ModuleTierMappings> ConfigBase::get_3_tier_model_mappings() {
-    return this->tier_mappings;
-}
-
-std::optional<ModuleTierMappings> ConfigBase::get_3_tier_model_mappings(const std::string& module_id) {
-    if (this->tier_mappings.find(module_id) == this->tier_mappings.end()) {
-        return std::nullopt;
-    }
-    return this->tier_mappings.at(module_id);
-}
-
-std::optional<Mapping> ConfigBase::get_3_tier_model_mapping(const std::string& module_id, const std::string& impl_id) {
-    auto module_tier_mappings = this->get_3_tier_model_mappings(module_id);
-    if (not module_tier_mappings.has_value()) {
-        return std::nullopt;
-    }
-    auto& mapping = module_tier_mappings.value();
-    if (mapping.implementations.find(impl_id) == mapping.implementations.end()) {
-        return std::nullopt;
-    }
-    return mapping.implementations.at(impl_id);
-}
-
-json Config::load_schema(const fs::path& path) {
-    BOOST_LOG_FUNCTION();
-
-    if (!fs::exists(path)) {
-        EVLOG_AND_THROW(
-            EverestInternalError(fmt::format("Schema file does not exist at: {}", fs::absolute(path).string())));
-    }
-
-    EVLOG_debug << fmt::format("Loading schema file at: {}", fs::canonical(path).string());
-
-    json schema = load_yaml(path);
-
-    json_validator validator(Config::loader, Config::format_checker);
-
-    try {
-        validator.set_root_schema(schema);
-    } catch (const std::exception& e) {
-        EVLOG_AND_THROW(EverestInternalError(
-            fmt::format("Validation of schema '{}' failed, here is why: {}", path.string(), e.what())));
-    }
-
-    return schema;
-}
-
-schemas Config::load_schemas(const fs::path& schemas_dir) {
-    BOOST_LOG_FUNCTION();
-    schemas schemas;
-
-    EVLOG_debug << fmt::format("Loading base schema files for config and manifests... from: {}", schemas_dir.string());
-    schemas.config = Config::load_schema(schemas_dir / "config.yaml");
-    schemas.manifest = Config::load_schema(schemas_dir / "manifest.yaml");
-    schemas.interface = Config::load_schema(schemas_dir / "interface.yaml");
-    schemas.type = Config::load_schema(schemas_dir / "type.yaml");
-    schemas.error_declaration_list = Config::load_schema(schemas_dir / "error-declaration-list.yaml");
-
-    return schemas;
-}
-
-json Config::load_all_manifests(const std::string& modules_dir, const std::string& schemas_dir) {
-    BOOST_LOG_FUNCTION();
-
-    json manifests = json({});
-
-    const schemas schemas = Config::load_schemas(schemas_dir);
-
-    const fs::path modules_path = fs::path(modules_dir);
-
-    for (auto&& module_path : fs::directory_iterator(modules_path)) {
-        const fs::path manifest_path = module_path.path() / "manifest.yaml";
-        if (!fs::exists(manifest_path)) {
-            continue;
-        }
-
-        std::string module_name = module_path.path().filename().string();
-        EVLOG_debug << fmt::format("Found module {}, loading and verifying manifest...", module_name);
-
-        try {
-            manifests[module_name] = load_yaml(manifest_path);
-
-            json_validator validator(Config::loader, Config::format_checker);
-            validator.set_root_schema(schemas.manifest);
-            validator.validate(manifests[module_name]);
-        } catch (const std::exception& e) {
-            EVLOG_AND_THROW(EverestConfigError(
-                fmt::format("Failed to load and parse module manifest file of module {}: {}", module_name, e.what())));
-        }
-    }
-
-    return manifests;
-}
-
-std::set<std::string> Config::keys(const json& object) {
-    BOOST_LOG_FUNCTION();
-
-    std::set<std::string> keys;
-    if (!object.is_object()) {
-        if (object.is_null() || object.empty()) {
-            // if the object is null we should return an empty set
-            return keys;
-        }
-        EVLOG_AND_THROW(
-            EverestInternalError(fmt::format("Provided value is not an object. It is a: {}", object.type_name())));
-    }
-
-    for (auto& element : object.items()) {
-        keys.insert(element.key());
-    }
-
-    return keys;
-}
-
-void Config::loader(const json_uri& uri, json& schema) {
-    BOOST_LOG_FUNCTION();
-
-    if (uri.location() == "http://json-schema.org/draft-07/schema") {
-        schema = nlohmann::json_schema::draft7_schema_builtin;
-        return;
-    }
-
-    // TODO(kai): think about supporting more urls here
-    EVTHROW(EverestInternalError(fmt::format("{} is not supported for schema loading at the moment\n", uri.url())));
-}
-
-void Config::ref_loader(const json_uri& uri, json& schema) {
-    BOOST_LOG_FUNCTION();
-
-    if (uri.location() == "http://json-schema.org/draft-07/schema") {
-        schema = nlohmann::json_schema::draft7_schema_builtin;
-        return;
-    } else {
-        auto path = uri.path();
-        if (this->types.contains(path)) {
-            schema = this->types[path];
-            EVLOG_verbose << fmt::format("ref path \"{}\" schema has been found.", path);
-            return;
-        } else {
-            EVLOG_verbose << fmt::format("ref path \"{}\" schema has not been found.", path);
-        }
-    }
-
-    // TODO(kai): think about supporting more urls here
-    EVTHROW(EverestInternalError(fmt::format("{} is not supported for schema loading at the moment\n", uri.url())));
-}
-
-void Config::format_checker(const std::string& format, const std::string& value) {
-    BOOST_LOG_FUNCTION();
-
-    if (format == "uri") {
-        if (value.find("://") == std::string::npos) {
-            EVTHROW(std::invalid_argument("URI does not contain :// - invalid"));
-        }
-    } else if (format == "uri-reference") {
-        if (!std::regex_match(value, type_uri_regex)) {
-            EVTHROW(std::invalid_argument("Type URI is malformed."));
-        }
-    } else {
-        nlohmann::json_schema::default_string_format_check(format, value);
-    }
-}
-
-std::string ConfigBase::printable_identifier(const std::string& module_id) const {
-    BOOST_LOG_FUNCTION();
-
-    return printable_identifier(module_id, "");
-}
-
-std::string ConfigBase::printable_identifier(const std::string& module_id, const std::string& impl_id) const {
-    BOOST_LOG_FUNCTION();
-
-    json info = extract_implementation_info(module_id, impl_id);
-    // no implementation id yet so only return this kind of string:
-    const auto module_string =
-        fmt::format("{}:{}", info["module_id"].get<std::string>(), info["module_name"].get<std::string>());
-    if (impl_id.empty()) {
-        return module_string;
-    }
-    return fmt::format("{}->{}:{}", module_string, info["impl_id"].get<std::string>(),
-                       info["impl_intf"].get<std::string>());
-}
-
-ModuleInfo Config::get_module_info(const std::string& module_id) {
-    BOOST_LOG_FUNCTION();
-    // FIXME (aw): the following if block is used so often, it should be
-    //             refactored into a helper function
-    if (!this->main.contains(module_id)) {
-        EVTHROW(EverestApiError(fmt::format("Module id '{}' not found in config!", module_id)));
-    }
-
-    ModuleInfo module_info;
-    module_info.id = module_id;
-    module_info.name = this->main[module_id]["module"].get<std::string>();
-    module_info.global_errors_enabled = this->manifests.at(module_info.name).at("enable_global_errors");
-    auto& module_metadata = this->manifests[module_info.name]["metadata"];
-    for (auto& author : module_metadata["authors"]) {
-        module_info.authors.emplace_back(author.get<std::string>());
-    }
-    module_info.license = module_metadata["license"].get<std::string>();
-
-    return module_info;
-}
-
-std::optional<TelemetryConfig> ManagerConfig::get_telemetry_config(const std::string& module_id) {
-    BOOST_LOG_FUNCTION();
-
-    if (this->telemetry_configs.find(module_id) == this->telemetry_configs.end()) {
-        return std::nullopt;
-    }
-
-    return this->telemetry_configs.at(module_id);
-}
-
-std::optional<TelemetryConfig> Config::get_telemetry_config() {
-    return this->telemetry_config;
-}
-
-std::string ConfigBase::mqtt_prefix(const std::string& module_id, const std::string& impl_id) {
-    BOOST_LOG_FUNCTION();
-
-    return fmt::format("{}modules/{}/impl/{}", this->mqtt_settings.everest_prefix, module_id, impl_id);
-}
-
-std::string ConfigBase::mqtt_module_prefix(const std::string& module_id) {
-    BOOST_LOG_FUNCTION();
-
-    return fmt::format("{}modules/{}", this->mqtt_settings.everest_prefix, module_id);
-}
-
-json ConfigBase::extract_implementation_info(const std::string& module_id, const std::string& impl_id) const {
-    BOOST_LOG_FUNCTION();
-
-    if (!this->main.contains(module_id)) {
-        EVTHROW(EverestApiError(fmt::format("Module id '{}' not found in config!", module_id)));
-    }
-
-    json info;
-    info["module_id"] = module_id;
-    info["module_name"] = get_module_name(module_id);
-    info["impl_id"] = impl_id;
-    info["impl_intf"] = "";
-
-    if (!impl_id.empty()) {
-        if (!this->manifests.contains(info["module_name"])) {
-            EVTHROW(EverestApiError(fmt::format("No known manifest for module name '{}'!", info["module_name"])));
-        }
-
-        if (!this->manifests[info["module_name"].get<std::string>()]["provides"].contains(impl_id)) {
-            EVTHROW(EverestApiError(fmt::format("Implementation id '{}' not defined in manifest of module '{}'!",
-                                                impl_id, info["module_name"])));
-        }
-
-        info["impl_intf"] = this->manifests[info["module_name"].get<std::string>()]["provides"][impl_id]["interface"];
-    }
-
-    return info;
-}
-
-json ConfigBase::extract_implementation_info(const std::string& module_id) const {
-    BOOST_LOG_FUNCTION();
-
-    return extract_implementation_info(module_id, "");
+    interface_json["errors"] = errors_new;
+    return interface_json;
 }
 
 void ManagerConfig::resolve_all_requirements() {
@@ -1272,6 +801,111 @@ void ManagerConfig::resolve_all_requirements() {
     EVLOG_debug << "All module requirements resolved successfully...";
 }
 
+void ManagerConfig::parse(json config) {
+    this->main = config;
+    // load type files
+    if (this->ms.runtime_settings->validate_schema) {
+        int64_t total_time_validation_ms = 0, total_time_parsing_ms = 0;
+        for (auto const& types_entry : fs::recursive_directory_iterator(this->ms.types_dir)) {
+            auto start_time = std::chrono::system_clock::now();
+            auto const& type_file_path = types_entry.path();
+            if (fs::is_regular_file(type_file_path) && type_file_path.extension() == ".yaml") {
+                auto type_path = std::string("/") + fs::relative(type_file_path, this->ms.types_dir).stem().string();
+
+                try {
+                    // load and validate type file, store validated result in this->types
+                    EVLOG_verbose << fmt::format("Loading type file at: {}", fs::canonical(type_file_path).c_str());
+
+                    auto [type_json, validate_ms] = load_and_validate_with_schema(type_file_path, this->_schemas.type);
+                    total_time_validation_ms += validate_ms;
+
+                    this->types[type_path] = type_json["types"];
+                } catch (const std::exception& e) {
+                    EVLOG_AND_THROW(EverestConfigError(fmt::format(
+                        "Failed to load and parse type file '{}', reason: {}", type_file_path.string(), e.what())));
+                }
+            }
+            auto end_time = std::chrono::system_clock::now();
+            total_time_parsing_ms +=
+                std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+            EVLOG_debug << "Parsing of type " << types_entry.path().string() << " took: "
+                        << std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count() << "ms";
+        }
+        EVLOG_info << "- Types loaded in [" << total_time_parsing_ms - total_time_validation_ms << "ms]";
+        EVLOG_info << "- Types validated [" << total_time_validation_ms << "ms]";
+    }
+
+    // load error files
+    if (this->ms.runtime_settings->validate_schema) {
+        int64_t total_time_validation_ms = 0, total_time_parsing_ms = 0;
+        for (auto const& errors_entry : fs::recursive_directory_iterator(this->ms.errors_dir)) {
+            auto start_time = std::chrono::system_clock::now();
+            auto const& error_file_path = errors_entry.path();
+            if (fs::is_regular_file(error_file_path) && error_file_path.extension() == ".yaml") {
+                try {
+                    // load and validate error file
+                    EVLOG_verbose << fmt::format("Loading error file at: {}", fs::canonical(error_file_path).c_str());
+
+                    auto [error_json, validate_ms] =
+                        load_and_validate_with_schema(error_file_path, this->_schemas.error_declaration_list);
+                    total_time_validation_ms += validate_ms;
+
+                } catch (const std::exception& e) {
+                    EVLOG_AND_THROW(EverestConfigError(fmt::format(
+                        "Failed to load and parse error file '{}', reason: {}", error_file_path.string(), e.what())));
+                }
+            }
+            auto end_time = std::chrono::system_clock::now();
+            total_time_parsing_ms +=
+                std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+            EVLOG_debug << "Parsing of error " << errors_entry.path().string() << " took: "
+                        << std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count() << "ms";
+        }
+        EVLOG_info << "- Errors loaded in [" << total_time_parsing_ms - total_time_validation_ms << "ms]";
+        EVLOG_info << "- Errors validated [" << total_time_validation_ms << "ms]";
+    }
+    std::optional<std::string> probe_module_id;
+
+    // load manifest files of configured modules
+    for (auto& element : this->main.items()) {
+        const auto& module_id = element.key();
+        const auto& module_config = element.value();
+
+        if (module_config.at("module") == "ProbeModule") {
+            if (probe_module_id) {
+                EVLOG_AND_THROW(EverestConfigError("Multiple instance of module type ProbeModule not supported yet"));
+            }
+            probe_module_id = module_id;
+            continue;
+        }
+
+        load_and_validate_manifest(module_id, module_config);
+    }
+
+    if (probe_module_id) {
+        setup_probe_module_manifest(*probe_module_id, this->main, this->manifests);
+
+        load_and_validate_manifest(*probe_module_id, this->main.at(*probe_module_id));
+    }
+
+    // load telemetry configs
+    for (auto& element : this->main.items()) {
+        const auto& module_id = element.key();
+        auto& module_config = element.value();
+        if (module_config.contains("telemetry")) {
+            const auto& telemetry = module_config.at("telemetry");
+            if (telemetry.contains("id")) {
+                this->telemetry_configs[module_id].emplace(TelemetryConfig{telemetry.at("id").get<int>()});
+            }
+        }
+    }
+
+    resolve_all_requirements();
+    parse_3_tier_model_mapping();
+
+    // TODO: cleanup "descriptions" from config ?
+}
+
 void ManagerConfig::parse_3_tier_model_mapping() {
     for (auto& element : this->main.items()) {
         const auto& module_id = element.key();
@@ -1309,6 +943,376 @@ void ManagerConfig::parse_3_tier_model_mapping() {
             }
         }
         this->tier_mappings[module_id] = module_tier_mappings;
+    }
+}
+
+ManagerConfig::ManagerConfig(const ManagerSettings& ms) : ConfigBase(*ms.mqtt_settings), ms(ms) {
+    BOOST_LOG_FUNCTION();
+
+    this->manifests = json({});
+    this->interfaces = json({});
+    this->interface_definitions = json({});
+    this->types = json({});
+    this->_schemas = Config::load_schemas(this->ms.schemas_dir);
+    this->error_map = error::ErrorTypeMap(this->ms.errors_dir);
+
+    // load and process config file
+    const fs::path config_path = this->ms.config_file;
+
+    try {
+        EVLOG_info << fmt::format("Loading config file at: {}", fs::canonical(config_path).string());
+        auto complete_config = load_yaml(config_path);
+        // try to load user config from a directory "user-config" that might be in the same parent directory as the
+        // config_file. The config is supposed to have the same name as the parent config.
+        // TODO(kai): introduce a parameter that can overwrite the location of the user config?
+        // TODO(kai): or should we introduce a "meta-config" that references all configs that should be merged here?
+        auto user_config_path = config_path.parent_path() / "user-config" / config_path.filename();
+        if (fs::exists(user_config_path)) {
+            EVLOG_info << fmt::format("Loading user-config file at: {}", fs::canonical(user_config_path).string());
+            auto user_config = load_yaml(user_config_path);
+            EVLOG_debug << "Augmenting main config with user-config entries";
+            complete_config.merge_patch(user_config);
+        } else {
+            EVLOG_verbose << "No user-config provided.";
+        }
+
+        json_validator validator(Config::loader, Config::format_checker);
+        validator.set_root_schema(this->_schemas.config);
+        auto patch = validator.validate(complete_config);
+        if (!patch.is_null()) {
+            // extend config with default values
+            complete_config = complete_config.patch(patch);
+        }
+
+        auto config = complete_config.at("active_modules");
+        this->settings = this->ms.get_runtime_settings();
+        this->parse(config);
+    } catch (const std::exception& e) {
+        EVLOG_AND_THROW(EverestConfigError(fmt::format("Failed to load and parse config file: {}", e.what())));
+    }
+}
+
+json ManagerConfig::serialize() {
+    auto serialized = json::object({{"main", this->main}, {"module_names", this->module_names}});
+    return serialized;
+}
+
+std::optional<TelemetryConfig> ManagerConfig::get_telemetry_config(const std::string& module_id) {
+    BOOST_LOG_FUNCTION();
+
+    if (this->telemetry_configs.find(module_id) == this->telemetry_configs.end()) {
+        return std::nullopt;
+    }
+
+    return this->telemetry_configs.at(module_id);
+}
+
+// Config
+
+Config::Config(const MQTTSettings& mqtt_settings, json serialized_config) : ConfigBase(mqtt_settings) {
+    this->main = serialized_config.value("module_config", json({}));
+    this->manifests = serialized_config.value("manifests", json({}));
+    this->interfaces = serialized_config.value("module_provides", json({}));
+    this->interface_definitions = serialized_config.value("interface_definitions", json({}));
+    this->types = serialized_config.value("types", json({}));
+    this->module_names = serialized_config.at("module_names");
+    this->module_config_cache = serialized_config.at("module_config_cache");
+    if (serialized_config.contains("mappings") and !serialized_config.at("mappings").is_null()) {
+        this->tier_mappings = serialized_config.at("mappings");
+    }
+    if (serialized_config.contains("telemetry_config") and !serialized_config.at("telemetry_config").is_null()) {
+        this->telemetry_config = serialized_config.at("telemetry_config");
+    }
+
+    this->_schemas = serialized_config.at("schemas");
+    this->error_map = error::ErrorTypeMap();
+    this->error_map.load_error_types_map(serialized_config.at("error_map"));
+}
+
+error::ErrorTypeMap Config::get_error_map() const {
+    return this->error_map;
+}
+
+bool Config::module_provides(const std::string& module_name, const std::string& impl_id) {
+    auto& provides = this->module_config_cache.at(module_name).provides_impl;
+    return (provides.find(impl_id) != provides.end());
+}
+
+json Config::get_module_cmds(const std::string& module_name, const std::string& impl_id) {
+    return this->module_config_cache.at(module_name).cmds.at(impl_id);
+}
+
+json Config::resolve_requirement(const std::string& module_id, const std::string& requirement_id) const {
+    BOOST_LOG_FUNCTION();
+
+    // FIXME (aw): this function should throw, if the requirement id
+    //             isn't even listed in the module manifest
+    // FIXME (aw): the following if doesn't check for the requirement id
+    //             at all
+    auto module_name_it = this->module_names.find(module_id);
+    if (module_name_it == this->module_names.end()) {
+        EVLOG_AND_THROW(EverestApiError(fmt::format("Requested requirement id '{}' of module {} not found in config!",
+                                                    requirement_id, printable_identifier(module_id))));
+    }
+
+    // check for connections for this requirement
+    auto& module_config = this->main[module_id];
+    const std::string module_name = module_name_it->second;
+    auto& requirement = this->manifests[module_name]["requires"][requirement_id];
+    if (!module_config["connections"].contains(requirement_id)) {
+        return json::array(); // return an empty array if our config does not contain any connections for this
+                              // requirement id
+    }
+
+    // if only one single connection entry was required, return only this one
+    // callers can check with is_array() if this is a single connection (legacy) or a connection list
+    if (requirement["min_connections"] == 1 && requirement["max_connections"] == 1) {
+        return module_config["connections"][requirement_id].at(0);
+    }
+    return module_config["connections"][requirement_id];
+}
+
+std::list<Requirement> Config::get_requirements(const std::string& module_id) const {
+    BOOST_LOG_FUNCTION();
+
+    std::list<Requirement> res;
+
+    const std::string module_name = get_module_name(module_id);
+    for (const std::string& req_id : Config::keys(this->manifests.at(module_name).at("requires"))) {
+        const json resolved_req = this->resolve_requirement(module_id, req_id);
+        if (!resolved_req.is_array()) {
+            const Requirement req(req_id, 0);
+            res.push_back(req);
+        } else {
+            for (std::size_t i = 0; i < resolved_req.size(); i++) {
+                const Requirement req(req_id, i);
+                res.push_back(req);
+            }
+        }
+    }
+
+    return res;
+}
+
+ModuleConfigs Config::get_module_configs(const std::string& module_id) const {
+    BOOST_LOG_FUNCTION();
+    ModuleConfigs module_configs;
+
+    // FIXME (aw): throw exception if module_id does not exist
+    if (contains(module_id)) {
+        const auto module_type = this->main[module_id]["module"].get<std::string>();
+        json config_maps = this->main[module_id]["config_maps"];
+        json manifest = this->manifests[module_type];
+
+        for (auto& conf_map : config_maps.items()) {
+            json config_schema =
+                (conf_map.key() == "!module") ? manifest["config"] : manifest["provides"][conf_map.key()]["config"];
+            ConfigMap processed_conf_map;
+            for (auto& entry : conf_map.value().items()) {
+                const json entry_type = config_schema[entry.key()]["type"];
+                ConfigEntry value;
+                const json data = entry.value();
+
+                if (data.is_string()) {
+                    value = data.get<std::string>();
+                } else if (data.is_number_float()) {
+                    value = data.get<double>();
+                } else if (data.is_number_integer()) {
+                    if (entry_type == "number") {
+                        value = data.get<double>();
+                    } else {
+                        value = data.get<int>();
+                    }
+                } else if (data.is_boolean()) {
+                    value = data.get<bool>();
+                } else {
+                    EVLOG_AND_THROW(EverestInternalError(
+                        fmt::format("Found a config entry: '{}' for module type '{}', which has a data type, that is "
+                                    "different from (bool, integer, number, string)",
+                                    entry.key(), module_type)));
+                }
+                processed_conf_map[entry.key()] = value;
+            }
+            module_configs[conf_map.key()] = processed_conf_map;
+        }
+    }
+
+    return module_configs;
+}
+
+// FIXME (aw): check if module_id does not exist
+json Config::get_module_json_config(const std::string& module_id) {
+    BOOST_LOG_FUNCTION();
+    return this->main[module_id]["config_maps"];
+}
+
+ModuleInfo Config::get_module_info(const std::string& module_id) {
+    BOOST_LOG_FUNCTION();
+    // FIXME (aw): the following if block is used so often, it should be
+    //             refactored into a helper function
+    if (!this->main.contains(module_id)) {
+        EVTHROW(EverestApiError(fmt::format("Module id '{}' not found in config!", module_id)));
+    }
+
+    ModuleInfo module_info;
+    module_info.id = module_id;
+    module_info.name = this->main[module_id]["module"].get<std::string>();
+    module_info.global_errors_enabled = this->manifests.at(module_info.name).at("enable_global_errors");
+    auto& module_metadata = this->manifests[module_info.name]["metadata"];
+    for (auto& author : module_metadata["authors"]) {
+        module_info.authors.emplace_back(author.get<std::string>());
+    }
+    module_info.license = module_metadata["license"].get<std::string>();
+
+    return module_info;
+}
+
+std::optional<TelemetryConfig> Config::get_telemetry_config() {
+    return this->telemetry_config;
+}
+
+json Config::get_interface_definition(const std::string& interface_name) {
+    BOOST_LOG_FUNCTION();
+    return this->interface_definitions.value(interface_name, json());
+}
+
+void Config::ref_loader(const json_uri& uri, json& schema) {
+    BOOST_LOG_FUNCTION();
+
+    if (uri.location() == "http://json-schema.org/draft-07/schema") {
+        schema = nlohmann::json_schema::draft7_schema_builtin;
+        return;
+    } else {
+        auto path = uri.path();
+        if (this->types.contains(path)) {
+            schema = this->types[path];
+            EVLOG_verbose << fmt::format("ref path \"{}\" schema has been found.", path);
+            return;
+        } else {
+            EVLOG_verbose << fmt::format("ref path \"{}\" schema has not been found.", path);
+        }
+    }
+
+    // TODO(kai): think about supporting more urls here
+    EVTHROW(EverestInternalError(fmt::format("{} is not supported for schema loading at the moment\n", uri.url())));
+}
+
+schemas Config::load_schemas(const fs::path& schemas_dir) {
+    BOOST_LOG_FUNCTION();
+    schemas schemas;
+
+    EVLOG_debug << fmt::format("Loading base schema files for config and manifests... from: {}", schemas_dir.string());
+    schemas.config = Config::load_schema(schemas_dir / "config.yaml");
+    schemas.manifest = Config::load_schema(schemas_dir / "manifest.yaml");
+    schemas.interface = Config::load_schema(schemas_dir / "interface.yaml");
+    schemas.type = Config::load_schema(schemas_dir / "type.yaml");
+    schemas.error_declaration_list = Config::load_schema(schemas_dir / "error-declaration-list.yaml");
+
+    return schemas;
+}
+
+json Config::load_schema(const fs::path& path) {
+    BOOST_LOG_FUNCTION();
+
+    if (!fs::exists(path)) {
+        EVLOG_AND_THROW(
+            EverestInternalError(fmt::format("Schema file does not exist at: {}", fs::absolute(path).string())));
+    }
+
+    EVLOG_debug << fmt::format("Loading schema file at: {}", fs::canonical(path).string());
+
+    json schema = load_yaml(path);
+
+    json_validator validator(Config::loader, Config::format_checker);
+
+    try {
+        validator.set_root_schema(schema);
+    } catch (const std::exception& e) {
+        EVLOG_AND_THROW(EverestInternalError(
+            fmt::format("Validation of schema '{}' failed, here is why: {}", path.string(), e.what())));
+    }
+
+    return schema;
+}
+
+json Config::load_all_manifests(const std::string& modules_dir, const std::string& schemas_dir) {
+    BOOST_LOG_FUNCTION();
+
+    json manifests = json({});
+
+    const schemas schemas = Config::load_schemas(schemas_dir);
+
+    const fs::path modules_path = fs::path(modules_dir);
+
+    for (auto&& module_path : fs::directory_iterator(modules_path)) {
+        const fs::path manifest_path = module_path.path() / "manifest.yaml";
+        if (!fs::exists(manifest_path)) {
+            continue;
+        }
+
+        std::string module_name = module_path.path().filename().string();
+        EVLOG_debug << fmt::format("Found module {}, loading and verifying manifest...", module_name);
+
+        try {
+            manifests[module_name] = load_yaml(manifest_path);
+
+            json_validator validator(Config::loader, Config::format_checker);
+            validator.set_root_schema(schemas.manifest);
+            validator.validate(manifests[module_name]);
+        } catch (const std::exception& e) {
+            EVLOG_AND_THROW(EverestConfigError(
+                fmt::format("Failed to load and parse module manifest file of module {}: {}", module_name, e.what())));
+        }
+    }
+
+    return manifests;
+}
+
+std::set<std::string> Config::keys(const json& object) {
+    BOOST_LOG_FUNCTION();
+
+    std::set<std::string> keys;
+    if (!object.is_object()) {
+        if (object.is_null() || object.empty()) {
+            // if the object is null we should return an empty set
+            return keys;
+        }
+        EVLOG_AND_THROW(
+            EverestInternalError(fmt::format("Provided value is not an object. It is a: {}", object.type_name())));
+    }
+
+    for (auto& element : object.items()) {
+        keys.insert(element.key());
+    }
+
+    return keys;
+}
+
+void Config::loader(const json_uri& uri, json& schema) {
+    BOOST_LOG_FUNCTION();
+
+    if (uri.location() == "http://json-schema.org/draft-07/schema") {
+        schema = nlohmann::json_schema::draft7_schema_builtin;
+        return;
+    }
+
+    // TODO(kai): think about supporting more urls here
+    EVTHROW(EverestInternalError(fmt::format("{} is not supported for schema loading at the moment\n", uri.url())));
+}
+
+void Config::format_checker(const std::string& format, const std::string& value) {
+    BOOST_LOG_FUNCTION();
+
+    if (format == "uri") {
+        if (value.find("://") == std::string::npos) {
+            EVTHROW(std::invalid_argument("URI does not contain :// - invalid"));
+        }
+    } else if (format == "uri-reference") {
+        if (!std::regex_match(value, type_uri_regex)) {
+            EVTHROW(std::invalid_argument("Type URI is malformed."));
+        }
+    } else {
+        nlohmann::json_schema::default_string_format_check(format, value);
     }
 }
 

@@ -85,7 +85,7 @@ protected:
 public:
     ///
     /// \brief Create a ConfigBase with the provided \p mqtt_settings
-    explicit ConfigBase(const MQTTSettings& mqtt_settings) : mqtt_settings(mqtt_settings){};
+    explicit ConfigBase(const MQTTSettings& mqtt_settings) : mqtt_settings(mqtt_settings) {};
 
     ///
     /// \brief turns then given \p module_id into a printable identifier
@@ -257,6 +257,10 @@ private:
 
 public:
     ///
+    /// \brief creates a new Config object form the given \p mqtt_settings and \p config
+    explicit Config(const MQTTSettings& mqtt_settings, json config);
+
+    ///
     /// \returns the ErrorTypeMap
     error::ErrorTypeMap get_error_map() const;
 
@@ -267,10 +271,6 @@ public:
     ///
     /// \returns the commands that the modules \p module_name implements from the given implementation \p impl_id
     json get_module_cmds(const std::string& module_name, const std::string& impl_id);
-
-    ///
-    /// \brief creates a new Config object form the given \p mqtt_settings and \p config
-    explicit Config(const MQTTSettings& mqtt_settings, json config);
 
     ///
     /// \brief checks if the given \p module_id provides the requirement given in \p requirement_id
