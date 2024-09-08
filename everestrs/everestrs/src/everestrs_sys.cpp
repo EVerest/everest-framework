@@ -115,7 +115,7 @@ void Module::provide_command(const Runtime& rt, rust::String implementation_id, 
     });
 }
 
-void Module::subscribe_variable(const Runtime& rt, rust::String implementation_id, size_t index,
+void Module::subscribe_variable(const Runtime& rt, rust::String implementation_id, std::size_t index,
                                 rust::String name) const {
     const Requirement req(std::string(implementation_id), index);
     handle_->subscribe_var(req, std::string(name), [&rt, implementation_id, index, name](json args) {
@@ -123,7 +123,7 @@ void Module::subscribe_variable(const Runtime& rt, rust::String implementation_i
     });
 }
 
-JsonBlob Module::call_command(rust::Str implementation_id, size_t index, rust::Str name, JsonBlob blob) const {
+JsonBlob Module::call_command(rust::Str implementation_id, std::size_t index, rust::Str name, JsonBlob blob) const {
     const Requirement req(std::string(implementation_id), index);
     json return_value = handle_->call_cmd(req, std::string(name), json::parse(blob.data.begin(), blob.data.end()));
 

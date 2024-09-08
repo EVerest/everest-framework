@@ -3,6 +3,7 @@
 #ifndef UTILS_TYPES_HPP
 #define UTILS_TYPES_HPP
 
+#include <cstddef>
 #include <filesystem>
 #include <fmt/core.h>
 #include <map>
@@ -108,10 +109,10 @@ struct ModuleTierMappings {
 };
 
 struct Requirement {
-    Requirement(const std::string& requirement_id_, size_t index_);
+    Requirement(const std::string& requirement_id_, std::size_t index_);
     bool operator<(const Requirement& rhs) const;
     std::string id;
-    size_t index;
+    std::size_t index;
 };
 
 struct ImplementationIdentifier {

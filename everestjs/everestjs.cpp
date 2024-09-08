@@ -11,6 +11,7 @@
 #include <sys/prctl.h>
 
 #include <chrono>
+#include <cstddef>
 #include <future>
 #include <iostream>
 #include <map>
@@ -742,7 +743,7 @@ static Napi::Value boot_module(const Napi::CallbackInfo& info) {
             }
             auto req_array_prop = Napi::Array::New(env);
             auto req_mod_cmds_array = Napi::Array::New(env);
-            for (size_t i = 0; i < req_route_list.size(); i++) {
+            for (std::size_t i = 0; i < req_route_list.size(); i++) {
                 auto req_route = req_route_list[i];
                 const std::string& requirement_module_id = req_route["module_id"];
                 const std::string& requirement_impl_id = req_route["implementation_id"];

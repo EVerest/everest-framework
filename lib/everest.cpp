@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Pionix GmbH and Contributors to EVerest
+#include <cstddef>
 #include <future>
 #include <map>
 #include <set>
@@ -1067,7 +1068,7 @@ bool Everest::check_arg(ArgumentType arg_types, json manifest_arg) {
         return true;
     }
 
-    for (size_t i = 0; i < arg_types.size(); i++) {
+    for (std::size_t i = 0; i < arg_types.size(); i++) {
         if (arg_types[i] != manifest_arg_type.at(i)) {
             EVLOG_error << fmt::format("types do not match: {} != {}", arg_types[i], manifest_arg_type.at(i));
             return false;

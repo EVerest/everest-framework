@@ -1,9 +1,11 @@
 #pragma once
 
-#include <framework/everest.hpp>
-#include <framework/runtime.hpp>
+#include <cstddef>
 #include <memory>
 #include <string>
+
+#include <framework/everest.hpp>
+#include <framework/runtime.hpp>
 #include <utils/types.hpp>
 
 #include "rust/cxx.h"
@@ -25,8 +27,8 @@ public:
 
     void signal_ready(const Runtime& rt) const;
     void provide_command(const Runtime& rt, rust::String implementation_id, rust::String name) const;
-    JsonBlob call_command(rust::Str implementation_id, size_t index, rust::Str name, JsonBlob args) const;
-    void subscribe_variable(const Runtime& rt, rust::String implementation_id, size_t index, rust::String name) const;
+    JsonBlob call_command(rust::Str implementation_id, std::size_t index, rust::Str name, JsonBlob args) const;
+    void subscribe_variable(const Runtime& rt, rust::String implementation_id, std::size_t index, rust::String name) const;
     void publish_variable(rust::Str implementation_id, rust::Str name, JsonBlob blob) const;
     int get_log_level() const;
     std::shared_ptr<Everest::Config> get_config() const;

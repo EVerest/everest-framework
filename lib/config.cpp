@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Pionix GmbH and Contributors to EVerest
 #include <algorithm>
+#include <cstddef>
 #include <fstream>
 #include <list>
 #include <set>
@@ -777,7 +778,7 @@ std::list<Requirement> Config::get_requirements(const std::string& module_id) co
             const Requirement req(req_id, 0);
             res.push_back(req);
         } else {
-            for (size_t i = 0; i < resolved_req.size(); i++) {
+            for (std::size_t i = 0; i < resolved_req.size(); i++) {
                 const Requirement req(req_id, i);
                 res.push_back(req);
             }

@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Pionix GmbH and Contributors to EVerest
 
+#include <cstddef>
+
 #include <utils/types.hpp>
 
 TypedHandler::TypedHandler(const std::string& name_, const std::string& id_, HandlerType type_,
@@ -16,7 +18,7 @@ TypedHandler::TypedHandler(HandlerType type_, std::shared_ptr<Handler> handler_)
     TypedHandler("", "", type_, handler_) {
 }
 
-Requirement::Requirement(const std::string& requirement_id_, size_t index_) : id(requirement_id_), index(index_) {
+Requirement::Requirement(const std::string& requirement_id_, std::size_t index_) : id(requirement_id_), index(index_) {
 }
 
 bool Requirement::operator<(const Requirement& rhs) const {

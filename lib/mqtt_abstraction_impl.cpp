@@ -2,6 +2,7 @@
 // Copyright Pionix GmbH and Contributors to EVerest
 #include <algorithm>
 #include <chrono>
+#include <cstddef>
 #include <cstdio>
 #include <cstring>
 #include <sstream>
@@ -655,7 +656,7 @@ bool MQTTAbstractionImpl::check_topic_matches(const std::string& full_topic, con
     // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
     boost::split(wildcard_split, wildcard_topic, boost::is_any_of("/"));
 
-    for (size_t partno = 0; partno < full_split.size(); partno++) {
+    for (std::size_t partno = 0; partno < full_split.size(); partno++) {
         if (wildcard_split.size() <= partno) {
             return false;
         }

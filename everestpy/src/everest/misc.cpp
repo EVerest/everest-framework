@@ -2,6 +2,7 @@
 // Copyright Pionix GmbH and Contributors to EVerest
 #include "misc.hpp"
 
+#include <cstddef>
 #include <cstdlib>
 #include <stdexcept>
 
@@ -93,7 +94,7 @@ ModuleSetup create_setup_from_config(const std::string& module_id, Everest::Conf
         auto& fulfillment_list = fulfillment_list_it->second;
         fulfillment_list.reserve(req_route_list.size());
 
-        for (size_t i = 0; i < req_route_list.size(); i++) {
+        for (std::size_t i = 0; i < req_route_list.size(); i++) {
             const auto& req_route = req_route_list[i];
             auto fulfillment = Fulfillment{req_route["module_id"], req_route["implementation_id"], {requirement_id, i}};
             fulfillment_list.emplace_back(std::move(fulfillment));
