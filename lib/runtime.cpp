@@ -611,16 +611,15 @@ bool ModuleLoader::parse_command_line(int argc, char* argv[]) {
         return false;
     }
 
-    std::string mqtt_broker_socket_path;
-    std::string mqtt_broker_host;
-    int mqtt_broker_port = defaults::MQTT_BROKER_PORT;
-    std::string mqtt_everest_prefix;
-    std::string mqtt_external_prefix;
+    // TODO: the following is almost identical to what's done in the ManagerSettings initialization
+    // move this to some common function(s), especially the environment variable overwrite stuff
 
+    std::string mqtt_broker_socket_path;
     if (vm.count("mqtt_broker_socket_path") != 0) {
         mqtt_broker_socket_path = vm["mqtt_broker_socket_path"].as<std::string>();
     }
 
+    std::string mqtt_broker_host;
     if (vm.count("mqtt_broker_host") != 0) {
         mqtt_broker_host = vm["mqtt_broker_host"].as<std::string>();
         if (!mqtt_broker_socket_path.empty()) {
@@ -648,6 +647,7 @@ bool ModuleLoader::parse_command_line(int argc, char* argv[]) {
         }
     }
 
+    int mqtt_broker_port = defaults::MQTT_BROKER_PORT;
     if (vm.count("mqtt_broker_port") != 0) {
         mqtt_broker_port = vm["mqtt_broker_port"].as<int>();
     }
@@ -664,6 +664,7 @@ bool ModuleLoader::parse_command_line(int argc, char* argv[]) {
         }
     }
 
+    std::string mqtt_everest_prefix;
     if (vm.count("mqtt_everest_prefix") != 0) {
         mqtt_everest_prefix = vm["mqtt_everest_prefix"].as<std::string>();
     } else {
@@ -675,6 +676,7 @@ bool ModuleLoader::parse_command_line(int argc, char* argv[]) {
         mqtt_everest_prefix = mqtt_everest_prefix += "/";
     }
 
+    std::string mqtt_external_prefix;
     if (vm.count("mqtt_external_prefix") != 0) {
         mqtt_external_prefix = vm["mqtt_external_prefix"].as<std::string>();
     } else {
