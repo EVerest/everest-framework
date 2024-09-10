@@ -26,7 +26,7 @@ const std::string get_variable_from_env(const std::string& variable, const std::
     return value;
 }
 
-static Everest::MQTTSettings* get_mqtt_settings_from_env() {
+static Everest::MQTTSettings get_mqtt_settings_from_env() {
     const auto mqtt_everest_prefix =
         get_variable_from_env(Everest::EV_MQTT_EVEREST_PREFIX, Everest::defaults::MQTT_EVEREST_PREFIX);
     const auto mqtt_external_prefix =
@@ -46,10 +46,10 @@ static Everest::MQTTSettings* get_mqtt_settings_from_env() {
         } catch (...) {
             EVLOG_warning << "Could not parse MQTT broker port, using default: " << mqtt_broker_port_;
         }
-        return new Everest::MQTTSettings(mqtt_broker_host, mqtt_broker_port_, mqtt_everest_prefix,
-                                         mqtt_external_prefix);
+        return Everest::create_mqtt_settings(mqtt_broker_host, mqtt_broker_port_, mqtt_everest_prefix,
+                                             mqtt_external_prefix);
     } else {
-        return new Everest::MQTTSettings(mqtt_broker_socket_path, mqtt_everest_prefix, mqtt_external_prefix);
+        return Everest::create_mqtt_settings(mqtt_broker_socket_path, mqtt_everest_prefix, mqtt_external_prefix);
     }
 }
 

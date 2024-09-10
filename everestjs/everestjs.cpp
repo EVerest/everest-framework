@@ -579,8 +579,8 @@ static Napi::Value boot_module(const Napi::CallbackInfo& info) {
             Everest::assert_file(settings.Get("logging_config_file").ToString().Utf8Value(), "Default logging config");
         // initialize logging as early as possible
         Everest::Logging::init(logging_config_file.string(), module_id);
-
-        Everest::MQTTSettings* mqtt_settings;
+        std::shared_ptr<Everest::MQTTAbstraction> mqtt;
+        Everest::MQTTSettings mqtt_settings{};
         if (mqtt_broker_socket_path.empty()) {
             auto mqtt_broker_port = Everest::defaults::MQTT_BROKER_PORT;
             try {
@@ -588,22 +588,24 @@ static Napi::Value boot_module(const Napi::CallbackInfo& info) {
             } catch (...) {
                 EVLOG_warning << "Could not parse MQTT broker port, using default: " << mqtt_broker_port;
             }
-            mqtt_settings = new Everest::MQTTSettings(mqtt_server_address, mqtt_broker_port, mqtt_everest_prefix,
-                                                      mqtt_external_prefix);
+
+            Everest::populate_mqtt_settings(mqtt_settings, mqtt_server_address, mqtt_broker_port, mqtt_everest_prefix,
+                                            mqtt_external_prefix);
         } else {
-            mqtt_settings =
-                new Everest::MQTTSettings(mqtt_broker_socket_path, mqtt_everest_prefix, mqtt_external_prefix);
+            Everest::populate_mqtt_settings(mqtt_settings, mqtt_broker_socket_path, mqtt_everest_prefix,
+                                            mqtt_external_prefix);
         }
 
-        auto mqtt = std::make_shared<Everest::MQTTAbstraction>(*mqtt_settings);
+        mqtt = std::make_shared<Everest::MQTTAbstraction>(mqtt_settings);
         mqtt->connect();
         mqtt->spawn_main_loop_thread();
 
         const auto result = Everest::get_module_config(mqtt, module_id);
 
-        auto rs = new Everest::RuntimeSettings(result.at("settings"));
+        auto rs = std::make_unique<Everest::RuntimeSettings>(result.at("settings"));
 
-        auto config = std::make_unique<Everest::Config>(*mqtt_settings, result);
+        auto config = std::make_unique<Everest::Config>(mqtt_settings, result);
+
         if (!config->contains(module_id)) {
             EVTHROW(EVEXCEPTION(Everest::EverestConfigError,
                                 "Module with identifier '" << module_id << "' not found in config!"));

@@ -336,10 +336,10 @@ ManagerSettings::ManagerSettings(const std::string& prefix_, const std::string& 
     }
 
     if (not mqtt_broker_socket_path.empty()) {
-        this->mqtt_settings = new MQTTSettings(mqtt_broker_socket_path, mqtt_everest_prefix, mqtt_external_prefix);
+        populate_mqtt_settings(this->mqtt_settings, mqtt_broker_socket_path, mqtt_everest_prefix, mqtt_external_prefix);
     } else {
-        this->mqtt_settings =
-            new MQTTSettings(mqtt_broker_host, mqtt_broker_port, mqtt_everest_prefix, mqtt_external_prefix);
+        populate_mqtt_settings(this->mqtt_settings, mqtt_broker_host, mqtt_broker_port, mqtt_everest_prefix,
+                               mqtt_external_prefix);
     }
 
     config = config_;
@@ -383,12 +383,12 @@ ManagerSettings::ManagerSettings(const std::string& prefix_, const std::string& 
         validate_schema = defaults::VALIDATE_SCHEMA;
     }
 
-    runtime_settings = new RuntimeSettings(prefix, etc_dir, data_dir, modules_dir, logging_config_file,
-                                           telemetry_prefix, telemetry_enabled, validate_schema);
+    runtime_settings = std::make_unique<RuntimeSettings>(prefix, etc_dir, data_dir, modules_dir, logging_config_file,
+                                                         telemetry_prefix, telemetry_enabled, validate_schema);
 }
 
 const RuntimeSettings& ManagerSettings::get_runtime_settings() const {
-    return *runtime_settings;
+    return *runtime_settings.get();
 }
 
 ModuleCallbacks::ModuleCallbacks(const std::function<void(ModuleAdapter module_adapter)>& register_module_adapter,
@@ -400,7 +400,7 @@ ModuleCallbacks::ModuleCallbacks(const std::function<void(ModuleAdapter module_a
 
 ModuleLoader::ModuleLoader(int argc, char* argv[], ModuleCallbacks callbacks,
                            const VersionInformation version_information) :
-    runtime_settings(nullptr), mqtt_settings(nullptr), callbacks(callbacks), version_information(version_information) {
+    runtime_settings(nullptr), callbacks(callbacks), version_information(version_information) {
     if (!this->parse_command_line(argc, argv)) {
         this->should_exit = true;
         return;
@@ -415,7 +415,7 @@ int ModuleLoader::initialize() {
 
     auto start_time = std::chrono::system_clock::now();
 
-    this->mqtt = std::make_shared<MQTTAbstraction>(*this->mqtt_settings);
+    this->mqtt = std::make_shared<MQTTAbstraction>(this->mqtt_settings);
     this->mqtt->connect();
     this->mqtt->spawn_main_loop_thread();
 
@@ -424,7 +424,7 @@ int ModuleLoader::initialize() {
     EVLOG_debug << "Module " << fmt::format(TERMINAL_STYLE_OK, "{}", module_id) << " get_config() ["
                 << std::chrono::duration_cast<std::chrono::milliseconds>(get_config_time - start_time).count() << "ms]";
 
-    this->runtime_settings = new RuntimeSettings(result.at("settings"));
+    this->runtime_settings = std::make_unique<RuntimeSettings>(result.at("settings"));
 
     if (!this->runtime_settings) {
         return 0;
@@ -432,7 +432,7 @@ int ModuleLoader::initialize() {
 
     auto& rs = this->runtime_settings;
     try {
-        Config config = Config(*this->mqtt_settings, result);
+        Config config = Config(this->mqtt_settings, result);
         auto config_instantiation_time = std::chrono::system_clock::now();
         EVLOG_debug
             << "Module " << fmt::format(TERMINAL_STYLE_OK, "{}", module_id) << " after Config() instantiation ["
@@ -467,12 +467,12 @@ int ModuleLoader::initialize() {
         EVLOG_debug << fmt::format("Initializing module {}...", module_identifier);
 
         if (!everest.connect()) {
-            if (this->mqtt_settings->broker_socket_path.empty()) {
-                EVLOG_error << fmt::format("Cannot connect to MQTT broker at {}:{}", this->mqtt_settings->broker_host,
-                                           this->mqtt_settings->broker_port);
+            if (this->mqtt_settings.broker_socket_path.empty()) {
+                EVLOG_error << fmt::format("Cannot connect to MQTT broker at {}:{}", this->mqtt_settings.broker_host,
+                                           this->mqtt_settings.broker_port);
             } else {
                 EVLOG_error << fmt::format("Cannot connect to MQTT broker socket at {}",
-                                           this->mqtt_settings->broker_socket_path);
+                                           this->mqtt_settings.broker_socket_path);
             }
             return 1;
         }
@@ -684,10 +684,10 @@ bool ModuleLoader::parse_command_line(int argc, char* argv[]) {
     }
 
     if (not mqtt_broker_socket_path.empty()) {
-        this->mqtt_settings = new MQTTSettings(mqtt_broker_socket_path, mqtt_everest_prefix, mqtt_external_prefix);
+        populate_mqtt_settings(this->mqtt_settings, mqtt_broker_socket_path, mqtt_everest_prefix, mqtt_external_prefix);
     } else {
-        this->mqtt_settings =
-            new MQTTSettings(mqtt_broker_host, mqtt_broker_port, mqtt_everest_prefix, mqtt_external_prefix);
+        populate_mqtt_settings(this->mqtt_settings, mqtt_broker_host, mqtt_broker_port, mqtt_everest_prefix,
+                               mqtt_external_prefix);
     }
 
     if (vm.count("log_config") != 0) {

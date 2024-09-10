@@ -17,11 +17,11 @@ public:
     RuntimeSession();
 
     const Everest::MQTTSettings& get_mqtt_settings() const {
-        return *mqtt_settings;
+        return mqtt_settings;
     }
 
 private:
-    Everest::MQTTSettings* mqtt_settings;
+    Everest::MQTTSettings mqtt_settings;
 };
 
 struct Fulfillment {

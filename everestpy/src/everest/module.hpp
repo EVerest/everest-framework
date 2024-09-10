@@ -78,7 +78,7 @@ public:
 private:
     const std::string module_id;
     const RuntimeSession& session;
-    Everest::RuntimeSettings* rs;
+    std::unique_ptr<Everest::RuntimeSettings> rs;
     std::shared_ptr<Everest::MQTTAbstraction> mqtt_abstraction;
     std::unique_ptr<Everest::Config> config_;
 

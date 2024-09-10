@@ -946,7 +946,7 @@ void ManagerConfig::parse_3_tier_model_mapping() {
     }
 }
 
-ManagerConfig::ManagerConfig(const ManagerSettings& ms) : ConfigBase(*ms.mqtt_settings), ms(ms) {
+ManagerConfig::ManagerConfig(const ManagerSettings& ms) : ConfigBase(ms.mqtt_settings), ms(ms) {
     BOOST_LOG_FUNCTION();
 
     this->manifests = json({});

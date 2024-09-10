@@ -142,17 +142,17 @@ std::shared_ptr<Module> create_module(rust::Str module_name, rust::Str prefix, r
                                       rust::Str mqtt_broker_port, rust::Str mqtt_everest_prefix,
                                       rust::Str mqtt_external_prefix) {
     auto socket_path = std::string(mqtt_broker_socket_path);
-    Everest::MQTTSettings* mqtt_settings;
+    Everest::MQTTSettings mqtt_settings;
     if (not socket_path.empty()) {
-        mqtt_settings =
-            new Everest::MQTTSettings(socket_path, std::string(mqtt_everest_prefix), std::string(mqtt_external_prefix));
+        Everest::populate_mqtt_settings(mqtt_settings, socket_path, std::string(mqtt_everest_prefix),
+                                        std::string(mqtt_external_prefix));
     } else {
-        mqtt_settings =
-            new Everest::MQTTSettings(std::string(mqtt_broker_host), std::stoi(std::string(mqtt_broker_port)),
-                                      std::string(mqtt_everest_prefix), std::string(mqtt_external_prefix));
+        Everest::populate_mqtt_settings(mqtt_settings, std::string(mqtt_broker_host),
+                                        std::stoi(std::string(mqtt_broker_port)), std::string(mqtt_everest_prefix),
+                                        std::string(mqtt_external_prefix));
     }
-    mod = std::make_shared<Module>(std::string(module_name), std::string(prefix), std::string(log_config),
-                                   *mqtt_settings);
+    mod =
+        std::make_shared<Module>(std::string(module_name), std::string(prefix), std::string(log_config), mqtt_settings);
     return mod;
 }
 

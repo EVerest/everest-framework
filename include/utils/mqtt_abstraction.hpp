@@ -24,18 +24,27 @@ struct MQTTSettings {
     std::string everest_prefix;     ///< MQTT topic prefix for the "everest" topic
     std::string external_prefix;    ///< MQTT topic prefix for external topics
     bool socket = false;            ///< Indicates if a Unix Domain Socket is used for connection to the MQTT broker
-
-    /// \brief Creates MQTTSettings with a Unix Domain Socket with the provided \p mqtt_broker_socket_path
-    /// using the \p mqtt_everest_prefix and \p mqtt_external_prefix
-    MQTTSettings(const std::string& mqtt_broker_socket_path, const std::string& mqtt_everest_prefix,
-                 const std::string& mqtt_external_prefix);
-
-    /// \brief Creates MQTTSettings for IP based connections with the provided \p mqtt_broker_host
-    /// and \p mqtt_broker_port using the \p mqtt_everest_prefix and \p mqtt_external_prefix
-    MQTTSettings(const std::string& mqtt_broker_host, int mqtt_broker_port, const std::string& mqtt_everest_prefix,
-                 const std::string& mqtt_external_prefix);
 };
 
+/// \brief Creates MQTTSettings with a Unix Domain Socket with the provided \p mqtt_broker_socket_path
+/// using the \p mqtt_everest_prefix and \p mqtt_external_prefix
+MQTTSettings create_mqtt_settings(const std::string& mqtt_broker_socket_path, const std::string& mqtt_everest_prefix,
+                                  const std::string& mqtt_external_prefix);
+
+/// \brief Creates MQTTSettings for IP based connections with the provided \p mqtt_broker_host
+/// and \p mqtt_broker_port using the \p mqtt_everest_prefix and \p mqtt_external_prefix
+MQTTSettings create_mqtt_settings(const std::string& mqtt_broker_host, int mqtt_broker_port,
+                                  const std::string& mqtt_everest_prefix, const std::string& mqtt_external_prefix);
+
+/// \brief Populates the given MQTTSettings \p mqtt_settings with a Unix Domain Socket with the provided \p
+/// mqtt_broker_socket_path using the \p mqtt_everest_prefix and \p mqtt_external_prefix
+void populate_mqtt_settings(MQTTSettings& mqtt_settings, const std::string& mqtt_broker_socket_path,
+                            const std::string& mqtt_everest_prefix, const std::string& mqtt_external_prefix);
+
+/// \brief  Populates the given MQTTSettings \p mqtt_settings for IP based connections with the provided \p
+/// mqtt_broker_host and \p mqtt_broker_port using the \p mqtt_everest_prefix and \p mqtt_external_prefix
+void populate_mqtt_settings(MQTTSettings& mqtt_settings, const std::string& mqtt_broker_host, int mqtt_broker_port,
+                            const std::string& mqtt_everest_prefix, const std::string& mqtt_external_prefix);
 ///
 /// \brief Contains a C++ abstraction for using MQTT in EVerest modules
 ///

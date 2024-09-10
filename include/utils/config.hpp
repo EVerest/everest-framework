@@ -66,7 +66,7 @@ protected:
 
     error::ErrorTypeMap error_map;
 
-    const MQTTSettings& mqtt_settings;
+    const MQTTSettings mqtt_settings;
 
     ///
     /// \brief extracts information about the provided module given via \p module_id from the config and manifest
