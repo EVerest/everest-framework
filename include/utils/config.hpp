@@ -45,6 +45,13 @@ struct schemas {
 ///
 const static std::regex type_uri_regex{R"(^((?:\/[a-zA-Z0-9\-\_]+)+#\/[a-zA-Z0-9\-\_]+)$)"};
 
+struct ImplementationInfo {
+    std::string module_id;
+    std::string module_name;
+    std::string impl_id;
+    std::string impl_intf;
+};
+
 ///
 /// \brief Base class for configs
 ///
@@ -71,16 +78,16 @@ protected:
     ///
     /// \brief extracts information about the provided module given via \p module_id from the config and manifest
     ///
-    /// \returns a json object containing module_id, module_name, impl_id and impl_intf
-    json extract_implementation_info(const std::string& module_id) const;
+    /// \returns a ImplementationInfo object containing module_id, module_name, impl_id and impl_intf
+    ImplementationInfo extract_implementation_info(const std::string& module_id) const;
 
     ///
     /// \brief extracts information about the provided implementation given via \p module_id and \p impl_id from the
     /// config and
     /// manifest
     ///
-    /// \returns a json object containing module_id, module_name, impl_id and impl_intf
-    json extract_implementation_info(const std::string& module_id, const std::string& impl_id) const;
+    /// \returns a ImplementationInfo object containing module_id, module_name, impl_id and impl_intf
+    ImplementationInfo extract_implementation_info(const std::string& module_id, const std::string& impl_id) const;
 
 public:
     ///
