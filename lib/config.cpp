@@ -705,23 +705,31 @@ json Config::resolve_requirement(const std::string& module_id, const std::string
     return module_config["connections"][requirement_id];
 }
 
-std::list<Requirement> Config::get_requirements(const std::string& module_id) const {
+std::map<std::string, std::vector<RequirementConnection>> Config::get_requirement_connections(const std::string& module_id) {
     BOOST_LOG_FUNCTION();
 
-    std::list<Requirement> res;
+    std::map<std::string, std::vector<RequirementConnection>> res;
 
     std::string module_name = get_module_name(module_id);
     for (const std::string& req_id : Config::keys(this->manifests.at(module_name).at("requires"))) {
+        std::vector<RequirementConnection> requirement_connections;
         json resolved_req = this->resolve_requirement(module_id, req_id);
         if (!resolved_req.is_array()) {
-            Requirement req(req_id, 0);
-            res.push_back(req);
+            auto resolved_module_id = resolved_req.at("module_id");
+            auto resolved_impl_id = resolved_req.at("implementation_id");
+            const auto mapping = this->get_3_tier_model_mapping(resolved_module_id, resolved_impl_id);
+            Requirement req(req_id, 0, mapping);
+            requirement_connections.push_back({req, resolved_module_id});
         } else {
             for (int i = 0; i < resolved_req.size(); i++) {
-                Requirement req(req_id, i);
-                res.push_back(req);
+                auto resolved_module_id = resolved_req.at(i).at("module_id");
+                auto resolved_impl_id = resolved_req.at(i).at("implementation_id");
+                const auto mapping = this->get_3_tier_model_mapping(resolved_module_id, resolved_impl_id);
+                Requirement req(req_id, i, mapping);
+                requirement_connections.push_back({req, resolved_module_id});
             }
         }
+        res[req_id] = requirement_connections;
     }
 
     return res;
@@ -823,7 +831,8 @@ std::optional<Mapping> Config::get_3_tier_model_mapping(const std::string& modul
     }
     auto& mapping = module_tier_mappings.value();
     if (mapping.implementations.find(impl_id) == mapping.implementations.end()) {
-        return std::nullopt;
+        // if no specific implementation mapping is given, use the module mapping
+        return mapping.module;
     }
     return mapping.implementations.at(impl_id);
 }

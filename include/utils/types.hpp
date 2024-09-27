@@ -105,10 +105,17 @@ struct ModuleTierMappings {
 };
 
 struct Requirement {
-    Requirement(const std::string& requirement_id_, size_t index_);
+    Requirement() = default;
+    Requirement(const std::string& requirement_id_, size_t index_, std::optional<Mapping> mapping = std::nullopt);
     bool operator<(const Requirement& rhs) const;
     std::string id;
-    size_t index;
+    size_t index = 0;
+    std::optional<Mapping> mapping;
+};
+
+struct RequirementConnection {
+    Requirement requirement;
+    std::string requirement_module_id;
 };
 
 struct ImplementationIdentifier {
