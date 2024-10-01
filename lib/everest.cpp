@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
-// Copyright 2020 - 2023 Pionix GmbH and Contributors to EVerest
+// Copyright Pionix GmbH and Contributors to EVerest
+#include <cstddef>
 #include <future>
 #include <map>
 #include <set>
@@ -33,17 +34,15 @@ const auto remote_cmd_res_timeout_seconds = 300;
 const std::array<std::string, 3> TELEMETRY_RESERVED_KEYS = {{"connector_id"}};
 
 Everest::Everest(std::string module_id_, const Config& config_, bool validate_data_with_schema,
-                 const std::string& mqtt_server_socket_path, const std::string& mqtt_server_address,
-                 int mqtt_server_port, const std::string& mqtt_everest_prefix, const std::string& mqtt_external_prefix,
-                 const std::string& telemetry_prefix, bool telemetry_enabled) :
-    mqtt_abstraction(mqtt_server_socket_path, mqtt_server_address, std::to_string(mqtt_server_port),
-                     mqtt_everest_prefix, mqtt_external_prefix),
+                 std::shared_ptr<MQTTAbstraction> mqtt_abstraction, const std::string& telemetry_prefix,
+                 bool telemetry_enabled) :
+    mqtt_abstraction(mqtt_abstraction),
     config(std::move(config_)),
     module_id(std::move(module_id_)),
     remote_cmd_res_timeout(remote_cmd_res_timeout_seconds),
     validate_data_with_schema(validate_data_with_schema),
-    mqtt_everest_prefix(mqtt_everest_prefix),
-    mqtt_external_prefix(mqtt_external_prefix),
+    mqtt_everest_prefix(mqtt_abstraction->get_everest_prefix()),
+    mqtt_external_prefix(mqtt_abstraction->get_external_prefix()),
     telemetry_prefix(telemetry_prefix),
     telemetry_enabled(telemetry_enabled) {
     BOOST_LOG_FUNCTION();
@@ -59,7 +58,7 @@ Everest::Everest(std::string module_id_, const Config& config_, bool validate_da
     this->module_name = module_config_it->at("module");
     this->module_manifest = this->config.get_manifests()[this->module_name];
     this->module_classes = this->config.get_interfaces()[this->module_name];
-    this->telemetry_config = this->config.get_telemetry_config(this->module_id);
+    this->telemetry_config = this->config.get_telemetry_config();
 
     this->ready_received = false;
     this->on_ready = nullptr;
@@ -68,7 +67,7 @@ Everest::Everest(std::string module_id_, const Config& config_, bool validate_da
     if (this->module_manifest.contains("enable_global_errors") &&
         this->module_manifest.at("enable_global_errors").get<bool>()) {
         std::shared_ptr<error::ErrorDatabaseMap> global_error_database = std::make_shared<error::ErrorDatabaseMap>();
-        error::ErrorManagerReqGlobal::SubscribeGlobalAllErrorsFunc subscribe_global_all_errors_func =
+        const error::ErrorManagerReqGlobal::SubscribeGlobalAllErrorsFunc subscribe_global_all_errors_func =
             [this](const error::ErrorCallback& callback, const error::ErrorCallback& clear_callback) {
                 this->subscribe_global_all_errors(callback, clear_callback);
             };
@@ -89,7 +88,7 @@ Everest::Everest(std::string module_id_, const Config& config_, bool validate_da
         std::shared_ptr<error::ErrorDatabaseMap> error_database = std::make_shared<error::ErrorDatabaseMap>();
 
         // setup error manager
-        std::string interface_name = this->module_manifest.at("provides").at(impl).at("interface");
+        const std::string interface_name = this->module_manifest.at("provides").at(impl).at("interface");
         json interface_def = this->config.get_interface_definition(interface_name);
         std::list<std::string> allowed_error_types;
         for (const auto& error_namespace_it : interface_def["errors"].items()) {
@@ -97,10 +96,10 @@ Everest::Everest(std::string module_id_, const Config& config_, bool validate_da
                 allowed_error_types.push_back(error_namespace_it.key() + "/" + error_name_it.key());
             }
         }
-        error::ErrorManagerImpl::PublishErrorFunc publish_raised_error = [this, impl](const error::Error& error) {
+        const error::ErrorManagerImpl::PublishErrorFunc publish_raised_error = [this, impl](const error::Error& error) {
             this->publish_raised_error(impl, error);
         };
-        error::ErrorManagerImpl::PublishErrorFunc publish_cleared_error = [this, impl](const error::Error& error) {
+        const error::ErrorManagerImpl::PublishErrorFunc publish_cleared_error = [this, impl](const error::Error& error) {
             this->publish_cleared_error(impl, error);
         };
         this->impl_error_managers[impl] = std::make_shared<error::ErrorManagerImpl>(
@@ -152,7 +151,7 @@ Everest::Everest(std::string module_id_, const Config& config_, bool validate_da
         }
 
         // setup error factory
-        ImplementationIdentifier default_origin(this->module_id, impl, mapping);
+        const ImplementationIdentifier default_origin(this->module_id, impl, mapping);
         this->error_factories[impl] = std::make_shared<error::ErrorFactory>(
             std::make_shared<error::ErrorTypeMap>(this->config.get_error_map()), default_origin);
     }
@@ -160,10 +159,10 @@ Everest::Everest(std::string module_id_, const Config& config_, bool validate_da
     // setup error_databases, error_managers and error_state_monitors for all requirements
     for (const Requirement& req : config.get_requirements(module_id)) {
         // setup shared database
-        std::shared_ptr<error::ErrorDatabaseMap> error_database = std::make_shared<error::ErrorDatabaseMap>();
+        const std::shared_ptr<error::ErrorDatabaseMap> error_database = std::make_shared<error::ErrorDatabaseMap>();
 
         // setup error manager
-        std::string interface_name = this->module_manifest.at("requires").at(req.id).at("interface");
+        const std::string interface_name = this->module_manifest.at("requires").at(req.id).at("interface");
         json interface_def = this->config.get_interface_definition(interface_name);
         std::list<std::string> allowed_error_types;
         for (const auto& error_namespace_it : interface_def["errors"].items()) {
@@ -171,7 +170,7 @@ Everest::Everest(std::string module_id_, const Config& config_, bool validate_da
                 allowed_error_types.push_back(error_namespace_it.key() + "/" + error_name_it.key());
             }
         }
-        error::ErrorManagerReq::SubscribeErrorFunc subscribe_error_func =
+        const error::ErrorManagerReq::SubscribeErrorFunc subscribe_error_func =
             [this, req](const error::ErrorType& type, const error::ErrorCallback& callback,
                         const error::ErrorCallback& clear_callback) {
                 this->subscribe_error(req, type, callback, clear_callback);
@@ -185,20 +184,19 @@ Everest::Everest(std::string module_id_, const Config& config_, bool validate_da
     }
 
     // register handler for global ready signal
-    Handler handle_ready_wrapper = [this](json data) { this->handle_ready(data); };
-    std::shared_ptr<TypedHandler> everest_ready =
+    const Handler handle_ready_wrapper = [this](json data) { this->handle_ready(data); };
+    const std::shared_ptr<TypedHandler> everest_ready =
         std::make_shared<TypedHandler>(HandlerType::ExternalMQTT, std::make_shared<Handler>(handle_ready_wrapper));
-    this->mqtt_abstraction.register_handler(fmt::format("{}ready", mqtt_everest_prefix), everest_ready, QOS::QOS2);
+    this->mqtt_abstraction->register_handler(fmt::format("{}ready", mqtt_everest_prefix), everest_ready, QOS::QOS2);
 
     this->publish_metadata();
 }
 
 void Everest::spawn_main_loop_thread() {
     BOOST_LOG_FUNCTION();
+    // TODO: since the MQTT main loop has already been started before constructing this object, this is a no-op now
 
-    // FIXME (aw): check if mainloop has not been started yet
-    assert(!this->main_loop_end.valid());
-    this->main_loop_end = this->mqtt_abstraction.spawn_main_loop_thread();
+    this->main_loop_end = this->mqtt_abstraction->get_main_loop_future();
 }
 
 void Everest::wait_for_main_loop_end() {
@@ -219,7 +217,7 @@ void Everest::heartbeat() {
     while (this->ready_received) {
         std::ostringstream now;
         now << date::utc_clock::now();
-        this->mqtt_abstraction.publish(heartbeat_topic, json(now.str()), QOS::QOS0);
+        this->mqtt_abstraction->publish(heartbeat_topic, json(now.str()), QOS::QOS0);
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }
 }
@@ -243,7 +241,7 @@ void Everest::publish_metadata() {
 
     const auto metadata_topic = fmt::format("{}/metadata", this->config.mqtt_module_prefix(this->module_id));
 
-    this->mqtt_abstraction.publish(metadata_topic, metadata, QOS::QOS2);
+    this->mqtt_abstraction->publish(metadata_topic, metadata, QOS::QOS2);
 }
 
 void Everest::register_on_ready_handler(const std::function<void()>& handler) {
@@ -267,7 +265,7 @@ void Everest::check_code() {
         if (interface_definition.contains("cmds")) {
             impl_manifest_cmds_set = Config::keys(interface_definition.at("cmds"));
         }
-        std::set<std::string> registered_cmds_set = this->registered_cmds[impl_id];
+        const std::set<std::string> registered_cmds_set = this->registered_cmds[impl_id];
 
         std::set_difference(impl_manifest_cmds_set.begin(), impl_manifest_cmds_set.end(), registered_cmds_set.begin(),
                             registered_cmds_set.end(), std::inserter(cmds_not_registered, cmds_not_registered.end()));
@@ -283,13 +281,13 @@ void Everest::check_code() {
 bool Everest::connect() {
     BOOST_LOG_FUNCTION();
 
-    return this->mqtt_abstraction.connect();
+    return this->mqtt_abstraction->connect();
 }
 
 void Everest::disconnect() {
     BOOST_LOG_FUNCTION();
 
-    this->mqtt_abstraction.disconnect();
+    this->mqtt_abstraction->disconnect();
 }
 
 json Everest::call_cmd(const Requirement& req, const std::string& cmd_name, json json_args) {
@@ -305,7 +303,7 @@ json Everest::call_cmd(const Requirement& req, const std::string& cmd_name, json
     // extract manifest definition of this command
     json cmd_definition = get_cmd_definition(connection["module_id"], connection["implementation_id"], cmd_name, true);
 
-    json return_type = cmd_definition.at("result").at("type");
+    const json return_type = cmd_definition.at("result").at("type");
 
     std::set<std::string> arg_names = Config::keys(json_args);
 
@@ -313,7 +311,7 @@ json Everest::call_cmd(const Requirement& req, const std::string& cmd_name, json
     if (this->validate_data_with_schema) {
         if (cmd_definition["arguments"].size() != json_args.size()) {
             EVLOG_AND_THROW(EverestApiError(
-                fmt::format("Call to {}->{}({}): Argument cound does not match manifest!",
+                fmt::format("Call to {}->{}({}): Argument count does not match manifest!",
                             this->config.printable_identifier(connection["module_id"], connection["implementation_id"]),
                             cmd_name, fmt::join(arg_names, ", "))));
         }
@@ -357,7 +355,7 @@ json Everest::call_cmd(const Requirement& req, const std::string& cmd_name, json
     std::promise<json> res_promise;
     std::future<json> res_future = res_promise.get_future();
 
-    Handler res_handler = [this, &res_promise, call_id, connection, cmd_name, return_type](json data) {
+    const Handler res_handler = [this, &res_promise, call_id, connection, cmd_name, return_type](json data) {
         auto& data_id = data.at("id");
         if (data_id != call_id) {
             EVLOG_debug << fmt::format("RES: data_id != call_id ({} != {})", data_id, call_id);
@@ -374,19 +372,19 @@ json Everest::call_cmd(const Requirement& req, const std::string& cmd_name, json
     const auto cmd_topic =
         fmt::format("{}/cmd", this->config.mqtt_prefix(connection["module_id"], connection["implementation_id"]));
 
-    std::shared_ptr<TypedHandler> res_token =
+    const std::shared_ptr<TypedHandler> res_token =
         std::make_shared<TypedHandler>(cmd_name, call_id, HandlerType::Result, std::make_shared<Handler>(res_handler));
-    this->mqtt_abstraction.register_handler(cmd_topic, res_token, QOS::QOS2);
+    this->mqtt_abstraction->register_handler(cmd_topic, res_token, QOS::QOS2);
 
-    json cmd_publish_data =
+    const json cmd_publish_data =
         json::object({{"name", cmd_name},
                       {"type", "call"},
                       {"data", json::object({{"id", call_id}, {"args", json_args}, {"origin", this->module_id}})}});
 
-    this->mqtt_abstraction.publish(cmd_topic, cmd_publish_data, QOS::QOS2);
+    this->mqtt_abstraction->publish(cmd_topic, cmd_publish_data, QOS::QOS2);
 
     // wait for result future
-    std::chrono::time_point<std::chrono::steady_clock> res_wait =
+    const std::chrono::time_point<std::chrono::steady_clock> res_wait =
         std::chrono::steady_clock::now() + this->remote_cmd_res_timeout;
     std::future_status res_future_status;
     do {
@@ -402,7 +400,7 @@ json Everest::call_cmd(const Requirement& req, const std::string& cmd_name, json
         EVLOG_verbose << "res future ready";
         result = res_future.get();
     }
-    this->mqtt_abstraction.unregister_handler(cmd_topic, res_token);
+    this->mqtt_abstraction->unregister_handler(cmd_topic, res_token);
 
     return result;
 }
@@ -412,11 +410,11 @@ void Everest::publish_var(const std::string& impl_id, const std::string& var_nam
 
     // check arguments
     if (this->validate_data_with_schema) {
-        auto impl_intf = this->module_classes[impl_id];
+        auto impl_intf = this->config.get_interface_definitions().at(this->module_classes[impl_id]);
 
         if (!module_manifest["provides"].contains(impl_id)) {
-            EVLOG_AND_THROW(EverestApiError(fmt::format("Implementation '{}' not declared in manifest of module '{}'!",
-                                                        impl_id, this->config.get_main_config())));
+            EVLOG_AND_THROW(EverestApiError(
+                fmt::format("Implementation '{}' not declared in manifest of module '{}'!", impl_id, this->module_id)));
         }
 
         if (!impl_intf["vars"].contains(var_name)) {
@@ -442,10 +440,10 @@ void Everest::publish_var(const std::string& impl_id, const std::string& var_nam
 
     const auto var_topic = fmt::format("{}/var", this->config.mqtt_prefix(this->module_id, impl_id));
 
-    json var_publish_data = {{"name", var_name}, {"data", value}};
+    const json var_publish_data = {{"name", var_name}, {"data", value}};
 
     // FIXME(kai): implement an efficient way of choosing qos for each variable
-    this->mqtt_abstraction.publish(var_topic, var_publish_data, QOS::QOS2);
+    this->mqtt_abstraction->publish(var_topic, var_publish_data, QOS::QOS2);
 }
 
 void Everest::subscribe_var(const Requirement& req, const std::string& var_name, const JsonCallback& callback) {
@@ -463,7 +461,8 @@ void Everest::subscribe_var(const Requirement& req, const std::string& var_name,
     auto requirement_module_id = connection["module_id"].get<std::string>();
     auto module_name = this->config.get_module_name(requirement_module_id);
     auto requirement_impl_id = connection["implementation_id"].get<std::string>();
-    auto requirement_impl_manifest = this->config.get_interfaces()[module_name][requirement_impl_id];
+    auto requirement_impl_manifest =
+        this->config.get_interface_definitions().at(this->config.get_interfaces()[module_name][requirement_impl_id]);
 
     if (!requirement_impl_manifest["vars"].contains(var_name)) {
         EVLOG_AND_THROW(EverestApiError(
@@ -473,7 +472,7 @@ void Everest::subscribe_var(const Requirement& req, const std::string& var_name,
 
     auto requirement_manifest_vardef = requirement_impl_manifest["vars"][var_name];
 
-    Handler handler = [this, requirement_module_id, requirement_impl_id, requirement_manifest_vardef, var_name,
+    const Handler handler = [this, requirement_module_id, requirement_impl_id, requirement_manifest_vardef, var_name,
                        callback](json const& data) {
         EVLOG_verbose << fmt::format(
             "Incoming {}->{}", this->config.printable_identifier(requirement_module_id, requirement_impl_id), var_name);
@@ -499,9 +498,9 @@ void Everest::subscribe_var(const Requirement& req, const std::string& var_name,
     const auto var_topic = fmt::format("{}/var", this->config.mqtt_prefix(requirement_module_id, requirement_impl_id));
 
     // TODO(kai): multiple subscription should be perfectly fine here!
-    std::shared_ptr<TypedHandler> token =
+    const std::shared_ptr<TypedHandler> token =
         std::make_shared<TypedHandler>(var_name, HandlerType::SubscribeVar, std::make_shared<Handler>(handler));
-    this->mqtt_abstraction.register_handler(var_topic, token, QOS::QOS2);
+    this->mqtt_abstraction->register_handler(var_topic, token, QOS::QOS2);
 }
 
 void Everest::subscribe_error(const Requirement& req, const error::ErrorType& error_type,
@@ -517,20 +516,21 @@ void Everest::subscribe_error(const Requirement& req, const error::ErrorType& er
         connection = connections[req.index];
     }
 
-    std::string requirement_module_id = connection.at("module_id");
-    std::string module_name = this->config.get_module_name(requirement_module_id);
-    std::string requirement_impl_id = connection.at("implementation_id");
-    json requirement_impl_if = this->config.get_interfaces().at(module_name).at(requirement_impl_id);
+    const std::string requirement_module_id = connection.at("module_id");
+    const std::string module_name = this->config.get_module_name(requirement_module_id);
+    const std::string requirement_impl_id = connection.at("implementation_id");
+    json requirement_impl_if = this->config.get_interface_definitions().at(
+        this->config.get_interfaces().at(module_name).at(requirement_impl_id));
 
     // check if requirement is allowed to publish this error_type
     // split error_type at '/'
-    int pos = error_type.find('/');
+    const std::size_t pos = error_type.find('/');
     if (pos == std::string::npos) {
         EVLOG_error << fmt::format("Error type {} is not valid, ignore subscription", error_type);
         return;
     }
-    std::string error_type_namespace = error_type.substr(0, pos);
-    std::string error_type_name = error_type.substr(pos + 1);
+    const std::string error_type_namespace = error_type.substr(0, pos);
+    const std::string error_type_name = error_type.substr(pos + 1);
     if (!requirement_impl_if.contains("errors") || !requirement_impl_if.at("errors").contains(error_type_namespace) ||
         !requirement_impl_if.at("errors").at(error_type_namespace).contains(error_type_name)) {
         EVLOG_error << fmt::format("{}: Error {} not listed in interface, ignore subscription!",
@@ -539,7 +539,7 @@ void Everest::subscribe_error(const Requirement& req, const error::ErrorType& er
         return;
     }
 
-    Handler raise_handler = [this, requirement_module_id, requirement_impl_id, error_type, callback](json const& data) {
+    const Handler raise_handler = [this, requirement_module_id, requirement_impl_id, error_type, callback](json const& data) {
         EVLOG_debug << fmt::format("Incoming error {}->{}",
                                    this->config.printable_identifier(requirement_module_id, requirement_impl_id),
                                    error_type);
@@ -547,7 +547,7 @@ void Everest::subscribe_error(const Requirement& req, const error::ErrorType& er
         callback(data.get<error::Error>());
     };
 
-    Handler clear_handler = [this, requirement_module_id, requirement_impl_id, error_type,
+    const Handler clear_handler = [this, requirement_module_id, requirement_impl_id, error_type,
                              clear_callback](json const& data) {
         EVLOG_debug << fmt::format("Error cleared {}->{}",
                                    this->config.printable_identifier(requirement_module_id, requirement_impl_id),
@@ -561,13 +561,13 @@ void Everest::subscribe_error(const Requirement& req, const error::ErrorType& er
     const std::string clear_topic = fmt::format(
         "{}/error-cleared/{}", this->config.mqtt_prefix(requirement_module_id, requirement_impl_id), error_type);
 
-    std::shared_ptr<TypedHandler> raise_token = std::make_shared<TypedHandler>(
+    const std::shared_ptr<TypedHandler> raise_token = std::make_shared<TypedHandler>(
         error_type, HandlerType::SubscribeError, std::make_shared<Handler>(raise_handler));
-    std::shared_ptr<TypedHandler> clear_token = std::make_shared<TypedHandler>(
+    const std::shared_ptr<TypedHandler> clear_token = std::make_shared<TypedHandler>(
         error_type, HandlerType::SubscribeError, std::make_shared<Handler>(clear_handler));
 
-    this->mqtt_abstraction.register_handler(raise_topic, raise_token, QOS::QOS2);
-    this->mqtt_abstraction.register_handler(clear_topic, clear_token, QOS::QOS2);
+    this->mqtt_abstraction->register_handler(raise_topic, raise_token, QOS::QOS2);
+    this->mqtt_abstraction->register_handler(clear_topic, clear_token, QOS::QOS2);
 }
 
 std::shared_ptr<error::ErrorManagerImpl> Everest::get_error_manager_impl(const std::string& impl_id) {
@@ -636,7 +636,7 @@ void Everest::subscribe_global_all_errors(const error::ErrorCallback& callback,
         return;
     }
 
-    Handler raise_handler = [this, callback](json const& data) {
+    const Handler raise_handler = [this, callback](json const& data) {
         error::Error error = data.get<error::Error>();
         EVLOG_debug << fmt::format(
             "Incoming error {}->{}",
@@ -644,7 +644,7 @@ void Everest::subscribe_global_all_errors(const error::ErrorCallback& callback,
         callback(error);
     };
 
-    Handler clear_handler = [this, clear_callback](json const& data) {
+    const Handler clear_handler = [this, clear_callback](json const& data) {
         error::Error error = data.get<error::Error>();
         EVLOG_debug << fmt::format(
             "Incoming error cleared {}->{}",
@@ -652,7 +652,7 @@ void Everest::subscribe_global_all_errors(const error::ErrorCallback& callback,
         clear_callback(error);
     };
 
-    for (std::string module_id : Config::keys(this->config.get_main_config())) {
+    for (const std::string module_id : Config::keys(this->config.get_main_config())) {
         const std::string module_name = this->config.get_module_name(module_id);
         const json provides = this->config.get_manifests().at(module_name).at("provides");
         for (const auto& impl : provides.items()) {
@@ -666,16 +666,16 @@ void Everest::subscribe_global_all_errors(const error::ErrorCallback& callback,
                     const std::string raise_topic =
                         fmt::format("{}/error/{}/{}", this->config.mqtt_prefix(module_id, impl_id),
                                     error_type_namespace, error_type_name);
-                    std::shared_ptr<TypedHandler> raise_token = std::make_shared<TypedHandler>(
+                    const std::shared_ptr<TypedHandler> raise_token = std::make_shared<TypedHandler>(
                         HandlerType::SubscribeError, std::make_shared<Handler>(raise_handler));
-                    this->mqtt_abstraction.register_handler(raise_topic, raise_token, QOS::QOS2);
+                    this->mqtt_abstraction->register_handler(raise_topic, raise_token, QOS::QOS2);
 
                     const std::string clear_topic =
                         fmt::format("{}/error-cleared/{}/{}", this->config.mqtt_prefix(module_id, impl_id),
                                     error_type_namespace, error_type_name);
-                    std::shared_ptr<TypedHandler> clear_token = std::make_shared<TypedHandler>(
+                    const std::shared_ptr<TypedHandler> clear_token = std::make_shared<TypedHandler>(
                         HandlerType::SubscribeError, std::make_shared<Handler>(clear_handler));
-                    this->mqtt_abstraction.register_handler(clear_topic, clear_token, QOS::QOS2);
+                    this->mqtt_abstraction->register_handler(clear_topic, clear_token, QOS::QOS2);
                 }
             }
         }
@@ -687,7 +687,7 @@ void Everest::publish_raised_error(const std::string& impl_id, const error::Erro
 
     const auto error_topic = fmt::format("{}/error/{}", this->config.mqtt_prefix(this->module_id, impl_id), error.type);
 
-    this->mqtt_abstraction.publish(error_topic, json(error), QOS::QOS2);
+    this->mqtt_abstraction->publish(error_topic, json(error), QOS::QOS2);
 }
 
 void Everest::publish_cleared_error(const std::string& impl_id, const error::Error& error) {
@@ -696,7 +696,7 @@ void Everest::publish_cleared_error(const std::string& impl_id, const error::Err
     const auto error_topic =
         fmt::format("{}/error-cleared/{}", this->config.mqtt_prefix(this->module_id, impl_id), error.type);
 
-    this->mqtt_abstraction.publish(error_topic, json(error), QOS::QOS2);
+    this->mqtt_abstraction->publish(error_topic, json(error), QOS::QOS2);
 }
 
 void Everest::external_mqtt_publish(const std::string& topic, const std::string& data) {
@@ -710,7 +710,7 @@ void Everest::external_mqtt_publish(const std::string& topic, const std::string&
                                                     this->config.printable_identifier(this->module_id))));
     }
 
-    this->mqtt_abstraction.publish(fmt::format("{}{}", this->mqtt_external_prefix, topic), data);
+    this->mqtt_abstraction->publish(fmt::format("{}{}", this->mqtt_external_prefix, topic), data);
 }
 
 UnsubscribeToken Everest::provide_external_mqtt_handler(const std::string& topic, const StringHandler& handler) {
@@ -724,9 +724,9 @@ UnsubscribeToken Everest::provide_external_mqtt_handler(const std::string& topic
                                                     this->config.printable_identifier(this->module_id))));
     }
 
-    std::string external_topic = fmt::format("{}{}", this->mqtt_external_prefix, topic);
+    const std::string external_topic = fmt::format("{}{}", this->mqtt_external_prefix, topic);
 
-    Handler external_handler = [this, handler, external_topic](json const& data) {
+    const Handler external_handler = [this, handler, external_topic](json const& data) {
         EVLOG_verbose << fmt::format("Incoming external mqtt data for topic '{}'...", external_topic);
         if (!data.is_string()) {
             EVLOG_AND_THROW(EverestInternalError("External mqtt result is not a string (that should never happen)"));
@@ -734,16 +734,16 @@ UnsubscribeToken Everest::provide_external_mqtt_handler(const std::string& topic
         handler(data.get<std::string>());
     };
 
-    std::shared_ptr<TypedHandler> token =
+    const std::shared_ptr<TypedHandler> token =
         std::make_shared<TypedHandler>(HandlerType::ExternalMQTT, std::make_shared<Handler>(external_handler));
-    this->mqtt_abstraction.register_handler(external_topic, token, QOS::QOS0);
-    return [this, topic, token]() { this->mqtt_abstraction.unregister_handler(topic, token); };
+    this->mqtt_abstraction->register_handler(external_topic, token, QOS::QOS0);
+    return [this, topic, token]() { this->mqtt_abstraction->unregister_handler(topic, token); };
 }
 
 void Everest::telemetry_publish(const std::string& topic, const std::string& data) {
     BOOST_LOG_FUNCTION();
 
-    this->mqtt_abstraction.publish(fmt::format("{}{}", this->telemetry_prefix, topic), data);
+    this->mqtt_abstraction->publish(fmt::format("{}{}", this->telemetry_prefix, topic), data);
 }
 
 void Everest::telemetry_publish(const std::string& category, const std::string& subcategory, const std::string& type,
@@ -755,7 +755,7 @@ void Everest::telemetry_publish(const std::string& category, const std::string& 
         return;
     }
     int id = telemetry_config->id;
-    std::string id_string = std::to_string(id);
+    const std::string id_string = std::to_string(id);
     auto telemetry_data =
         json::object({{"timestamp", Date::to_rfc3339(date::utc_clock::now())}, {"connector_id", id}, {"type", type}});
 
@@ -769,7 +769,7 @@ void Everest::telemetry_publish(const std::string& category, const std::string& 
             telemetry_data[key] = data;
         }
     }
-    std::string topic = category + "/" + id_string + "/" + subcategory;
+    const std::string topic = category + "/" + id_string + "/" + subcategory;
     this->telemetry_publish(topic, telemetry_data.dump());
 }
 
@@ -778,7 +778,7 @@ void Everest::signal_ready() {
 
     const auto ready_topic = fmt::format("{}/ready", this->config.mqtt_module_prefix(this->module_id));
 
-    this->mqtt_abstraction.publish(ready_topic, json(true));
+    this->mqtt_abstraction->publish(ready_topic, json(true), QOS::QOS2);
 }
 
 ///
@@ -823,7 +823,7 @@ void Everest::provide_cmd(const std::string impl_id, const std::string cmd_name,
     BOOST_LOG_FUNCTION();
 
     // extract manifest definition of this command
-    json cmd_definition = get_cmd_definition(this->module_id, impl_id, cmd_name, false);
+    const json cmd_definition = get_cmd_definition(this->module_id, impl_id, cmd_name, false);
 
     if (this->registered_cmds.count(impl_id) != 0 && this->registered_cmds[impl_id].count(cmd_name) != 0) {
         EVLOG_AND_THROW(EverestApiError(fmt::format(
@@ -834,7 +834,7 @@ void Everest::provide_cmd(const std::string impl_id, const std::string cmd_name,
     const auto cmd_topic = fmt::format("{}/cmd", this->config.mqtt_prefix(this->module_id, impl_id));
 
     // define command wrapper
-    Handler wrapper = [this, cmd_topic, impl_id, cmd_name, handler, cmd_definition](json data) {
+    const Handler wrapper = [this, cmd_topic, impl_id, cmd_name, handler, cmd_definition](json data) {
         BOOST_LOG_FUNCTION();
 
         std::set<std::string> arg_names;
@@ -900,14 +900,14 @@ void Everest::provide_cmd(const std::string impl_id, const std::string cmd_name,
         EVLOG_verbose << fmt::format("RETVAL: {}", res_data["retval"].dump());
         res_data["origin"] = this->module_id;
 
-        json res_publish_data = json::object({{"name", cmd_name}, {"type", "result"}, {"data", res_data}});
+        const json res_publish_data = json::object({{"name", cmd_name}, {"type", "result"}, {"data", res_data}});
 
-        this->mqtt_abstraction.publish(cmd_topic, res_publish_data);
+        this->mqtt_abstraction->publish(cmd_topic, res_publish_data);
     };
 
     auto typed_handler =
         std::make_shared<TypedHandler>(cmd_name, HandlerType::Call, std::make_shared<Handler>(wrapper));
-    this->mqtt_abstraction.register_handler(cmd_topic, typed_handler, QOS::QOS2);
+    this->mqtt_abstraction->register_handler(cmd_topic, typed_handler, QOS::QOS2);
 
     // this list of registered cmds will be used later on to check if all cmds
     // defined in manifest are provided by code
@@ -1068,7 +1068,7 @@ bool Everest::check_arg(ArgumentType arg_types, json manifest_arg) {
         return true;
     }
 
-    for (size_t i = 0; i < arg_types.size(); i++) {
+    for (std::size_t i = 0; i < arg_types.size(); i++) {
         if (arg_types[i] != manifest_arg_type.at(i)) {
             EVLOG_error << fmt::format("types do not match: {} != {}", arg_types[i], manifest_arg_type.at(i));
             return false;

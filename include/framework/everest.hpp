@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-// Copyright 2020 - 2023 Pionix GmbH and Contributors to EVerest
+// Copyright Pionix GmbH and Contributors to EVerest
 #ifndef FRAMEWORK_EVEREST_HPP
 #define FRAMEWORK_EVEREST_HPP
 
@@ -48,9 +48,8 @@ struct ErrorFactory;
 class Everest {
 public:
     Everest(std::string module_id, const Config& config, bool validate_data_with_schema,
-            const std::string& mqtt_server_socket_path, const std::string& mqtt_server_address, int mqtt_server_port,
-            const std::string& mqtt_everest_prefix, const std::string& mqtt_external_prefix,
-            const std::string& telemetry_prefix, bool telemetry_enabled);
+            std::shared_ptr<MQTTAbstraction> mqtt_abstraction, const std::string& telemetry_prefix,
+            bool telemetry_enabled);
 
     // forbid copy assignment and copy construction
     // NOTE (aw): move assignment and construction are also not supported because we're creating explicit references to
@@ -178,7 +177,7 @@ public:
     void register_on_ready_handler(const std::function<void()>& handler);
 
 private:
-    MQTTAbstraction mqtt_abstraction;
+    std::shared_ptr<MQTTAbstraction> mqtt_abstraction;
     Config config;
     std::string module_id;
     std::map<std::string, std::shared_ptr<error::ErrorManagerImpl>> impl_error_managers; // one per implementation
@@ -196,7 +195,7 @@ private:
     std::unique_ptr<std::function<void()>> on_ready;
     std::thread heartbeat_thread;
     std::string module_name;
-    std::future<void> main_loop_end{};
+    std::shared_future<void> main_loop_end{};
     json module_manifest;
     json module_classes;
     std::string mqtt_everest_prefix;

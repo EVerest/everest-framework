@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-// Copyright 2020 - 2023 Pionix GmbH and Contributors to EVerest
+// Copyright Pionix GmbH and Contributors to EVerest
 #ifndef UTILS_MQTT_ABSTRACTION_HPP
 #define UTILS_MQTT_ABSTRACTION_HPP
 
@@ -15,14 +15,34 @@ using json = nlohmann::json;
 // forward declaration
 class MQTTAbstractionImpl;
 
+/// \brief minimal MQTT connection settings needed for an initial connection of a module to the manager
+struct MQTTSettings {
+    std::string broker_socket_path; ///< A path to a socket the MQTT broker uses in socket mode. If this is set
+                                    ///< broker_host and broker_port are ignored
+    std::string broker_host;        ///< The hostname of the MQTT broker
+    int broker_port = 0;            ///< The port the MQTT broker listens on
+    std::string everest_prefix;     ///< MQTT topic prefix for the "everest" topic
+    std::string external_prefix;    ///< MQTT topic prefix for external topics
+    bool socket = false;            ///< Indicates if a Unix Domain Socket is used for connection to the MQTT broker
+
+    /// \brief Creates MQTTSettings with a Unix Domain Socket with the provided \p mqtt_broker_socket_path
+    /// using the \p mqtt_everest_prefix and \p mqtt_external_prefix
+    MQTTSettings(const std::string& mqtt_broker_socket_path, const std::string& mqtt_everest_prefix,
+                 const std::string& mqtt_external_prefix);
+
+    /// \brief Creates MQTTSettings for IP based connections with the provided \p mqtt_broker_host
+    /// and \p mqtt_broker_port using the \p mqtt_everest_prefix and \p mqtt_external_prefix
+    MQTTSettings(const std::string& mqtt_broker_host, int mqtt_broker_port, const std::string& mqtt_everest_prefix,
+                 const std::string& mqtt_external_prefix);
+};
+
 ///
 /// \brief Contains a C++ abstraction for using MQTT in EVerest modules
 ///
 class MQTTAbstraction {
 public:
-    MQTTAbstraction(const std::string& mqtt_server_socket_path, const std::string& mqtt_server_address,
-                    const std::string& mqtt_server_port, const std::string& mqtt_everest_prefix,
-                    const std::string& mqtt_external_prefix);
+    /// \brief Create a MQTTAbstraction with the provideded \p mqtt_settings
+    explicit MQTTAbstraction(const MQTTSettings& mqtt_settings);
 
     // forbid copy assignment and copy construction
     MQTTAbstraction(MQTTAbstraction const&) = delete;
@@ -44,7 +64,7 @@ public:
 
     ///
     /// \copydoc MQTTAbstractionImpl::publish(const std::string&, const json&, QOS)
-    void publish(const std::string& topic, const json& json, QOS qos);
+    void publish(const std::string& topic, const json& json, QOS qos, bool retain = false);
 
     ///
     /// \copydoc MQTTAbstractionImpl::publish(const std::string&, const std::string&)
@@ -52,7 +72,7 @@ public:
 
     ///
     /// \copydoc MQTTAbstractionImpl::publish(const std::string&, const std::string&, QOS)
-    void publish(const std::string& topic, const std::string& data, QOS qos);
+    void publish(const std::string& topic, const std::string& data, QOS qos, bool retain = false);
 
     ///
     /// \copydoc MQTTAbstractionImpl::subscribe(const std::string&)
@@ -67,8 +87,24 @@ public:
     void unsubscribe(const std::string& topic);
 
     ///
+    /// \copydoc MQTTAbstractionImpl::get(const std::string&, QOS)
+    json get(const std::string& topic, QOS qos);
+
+    ///
+    /// \brief Get MQTT topic prefix for the "everest" topic
+    const std::string& get_everest_prefix() const;
+
+    ///
+    /// \brief Get MQTT topic prefix for external topics
+    const std::string& get_external_prefix() const;
+
+    ///
     /// \copydoc MQTTAbstractionImpl::spawn_main_loop_thread()
-    std::future<void> spawn_main_loop_thread();
+    std::shared_future<void> spawn_main_loop_thread();
+
+    ///
+    /// \copydoc MQTTAbstractionImpl::get_main_loop_future()
+    std::shared_future<void> get_main_loop_future();
 
     ///
     /// \copydoc MQTTAbstractionImpl::register_handler(const std::string&, std::shared_ptr<TypedHandler>, QOS)
@@ -80,6 +116,8 @@ public:
 
 private:
     std::unique_ptr<MQTTAbstractionImpl> mqtt_abstraction;
+    std::string everest_prefix;
+    std::string external_prefix;
 };
 } // namespace Everest
 

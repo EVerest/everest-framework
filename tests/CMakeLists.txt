@@ -9,6 +9,7 @@ target_include_directories(${TEST_TARGET_NAME} PRIVATE
 
 target_sources(${TEST_TARGET_NAME} PRIVATE
     test_config.cpp
+    test_filesystem_helpers.cpp
     helpers.cpp
 )
 
@@ -28,8 +29,18 @@ include(test_directory_setups/broken_yaml.cmake)
 include(test_directory_setups/missing_module.cmake)
 include(test_directory_setups/broken_manifest_1.cmake)
 include(test_directory_setups/broken_manifest_2.cmake)
+include(test_directory_setups/broken_manifest_3.cmake)
+include(test_directory_setups/broken_manifest_4.cmake)
 include(test_directory_setups/missing_interface.cmake)
 include(test_directory_setups/valid_config.cmake)
+include(test_directory_setups/valid_module_config.cmake)
+include(test_directory_setups/valid_module_config_userconfig.cmake)
+include(test_directory_setups/valid_module_config_validate.cmake)
+include(test_directory_setups/valid_module_config_json.cmake)
+include(test_directory_setups/unknown_impls.cmake)
+include(test_directory_setups/missing_config_entry.cmake)
+include(test_directory_setups/invalid_config_entry_type.cmake)
+include(test_directory_setups/missing_impl_config_entry.cmake)
 include(test_directory_setups/empty_yaml_object.cmake)
 include(test_directory_setups/empty_yaml.cmake)
 include(test_directory_setups/null_yaml.cmake)

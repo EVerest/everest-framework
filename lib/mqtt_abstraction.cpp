@@ -1,21 +1,38 @@
 // SPDX-License-Identifier: Apache-2.0
-// Copyright 2020 - 2023 Pionix GmbH and Contributors to EVerest
+// Copyright Pionix GmbH and Contributors to EVerest
 #include <everest/logging.hpp>
 
 #include <utils/mqtt_abstraction.hpp>
 #include <utils/mqtt_abstraction_impl.hpp>
 
 namespace Everest {
-MQTTAbstraction::MQTTAbstraction(const std::string& mqtt_server_socket_path, const std::string& mqtt_server_address,
-                                 const std::string& mqtt_server_port, const std::string& mqtt_everest_prefix,
-                                 const std::string& mqtt_external_prefix) {
-    EVLOG_debug << "initialized mqtt_abstraction";
-    if (mqtt_server_socket_path.empty()) {
-        mqtt_abstraction = std::make_unique<MQTTAbstractionImpl>(mqtt_server_address, mqtt_server_port,
-                                                                 mqtt_everest_prefix, mqtt_external_prefix);
+
+MQTTSettings::MQTTSettings(const std::string& mqtt_broker_socket_path, const std::string& mqtt_everest_prefix,
+                           const std::string& mqtt_external_prefix) :
+    broker_socket_path(mqtt_broker_socket_path),
+    everest_prefix(mqtt_everest_prefix),
+    external_prefix(mqtt_external_prefix),
+    socket(true) {
+}
+
+MQTTSettings::MQTTSettings(const std::string& mqtt_broker_host, int mqtt_broker_port,
+                           const std::string& mqtt_everest_prefix, const std::string& mqtt_external_prefix) :
+    broker_host(mqtt_broker_host),
+    broker_port(mqtt_broker_port),
+    everest_prefix(mqtt_everest_prefix),
+    external_prefix(mqtt_external_prefix),
+    socket(false) {
+}
+
+MQTTAbstraction::MQTTAbstraction(const MQTTSettings& mqtt_settings) :
+    everest_prefix(mqtt_settings.everest_prefix), external_prefix(mqtt_settings.external_prefix) {
+    if (mqtt_settings.socket) {
+        mqtt_abstraction = std::make_unique<MQTTAbstractionImpl>(
+            mqtt_settings.broker_socket_path, mqtt_settings.everest_prefix, mqtt_settings.external_prefix);
     } else {
         mqtt_abstraction =
-            std::make_unique<MQTTAbstractionImpl>(mqtt_server_socket_path, mqtt_everest_prefix, mqtt_external_prefix);
+            std::make_unique<MQTTAbstractionImpl>(mqtt_settings.broker_host, std::to_string(mqtt_settings.broker_port),
+                                                  mqtt_settings.everest_prefix, mqtt_settings.external_prefix);
     }
 }
 
@@ -36,9 +53,9 @@ void MQTTAbstraction::publish(const std::string& topic, const json& json) {
     mqtt_abstraction->publish(topic, json);
 }
 
-void MQTTAbstraction::publish(const std::string& topic, const json& json, QOS qos) {
+void MQTTAbstraction::publish(const std::string& topic, const json& json, QOS qos, bool retain) {
     BOOST_LOG_FUNCTION();
-    mqtt_abstraction->publish(topic, json, qos);
+    mqtt_abstraction->publish(topic, json, qos, retain);
 }
 
 void MQTTAbstraction::publish(const std::string& topic, const std::string& data) {
@@ -46,9 +63,9 @@ void MQTTAbstraction::publish(const std::string& topic, const std::string& data)
     mqtt_abstraction->publish(topic, data);
 }
 
-void MQTTAbstraction::publish(const std::string& topic, const std::string& data, QOS qos) {
+void MQTTAbstraction::publish(const std::string& topic, const std::string& data, QOS qos, bool retain) {
     BOOST_LOG_FUNCTION();
-    mqtt_abstraction->publish(topic, data, qos);
+    mqtt_abstraction->publish(topic, data, qos, retain);
 }
 
 void MQTTAbstraction::subscribe(const std::string& topic) {
@@ -66,9 +83,29 @@ void MQTTAbstraction::unsubscribe(const std::string& topic) {
     mqtt_abstraction->unsubscribe(topic);
 }
 
-std::future<void> MQTTAbstraction::spawn_main_loop_thread() {
+json MQTTAbstraction::get(const std::string& topic, QOS qos) {
+    BOOST_LOG_FUNCTION();
+    return mqtt_abstraction->get(topic, qos);
+}
+
+const std::string& MQTTAbstraction::get_everest_prefix() const {
+    BOOST_LOG_FUNCTION();
+    return everest_prefix;
+}
+
+const std::string& MQTTAbstraction::get_external_prefix() const {
+    BOOST_LOG_FUNCTION();
+    return external_prefix;
+}
+
+std::shared_future<void> MQTTAbstraction::spawn_main_loop_thread() {
     BOOST_LOG_FUNCTION();
     return mqtt_abstraction->spawn_main_loop_thread();
+}
+
+std::shared_future<void> MQTTAbstraction::get_main_loop_future() {
+    BOOST_LOG_FUNCTION();
+    return mqtt_abstraction->get_main_loop_future();
 }
 
 void MQTTAbstraction::register_handler(const std::string& topic, std::shared_ptr<TypedHandler> handler, QOS qos) {
