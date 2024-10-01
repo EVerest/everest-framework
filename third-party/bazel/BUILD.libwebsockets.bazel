@@ -33,6 +33,9 @@ cmake(
         "LWS_WITH_SSL": "OFF",
     },
     lib_source = ":all_srcs",
+    cache_entries = {
+        "CMAKE_INSTALL_LIBDIR": "lib",
+    },
     out_static_libs = ["libwebsockets.a"],
     visibility = [
         "//visibility:public",

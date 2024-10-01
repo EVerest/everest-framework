@@ -14,6 +14,9 @@ cmake(
         "MANUAL_TZ_DB": "ON",
     },
     lib_source = ":all_srcs",
+    cache_entries = {
+        "CMAKE_INSTALL_LIBDIR": "lib",
+    },
     out_static_libs = ["libdate-tz.a"],
     visibility = [
         "//visibility:public",
