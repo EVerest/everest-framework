@@ -76,6 +76,7 @@ cmake(
         # being built by us.
         "CURL_DISABLE_LDAP": "ON",
         "CURL_DISABLE_LDAPS": "ON",
+        "CMAKE_INSTALL_LIBDIR": "lib",
     }.items()),
     defines = libcurl_defines,
     lib_source = "//:all",
@@ -84,9 +85,6 @@ cmake(
         "-ldl",
         "-lz",
     ],
-    cache_entries = {
-        "CMAKE_INSTALL_LIBDIR": "lib",
-    },
     out_static_libs = select({
         "//:debug_build": [
             "libcurl-d.a",
