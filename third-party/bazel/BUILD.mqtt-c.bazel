@@ -10,6 +10,9 @@ cmake(
     name = "libmqtt",
     lib_source = ":all_srcs",
     out_static_libs = ["libmqttc.a"],
+    cache_entries = {
+        "CMAKE_INSTALL_LIBDIR": "lib",
+    },
     visibility = [
         "//visibility:public",
     ],
