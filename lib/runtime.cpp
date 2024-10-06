@@ -518,6 +518,10 @@ int ModuleLoader::initialize() {
         auto module_info = config.get_module_info(this->module_id);
         populate_module_info_path_from_runtime_settings(module_info, rs);
         module_info.telemetry_enabled = everest.is_telemetry_enabled();
+        auto module_mappings = everest.get_3_tier_model_mapping();
+        if (module_mappings.has_value()) {
+            module_info.mapping = module_mappings.value().module;
+        }
 
         this->callbacks.init(module_configs, module_info);
 

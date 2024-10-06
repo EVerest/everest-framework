@@ -64,26 +64,6 @@ enum class QOS {
     QOS2  ///< Exactly once delivery
 };
 
-struct ModuleInfo {
-    struct Paths {
-        std::filesystem::path etc;
-        std::filesystem::path libexec;
-        std::filesystem::path share;
-    };
-
-    std::string name;
-    std::vector<std::string> authors;
-    std::string license;
-    std::string id;
-    Paths paths;
-    bool telemetry_enabled;
-    bool global_errors_enabled;
-};
-
-struct TelemetryConfig {
-    int id;
-};
-
 /// \brief A Mapping that can be used to map a module or implementation to a specific EVSE or optionally to a Connector
 struct Mapping {
     int evse;                     ///< The EVSE id
@@ -126,6 +106,27 @@ struct ModuleTierMappings {
                                    ///< absent the module is assumed to be mapped to the whole charging station
     std::unordered_map<std::string, std::optional<Mapping>>
         implementations; ///< Mappings for the individual implementations of the module
+};
+
+struct ModuleInfo {
+    struct Paths {
+        std::filesystem::path etc;
+        std::filesystem::path libexec;
+        std::filesystem::path share;
+    };
+
+    std::string name;
+    std::vector<std::string> authors;
+    std::string license;
+    std::string id;
+    Paths paths;
+    bool telemetry_enabled;
+    bool global_errors_enabled;
+    std::optional<Mapping> mapping;
+};
+
+struct TelemetryConfig {
+    int id;
 };
 
 struct Requirement {
