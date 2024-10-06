@@ -96,6 +96,30 @@ struct Mapping {
     }
 };
 
+/// \brief Writes the string representation of the given Mapping \p mapping to the given output stream \p os
+/// \returns an output stream with the Mapping written to
+inline std::ostream& operator<<(std::ostream& os, const Mapping& mapping) {
+    os << "Mapping(evse: " << mapping.evse;
+    if (mapping.connector.has_value()) {
+        os << ", connector: " << mapping.connector.value();
+    }
+    os << ")";
+
+    return os;
+}
+
+/// \brief Writes the string representation of the given Mapping \p mapping to the given output stream \p os
+/// \returns an output stream with the Mapping written to
+inline std::ostream& operator<<(std::ostream& os, const std::optional<Mapping>& mapping) {
+    if (mapping.has_value()) {
+        os << mapping.value();
+    } else {
+        os << "Mapping(charging station)";
+    }
+
+    return os;
+}
+
 /// \brief A 3 tier mapping for a module and its individual implementations
 struct ModuleTierMappings {
     std::optional<Mapping> module; ///< Mapping of the whole module to an EVSE id and optional Connector id. If this is
