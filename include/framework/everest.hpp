@@ -143,6 +143,16 @@ public:
     bool is_telemetry_enabled();
 
     ///
+    /// \returns the 3 tier model mappings for this module
+    ///
+    std::optional<ModuleTierMappings> get_3_tier_model_mapping();
+
+    ///
+    /// \returns the 3 tier model mapping for the given \p impl_id
+    ///
+    std::optional<Mapping> get_3_tier_model_mapping(const std::string& impl_id);
+
+    ///
     /// \brief Chccks if all commands of a module that are listed in its manifest are available
     ///
     void check_code();

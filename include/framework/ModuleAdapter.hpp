@@ -92,6 +92,8 @@ struct ModuleAdapter {
     using ExtMqttSubscribeFunc = std::function<UnsubscribeToken(const std::string&, StringHandler)>;
     using TelemetryPublishFunc =
         std::function<void(const std::string&, const std::string&, const std::string&, const TelemetryMap&)>;
+    using GetMappingFunc = std::function<std::optional<ModuleTierMappings>()>;
+    using GetImplMappingFunc = std::function<std::optional<Mapping>(const std::string&)>;
 
     CallFunc call;
     PublishFunc publish;
@@ -107,6 +109,8 @@ struct ModuleAdapter {
     ExtMqttSubscribeFunc ext_mqtt_subscribe;
     std::vector<cmd> registered_commands;
     TelemetryPublishFunc telemetry_publish;
+    GetMappingFunc get_mapping;
+    GetImplMappingFunc get_impl_mapping;
 
     void check_complete() {
         // FIXME (aw): I should throw if some of my handlers are not set
