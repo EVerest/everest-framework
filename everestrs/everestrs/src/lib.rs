@@ -159,19 +159,15 @@ mod ffi {
             name: String,
         );
 
+        /// Returns the `connections` block defined in the `config.yaml` for
+        /// the current module.
+        fn get_module_connections(self: &Module) -> Vec<RsModuleConnections>;
+
         /// Publishes the given `blob` under the `implementation_id` and `name`.
         fn publish_variable(self: &Module, implementation_id: &str, name: &str, blob: JsonBlob);
 
         /// Returns the module config from cpp.
         fn get_module_configs(module_id: &str, prefix: &str, conf: &str) -> Vec<RsModuleConfig>;
-
-        /// Returns the `connections` block defined in the `config.yaml` for
-        /// the current module.
-        fn get_module_connections(
-            module_id: &str,
-            prefix: &str,
-            conf: &str,
-        ) -> Vec<RsModuleConnections>;
 
         /// Call this once.
         fn init_logging(module_id: &str, prefix: &str, conf: &str) -> i32;
@@ -439,7 +435,7 @@ impl Runtime {
             }
         }
 
-        let connections = get_module_connections();
+        let connections = self.get_module_connections();
 
         // Subscribe to all variables that might be of interest.
         for (implementation_id, requires) in manifest.requires {
@@ -462,6 +458,15 @@ impl Runtime {
         // TODO(hrapp): There were some doubts if this strategy is too inflexible, discuss design
         // again.
         (self.cpp_module).as_ref().unwrap().signal_ready(self);
+    }
+
+    /// The interface for fetching the module connections though the C++ runtime.
+    pub fn get_module_connections(&self) -> HashMap<String, usize> {
+        let raw_connections = self.cpp_module.as_ref().unwrap().get_module_connections();
+        raw_connections
+            .into_iter()
+            .map(|connection| (connection.implementation_id, connection.slots))
+            .collect()
     }
 }
 
@@ -559,19 +564,4 @@ pub fn get_module_configs() -> HashMap<String, HashMap<String, Config>> {
     }
 
     out
-}
-
-/// The interface for fetching the module connections though the C++ runtime.
-pub fn get_module_connections() -> HashMap<String, usize> {
-    let args: Args = argh::from_env();
-    let raw_connections = ffi::get_module_connections(
-        &args.module,
-        &args.prefix.to_string_lossy(),
-        &args.conf.to_string_lossy(),
-    );
-
-    raw_connections
-        .into_iter()
-        .map(|connection| (connection.implementation_id, connection.slots))
-        .collect()
 }

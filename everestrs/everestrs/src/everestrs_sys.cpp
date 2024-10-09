@@ -155,11 +155,8 @@ rust::Vec<RsModuleConfig> get_module_configs(rust::Str module_id, rust::Str pref
     return out;
 }
 
-rust::Vec<RsModuleConnections> get_module_connections(rust::Str module_id, rust::Str prefix, rust::Str config_file) {
-    const auto rs = std::make_shared<Everest::RuntimeSettings>(std::string(prefix), std::string(config_file));
-    Everest::Config config{rs};
-
-    const auto connections = config.get_main_config().at(std::string(module_id))["connections"];
+rust::Vec<RsModuleConnections> Module::get_module_connections() const {
+    const auto connections = config_->get_main_config().at(std::string(module_id_))["connections"];
 
     // Iterate over the connections block.
     rust::Vec<RsModuleConnections> out;
@@ -173,7 +170,6 @@ rust::Vec<RsModuleConnections> get_module_connections(rust::Str module_id, rust:
 int init_logging(rust::Str module_id, rust::Str prefix, rust::Str config_file) {
     using namespace boost::log;
     using namespace Everest::Logging;
-
 
     const std::string module_id_cpp{module_id};
     const std::string prefix_cpp{prefix};
