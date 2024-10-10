@@ -486,6 +486,15 @@ bool MQTTAbstractionImpl::connectBroker(std::string& socket_path) {
     if (mqtt_connect(&this->mqtt_client, nullptr, nullptr, nullptr, 0, nullptr, nullptr, connect_flags,
                      mqtt_keep_alive) == MQTT_OK) {
         // TODO(kai): async?
+        MQTTErrors error = mqtt_sync(&this->mqtt_client);
+        if (error != MQTT_OK) {
+            EVLOG_error << fmt::format("Error during MQTT sync: {}", mqtt_error_str(error));
+
+            on_mqtt_disconnect();
+
+            return false;
+        }
+
         on_mqtt_connect();
         return true;
     }
@@ -523,6 +532,15 @@ bool MQTTAbstractionImpl::connectBroker(const char* host, const char* port) {
     if (mqtt_connect(&this->mqtt_client, nullptr, nullptr, nullptr, 0, nullptr, nullptr, connect_flags,
                      mqtt_keep_alive) == MQTT_OK) {
         // TODO(kai): async?
+        MQTTErrors error = mqtt_sync(&this->mqtt_client);
+        if (error != MQTT_OK) {
+            EVLOG_error << fmt::format("Error during MQTT sync: {}", mqtt_error_str(error));
+
+            on_mqtt_disconnect();
+
+            return false;
+        }
+
         on_mqtt_connect();
         return true;
     }
