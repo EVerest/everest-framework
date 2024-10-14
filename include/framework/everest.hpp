@@ -33,6 +33,17 @@ using TelemetryEntry = std::variant<std::string, const char*, bool, int32_t, uin
 using TelemetryMap = std::map<std::string, TelemetryEntry>;
 using UnsubscribeToken = std::function<void()>;
 
+/// \brief Result of a command
+struct CmdResult {
+    std::optional<json> result;
+    std::optional<json> error; // TODO: use proper ErrorType instead of json
+};
+
+class EverestCmdError : public Everest::EverestBaseRuntimeError {
+public:
+    using EverestBaseRuntimeError::EverestBaseRuntimeError;
+};
+
 namespace error {
 struct ErrorDatabaseMap;
 struct ErrorManagerImpl;
