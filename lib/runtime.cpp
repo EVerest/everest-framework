@@ -497,9 +497,7 @@ int ModuleLoader::initialize() {
             return everest.telemetry_publish(category, subcategory, type, telemetry);
         };
 
-        module_adapter.get_mapping = [&everest]() {
-            return everest.get_3_tier_model_mapping();
-        };
+        module_adapter.get_mapping = [&everest]() { return everest.get_3_tier_model_mapping(); };
 
         module_adapter.get_impl_mapping = [&everest](const std::string& impl_id) {
             return everest.get_3_tier_model_mapping(impl_id);

@@ -705,7 +705,8 @@ json Config::resolve_requirement(const std::string& module_id, const std::string
     return module_config["connections"][requirement_id];
 }
 
-std::map<std::string, std::vector<RequirementConnection>> Config::get_requirement_connections(const std::string& module_id) {
+std::map<std::string, std::vector<RequirementConnection>>
+Config::get_requirement_connections(const std::string& module_id) {
     BOOST_LOG_FUNCTION();
 
     std::map<std::string, std::vector<RequirementConnection>> res;

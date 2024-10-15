@@ -143,7 +143,9 @@ struct ModuleCallbacks {
     ModuleCallbacks() = default;
 
     ModuleCallbacks(const std::function<void(ModuleAdapter module_adapter)>& register_module_adapter,
-                    const std::function<std::vector<cmd>(const std::map<std::string, std::vector<RequirementConnection>>& requirement_connections)>& everest_register,
+                    const std::function<std::vector<cmd>(
+                        const std::map<std::string, std::vector<RequirementConnection>>& requirement_connections)>&
+                        everest_register,
                     const std::function<void(ModuleConfigs module_configs, const ModuleInfo& info)>& init,
                     const std::function<void()>& ready);
 };
@@ -166,7 +168,7 @@ private:
 
 public:
     explicit ModuleLoader(int argc, char* argv[], ModuleCallbacks callbacks) :
-        ModuleLoader(argc, argv, callbacks, {"undefined project", "undefined version", "undefined git version"}) {};
+        ModuleLoader(argc, argv, callbacks, {"undefined project", "undefined version", "undefined git version"}){};
     explicit ModuleLoader(int argc, char* argv[], ModuleCallbacks callbacks,
                           const VersionInformation version_information);
 

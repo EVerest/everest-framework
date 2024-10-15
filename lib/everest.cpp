@@ -179,8 +179,8 @@ Everest::Everest(std::string module_id_, const Config& config_, bool validate_da
                     this->subscribe_error(req, type, callback, clear_callback);
                 };
             this->req_error_managers[req] = std::make_shared<error::ErrorManagerReq>(
-                std::make_shared<error::ErrorTypeMap>(this->config.get_error_map()), error_database, allowed_error_types,
-                subscribe_error_func);
+                std::make_shared<error::ErrorTypeMap>(this->config.get_error_map()), error_database,
+                allowed_error_types, subscribe_error_func);
 
             // setup error state monitor
             this->req_error_state_monitors[req] = std::make_shared<error::ErrorStateMonitor>(error_database);
