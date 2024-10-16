@@ -354,8 +354,8 @@ json Everest::call_cmd(const Requirement& req, const std::string& cmd_name, json
 
     std::string call_id = boost::uuids::to_string(boost::uuids::random_generator()());
 
-    std::promise<json> res_promise;
-    std::future<json> res_future = res_promise.get_future();
+    std::promise<CmdResult> res_promise;
+    std::future<CmdResult> res_future = res_promise.get_future();
 
     Handler res_handler = [this, &res_promise, call_id, connection, cmd_name, return_type](json data) {
         auto& data_id = data.at("id");
@@ -368,7 +368,14 @@ json Everest::call_cmd(const Requirement& req, const std::string& cmd_name, json
             "Incoming res {} for {}->{}()", data_id,
             this->config.printable_identifier(connection["module_id"], connection["implementation_id"]), cmd_name);
 
-        res_promise.set_value(std::move(data["retval"]));
+        if (data.contains("error")) {
+            EVLOG_error << fmt::format(
+                "Received error {} for {}->{}()", data.at("error"),
+                this->config.printable_identifier(connection["module_id"], connection["implementation_id"]), cmd_name);
+            res_promise.set_value({std::nullopt, data.at("error")});
+        } else {
+            res_promise.set_value({std::move(data["retval"]), std::nullopt});
+        }
     };
 
     const auto cmd_topic =
@@ -393,7 +400,7 @@ json Everest::call_cmd(const Requirement& req, const std::string& cmd_name, json
         res_future_status = res_future.wait_until(res_wait);
     } while (res_future_status == std::future_status::deferred);
 
-    json result;
+    CmdResult result;
     if (res_future_status == std::future_status::timeout) {
         EVLOG_AND_THROW(EverestTimeoutError(fmt::format(
             "Timeout while waiting for result of {}->{}()",
@@ -404,7 +411,16 @@ json Everest::call_cmd(const Requirement& req, const std::string& cmd_name, json
     }
     this->mqtt_abstraction.unregister_handler(cmd_topic, res_token);
 
-    return result;
+    if (result.error.has_value()) {
+        // throw appropriate exception
+        auto& error = result.error.value();
+        auto error_message = fmt::format("{}: {}", error.at("type"), error.at("msg"));
+        throw EverestBaseRuntimeError(error_message);
+    } else if (not result.result.has_value()) {
+        throw EverestBaseRuntimeError("Command did not return result");
+    } else {
+        return result.result.value();
+    }
 }
 
 void Everest::publish_var(const std::string& impl_id, const std::string& var_name, json value) {
@@ -872,12 +888,20 @@ void Everest::provide_cmd(const std::string impl_id, const std::string cmd_name,
         // publish results
         json res_data = json({});
         res_data["id"] = data["id"];
+        auto error = false;
 
         // call real cmd handler
-        res_data["retval"] = handler(data["args"]);
+        try {
+            res_data["retval"] = handler(data["args"]);
+        } catch (const std::exception& e) {
+            EVLOG_verbose << fmt::format("Exception during handling of: {}->{}({}): {}",
+                                         this->config.printable_identifier(this->module_id, impl_id), cmd_name,
+                                         fmt::join(arg_names, ","), e.what());
+            res_data["error"] = {{"type", "HandlerException"}, {"msg", e.what()}};
+        }
 
         // check retval agains manifest
-        if (this->validate_data_with_schema) {
+        if (not error && this->validate_data_with_schema) {
             try {
                 // only use validator on non-null return types
                 if (!(res_data["retval"].is_null() &&
@@ -897,7 +921,6 @@ void Everest::provide_cmd(const std::string impl_id, const std::string cmd_name,
             }
         }
 
-        EVLOG_verbose << fmt::format("RETVAL: {}", res_data["retval"].dump());
         res_data["origin"] = this->module_id;
 
         json res_publish_data = json::object({{"name", cmd_name}, {"type", "result"}, {"data", res_data}});
