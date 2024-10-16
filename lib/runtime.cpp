@@ -495,6 +495,8 @@ int ModuleLoader::initialize() {
             return everest.telemetry_publish(category, subcategory, type, telemetry);
         };
 
+        module_adapter.watchdog_feed_publish = [&everest]() { everest.watchdog_feed_publish(); };
+
         this->callbacks.register_module_adapter(module_adapter);
 
         // FIXME (aw): would be nice to move this config related thing toward the module_init function
