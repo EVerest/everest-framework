@@ -147,9 +147,9 @@ public:
     json resolve_requirement(const std::string& module_id, const std::string& requirement_id) const;
 
     ///
-    /// \returns a map of RequirementConnections for \p module_id
+    /// \returns a map of Fulfillments for \p module_id
     ///
-    std::map<std::string, std::vector<RequirementConnection>> get_requirement_connections(const std::string& module_id);
+    std::map<std::string, std::vector<Fulfillment>> get_fulfillments(const std::string& module_id);
 
     ///
     /// \brief checks if the config contains the given \p module_id

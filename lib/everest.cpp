@@ -158,9 +158,9 @@ Everest::Everest(std::string module_id_, const Config& config_, bool validate_da
     }
 
     // setup error_databases, error_managers and error_state_monitors for all requirements
-    for (const auto& requirement_connections : config.get_requirement_connections(module_id)) {
-        for (const RequirementConnection& req_con : requirement_connections.second) {
-            auto& req = req_con.requirement;
+    for (const auto& fulfillments : config.get_fulfillments(module_id)) {
+        for (const Fulfillment& fulfillment : fulfillments.second) {
+            auto& req = fulfillment.requirement;
             // setup shared database
             std::shared_ptr<error::ErrorDatabaseMap> error_database = std::make_shared<error::ErrorDatabaseMap>();
 

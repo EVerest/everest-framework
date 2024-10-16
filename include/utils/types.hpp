@@ -138,9 +138,11 @@ struct Requirement {
     std::optional<Mapping> mapping;
 };
 
-struct RequirementConnection {
+/// \brief Describes a how a requirement is fulfilled by a connection to another module and its implementation
+struct Fulfillment {
+    std::string module_id;
+    std::string implementation_id;
     Requirement requirement;
-    std::string requirement_module_id;
 };
 
 struct ImplementationIdentifier {
