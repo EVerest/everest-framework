@@ -385,8 +385,8 @@ RuntimeSettings::RuntimeSettings(const std::string& prefix_, const std::string& 
 
 ModuleCallbacks::ModuleCallbacks(
     const std::function<void(ModuleAdapter module_adapter)>& register_module_adapter,
-    const std::function<std::vector<cmd>(
-        const std::map<std::string, std::vector<Fulfillment>>& fulfillments)>& everest_register,
+    const std::function<std::vector<cmd>(const std::map<std::string, std::vector<Fulfillment>>& fulfillments)>&
+        everest_register,
     const std::function<void(ModuleConfigs module_configs, const ModuleInfo& info)>& init,
     const std::function<void()>& ready) :
     register_module_adapter(register_module_adapter), everest_register(everest_register), init(init), ready(ready) {
