@@ -137,7 +137,8 @@ struct Requirement {
     size_t index = 0;
 };
 
-/// \brief Describes a how a requirement is fulfilled by a connection to another module and its implementation
+/// \brief A Fulfillment relates a Requirement to its connected implementation, identified via its module and
+/// implementation id. It additionally provides access to the Mapping associated with the Requirement.
 struct Fulfillment {
     std::string module_id;
     std::string implementation_id;
