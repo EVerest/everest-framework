@@ -112,14 +112,14 @@ Everest::Everest(std::string module_id_, const Config& config_, bool validate_da
 
         std::optional<Mapping> mapping;
         if (this->module_tier_mappings.has_value()) {
-            auto& module_tier_mapping = this->module_tier_mappings.value();
+            const auto& module_tier_mapping = this->module_tier_mappings.value();
             // start with the module mapping and overwrite it (partially) with the implementation mapping
             mapping = module_tier_mapping.module;
-            auto impl_mapping = config.get_3_tier_model_mapping(this->module_id, impl);
+            const auto impl_mapping = config.get_3_tier_model_mapping(this->module_id, impl);
             if (impl_mapping.has_value()) {
                 if (mapping.has_value()) {
                     auto& mapping_value = mapping.value();
-                    auto& impl_mapping_value = impl_mapping.value();
+                    const auto& impl_mapping_value = impl_mapping.value();
                     if (mapping_value.evse != impl_mapping_value.evse) {
                         EVLOG_warning << fmt::format("Mapping value mismatch. {} ({}) evse ({}) != {} mapping evse "
                                                      "({}). Setting evse={}, please fix this in the config.",
@@ -132,8 +132,8 @@ Everest::Everest(std::string module_id_, const Config& config_, bool validate_da
                         mapping_value.connector = impl_mapping_value.connector;
                     }
                     if (mapping_value.connector.has_value() and impl_mapping_value.connector.has_value()) {
-                        auto& mapping_value_connector_value = mapping_value.connector.value();
-                        auto& impl_mapping_value_connector_value = impl_mapping_value.connector.value();
+                        const auto& mapping_value_connector_value = mapping_value.connector.value();
+                        const auto& impl_mapping_value_connector_value = impl_mapping_value.connector.value();
                         if (mapping_value_connector_value != impl_mapping_value_connector_value) {
                             EVLOG_warning
                                 << fmt::format("Mapping value mismatch. {} ({}) connector ({}) != {} mapping connector "

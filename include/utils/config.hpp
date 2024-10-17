@@ -155,7 +155,7 @@ public:
     /// \brief A Fulfillment is a combination of a Requirement and the module and implementation ids where this is
     /// implemented
     /// \returns a map of Fulfillments for \p module_id
-    std::map<std::string, std::vector<Fulfillment>> get_fulfillments(const std::string& module_id);
+    std::map<std::string, std::vector<Fulfillment>> get_fulfillments(const std::string& module_id) const;
 
     ///
     /// \brief checks if the config contains the given \p module_id
@@ -204,11 +204,11 @@ public:
 
     //
     /// \returns the 3 tier model mappings for the given \p module_id
-    std::optional<ModuleTierMappings> get_module_3_tier_model_mappings(const std::string& module_id);
+    std::optional<ModuleTierMappings> get_module_3_tier_model_mappings(const std::string& module_id) const;
 
     //
     /// \returns the 3 tier model mapping for the given \p module_id and \p impl_id
-    std::optional<Mapping> get_3_tier_model_mapping(const std::string& module_id, const std::string& impl_id);
+    std::optional<Mapping> get_3_tier_model_mapping(const std::string& module_id, const std::string& impl_id) const;
 
     ///
     /// \brief turns then given \p module_id into a printable identifier
