@@ -489,9 +489,6 @@ bool MQTTAbstractionImpl::connectBroker(std::string& socket_path) {
         MQTTErrors error = mqtt_sync(&this->mqtt_client);
         if (error != MQTT_OK) {
             EVLOG_error << fmt::format("Error during MQTT sync: {}", mqtt_error_str(error));
-
-            on_mqtt_disconnect();
-
             return false;
         }
 
@@ -535,9 +532,6 @@ bool MQTTAbstractionImpl::connectBroker(const char* host, const char* port) {
         MQTTErrors error = mqtt_sync(&this->mqtt_client);
         if (error != MQTT_OK) {
             EVLOG_error << fmt::format("Error during MQTT sync: {}", mqtt_error_str(error));
-
-            on_mqtt_disconnect();
-
             return false;
         }
 
