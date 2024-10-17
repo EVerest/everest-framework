@@ -81,7 +81,7 @@ Everest::Everest(std::string module_id_, const Config& config_, bool validate_da
         this->global_error_state_monitor = nullptr;
     }
 
-    this->module_tier_mappings = config.get_3_tier_model_mappings(this->module_id);
+    this->module_tier_mappings = config.get_module_3_tier_model_mappings(this->module_id);
 
     // setup error_managers, error_state_monitors, error_factories and error_databases for all implementations
     for (const std::string& impl : Config::keys(this->module_manifest.at("provides"))) {

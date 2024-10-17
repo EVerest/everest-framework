@@ -839,7 +839,7 @@ std::unordered_map<std::string, ModuleTierMappings> Config::get_3_tier_model_map
     return this->tier_mappings;
 }
 
-std::optional<ModuleTierMappings> Config::get_3_tier_model_mappings(const std::string& module_id) {
+std::optional<ModuleTierMappings> Config::get_module_3_tier_model_mappings(const std::string& module_id) {
     if (this->tier_mappings.find(module_id) == this->tier_mappings.end()) {
         return std::nullopt;
     }
@@ -847,7 +847,7 @@ std::optional<ModuleTierMappings> Config::get_3_tier_model_mappings(const std::s
 }
 
 std::optional<Mapping> Config::get_3_tier_model_mapping(const std::string& module_id, const std::string& impl_id) {
-    auto module_tier_mappings = this->get_3_tier_model_mappings(module_id);
+    auto module_tier_mappings = this->get_module_3_tier_model_mappings(module_id);
     if (not module_tier_mappings.has_value()) {
         return std::nullopt;
     }

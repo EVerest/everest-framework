@@ -204,7 +204,7 @@ public:
 
     //
     /// \returns the 3 tier model mappings for the given \p module_id
-    std::optional<ModuleTierMappings> get_3_tier_model_mappings(const std::string& module_id);
+    std::optional<ModuleTierMappings> get_module_3_tier_model_mappings(const std::string& module_id);
 
     //
     /// \returns the 3 tier model mapping for the given \p module_id and \p impl_id
