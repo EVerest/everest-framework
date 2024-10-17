@@ -846,7 +846,8 @@ std::optional<ModuleTierMappings> Config::get_module_3_tier_model_mappings(const
     return this->tier_mappings.at(module_id);
 }
 
-std::optional<Mapping> Config::get_3_tier_model_mapping(const std::string& module_id, const std::string& impl_id) const {
+std::optional<Mapping> Config::get_3_tier_model_mapping(const std::string& module_id,
+                                                        const std::string& impl_id) const {
     const auto module_tier_mappings = this->get_module_3_tier_model_mappings(module_id);
     if (not module_tier_mappings.has_value()) {
         return std::nullopt;
