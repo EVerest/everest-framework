@@ -259,18 +259,6 @@ std::optional<ModuleTierMappings> Everest::get_3_tier_model_mapping() {
     return this->module_tier_mappings;
 }
 
-std::optional<Mapping> Everest::get_3_tier_model_mapping(const std::string& impl_id) {
-    if (not this->module_tier_mappings.has_value()) {
-        return std::nullopt;
-    }
-    auto& mapping = this->module_tier_mappings.value();
-    if (mapping.implementations.find(impl_id) == mapping.implementations.end()) {
-        // if no specific implementation mapping is given, use the module mapping
-        return mapping.module;
-    }
-    return mapping.implementations.at(impl_id);
-}
-
 void Everest::check_code() {
     BOOST_LOG_FUNCTION();
 
@@ -1094,5 +1082,18 @@ bool Everest::check_arg(ArgumentType arg_types, json manifest_arg) {
         }
     }
     return true;
+}
+
+std::optional<Mapping> get_impl_mapping(std::optional<ModuleTierMappings> module_tier_mappings,
+                                        const std::string& impl_id) {
+    if (not module_tier_mappings.has_value()) {
+        return std::nullopt;
+    }
+    auto& mapping = module_tier_mappings.value();
+    if (mapping.implementations.find(impl_id) == mapping.implementations.end()) {
+        // if no specific implementation mapping is given, use the module mapping
+        return mapping.module;
+    }
+    return mapping.implementations.at(impl_id);
 }
 } // namespace Everest

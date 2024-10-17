@@ -148,11 +148,6 @@ public:
     std::optional<ModuleTierMappings> get_3_tier_model_mapping();
 
     ///
-    /// \returns the 3 tier model mapping for the given \p impl_id
-    ///
-    std::optional<Mapping> get_3_tier_model_mapping(const std::string& impl_id);
-
-    ///
     /// \brief Chccks if all commands of a module that are listed in its manifest are available
     ///
     void check_code();
@@ -249,6 +244,13 @@ private:
     ///
     void subscribe_global_all_errors(const error::ErrorCallback& callback, const error::ErrorCallback& clear_callback);
 };
+
+///
+/// \returns the 3 tier model mapping from a \p module_tier_mapping for the given \p impl_id
+///
+std::optional<Mapping> get_impl_mapping(std::optional<ModuleTierMappings> module_tier_mappings,
+                                        const std::string& impl_id);
+
 } // namespace Everest
 
 #endif // FRAMEWORK_EVEREST_HPP

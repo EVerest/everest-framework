@@ -499,10 +499,6 @@ int ModuleLoader::initialize() {
 
         module_adapter.get_mapping = [&everest]() { return everest.get_3_tier_model_mapping(); };
 
-        module_adapter.get_impl_mapping = [&everest](const std::string& impl_id) {
-            return everest.get_3_tier_model_mapping(impl_id);
-        };
-
         this->callbacks.register_module_adapter(module_adapter);
 
         // FIXME (aw): would be nice to move this config related thing toward the module_init function
