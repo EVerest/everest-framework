@@ -131,11 +131,10 @@ struct TelemetryConfig {
 
 struct Requirement {
     Requirement() = default;
-    Requirement(const std::string& requirement_id_, size_t index_, std::optional<Mapping> mapping = std::nullopt);
+    Requirement(const std::string& requirement_id_, size_t index_);
     bool operator<(const Requirement& rhs) const;
     std::string id;
     size_t index = 0;
-    std::optional<Mapping> mapping;
 };
 
 /// \brief Describes a how a requirement is fulfilled by a connection to another module and its implementation
@@ -143,6 +142,7 @@ struct Fulfillment {
     std::string module_id;
     std::string implementation_id;
     Requirement requirement;
+    std::optional<Mapping> mapping;
 };
 
 struct ImplementationIdentifier {

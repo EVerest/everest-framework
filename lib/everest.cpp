@@ -158,33 +158,30 @@ Everest::Everest(std::string module_id_, const Config& config_, bool validate_da
     }
 
     // setup error_databases, error_managers and error_state_monitors for all requirements
-    for (const auto& fulfillments : config.get_fulfillments(module_id)) {
-        for (const Fulfillment& fulfillment : fulfillments.second) {
-            auto& req = fulfillment.requirement;
-            // setup shared database
-            std::shared_ptr<error::ErrorDatabaseMap> error_database = std::make_shared<error::ErrorDatabaseMap>();
+    for (const Requirement& req : config.get_requirements(module_id)) {
+        // setup shared database
+        std::shared_ptr<error::ErrorDatabaseMap> error_database = std::make_shared<error::ErrorDatabaseMap>();
 
-            // setup error manager
-            std::string interface_name = this->module_manifest.at("requires").at(req.id).at("interface");
-            json interface_def = this->config.get_interface_definition(interface_name);
-            std::list<std::string> allowed_error_types;
-            for (const auto& error_namespace_it : interface_def["errors"].items()) {
-                for (const auto& error_name_it : error_namespace_it.value().items()) {
-                    allowed_error_types.push_back(error_namespace_it.key() + "/" + error_name_it.key());
-                }
+        // setup error manager
+        std::string interface_name = this->module_manifest.at("requires").at(req.id).at("interface");
+        json interface_def = this->config.get_interface_definition(interface_name);
+        std::list<std::string> allowed_error_types;
+        for (const auto& error_namespace_it : interface_def["errors"].items()) {
+            for (const auto& error_name_it : error_namespace_it.value().items()) {
+                allowed_error_types.push_back(error_namespace_it.key() + "/" + error_name_it.key());
             }
-            error::ErrorManagerReq::SubscribeErrorFunc subscribe_error_func =
-                [this, req](const error::ErrorType& type, const error::ErrorCallback& callback,
-                            const error::ErrorCallback& clear_callback) {
-                    this->subscribe_error(req, type, callback, clear_callback);
-                };
-            this->req_error_managers[req] = std::make_shared<error::ErrorManagerReq>(
-                std::make_shared<error::ErrorTypeMap>(this->config.get_error_map()), error_database,
-                allowed_error_types, subscribe_error_func);
-
-            // setup error state monitor
-            this->req_error_state_monitors[req] = std::make_shared<error::ErrorStateMonitor>(error_database);
         }
+        error::ErrorManagerReq::SubscribeErrorFunc subscribe_error_func =
+            [this, req](const error::ErrorType& type, const error::ErrorCallback& callback,
+                        const error::ErrorCallback& clear_callback) {
+                this->subscribe_error(req, type, callback, clear_callback);
+            };
+        this->req_error_managers[req] = std::make_shared<error::ErrorManagerReq>(
+            std::make_shared<error::ErrorTypeMap>(this->config.get_error_map()), error_database, allowed_error_types,
+            subscribe_error_func);
+
+        // setup error state monitor
+        this->req_error_state_monitors[req] = std::make_shared<error::ErrorStateMonitor>(error_database);
     }
 
     // register handler for global ready signal

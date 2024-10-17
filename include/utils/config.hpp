@@ -147,8 +147,14 @@ public:
     json resolve_requirement(const std::string& module_id, const std::string& requirement_id) const;
 
     ///
-    /// \returns a map of Fulfillments for \p module_id
+    /// \returns a list of Requirements for \p module_id
     ///
+    std::list<Requirement> get_requirements(const std::string& module_id) const;
+
+    ///
+    /// \brief A Fulfillment is a combination of a Requirement and the module and implementation ids where this is
+    /// implemented
+    /// \returns a map of Fulfillments for \p module_id
     std::map<std::string, std::vector<Fulfillment>> get_fulfillments(const std::string& module_id);
 
     ///
