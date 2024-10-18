@@ -749,7 +749,6 @@ std::map<std::string, std::vector<Fulfillment>> Config::get_fulfillments(const s
 
     std::map<std::string, std::vector<Fulfillment>> res;
 
-    const auto& resolved_requirements = this->resolve_requirements(module_id);
     for (const auto& [requirement, fulfillment] : this->resolve_requirements(module_id)) {
         res[requirement.id].push_back(fulfillment);
     }
