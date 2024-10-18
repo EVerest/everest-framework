@@ -147,6 +147,13 @@ public:
     json resolve_requirement(const std::string& module_id, const std::string& requirement_id) const;
 
     ///
+    /// \brief resolves all Requirements of the given \p module_id to their Fulfillments
+    ///
+    /// \returns a map indexed by Requirements
+    std::map<Requirement, Fulfillment> resolve_requirements(const std::string& module_id) const;
+
+
+    ///
     /// \returns a list of Requirements for \p module_id
     ///
     std::list<Requirement> get_requirements(const std::string& module_id) const;
