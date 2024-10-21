@@ -709,19 +709,19 @@ json Config::resolve_requirement(const std::string& module_id, const std::string
 std::map<Requirement, Fulfillment> Config::resolve_requirements(const std::string& module_id) const {
     std::map<Requirement, Fulfillment> requirements;
 
-    const auto module_name = get_module_name(module_id);
+    const auto& module_name = get_module_name(module_id);
     for (const auto& req_id : Config::keys(this->manifests.at(module_name).at("requires"))) {
-        const json resolved_req = this->resolve_requirement(module_id, req_id);
+        const auto& resolved_req = this->resolve_requirement(module_id, req_id);
         if (!resolved_req.is_array()) {
-            const auto resolved_module_id = resolved_req.at("module_id");
-            const auto resolved_impl_id = resolved_req.at("implementation_id");
-            auto req = Requirement{req_id, 0};
+            const auto& resolved_module_id = resolved_req.at("module_id");
+            const auto& resolved_impl_id = resolved_req.at("implementation_id");
+            const auto req = Requirement{req_id, 0};
             requirements[req] = {resolved_module_id, resolved_impl_id, req};
         } else {
             for (std::size_t i = 0; i < resolved_req.size(); i++) {
-                const auto resolved_module_id = resolved_req.at(i).at("module_id");
-                const auto resolved_impl_id = resolved_req.at(i).at("implementation_id");
-                auto req = Requirement{req_id, i};
+                const auto& resolved_module_id = resolved_req.at(i).at("module_id");
+                const auto& resolved_impl_id = resolved_req.at(i).at("implementation_id");
+                const auto req = Requirement{req_id, i};
                 requirements[req] = {resolved_module_id, resolved_impl_id, req};
             }
         }
