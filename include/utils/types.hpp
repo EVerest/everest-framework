@@ -132,10 +132,11 @@ struct TelemetryConfig {
 struct Requirement {
     Requirement() = default;
     Requirement(const std::string& requirement_id_, size_t index_);
-    bool operator<(const Requirement& rhs) const;
     std::string id;
     size_t index = 0;
 };
+
+bool operator<(const Requirement& lhs, const Requirement& rhs);
 
 /// \brief A Fulfillment relates a Requirement to its connected implementation, identified via its module and
 /// implementation id.
