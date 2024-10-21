@@ -130,8 +130,6 @@ struct TelemetryConfig {
 };
 
 struct Requirement {
-    Requirement() = default;
-    Requirement(const std::string& requirement_id_, size_t index_);
     std::string id;
     size_t index = 0;
 };

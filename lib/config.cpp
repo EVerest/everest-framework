@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
-// Copyright 2020 - 2023 Pionix GmbH and Contributors to EVerest
+// Copyright Pionix GmbH and Contributors to EVerest
 #include <algorithm>
+#include <cstddef>
 #include <fstream>
 #include <list>
 #include <set>
@@ -714,13 +715,13 @@ std::map<Requirement, Fulfillment> Config::resolve_requirements(const std::strin
         if (!resolved_req.is_array()) {
             const auto resolved_module_id = resolved_req.at("module_id");
             const auto resolved_impl_id = resolved_req.at("implementation_id");
-            Requirement req(req_id, 0);
+            auto req = Requirement{req_id, 0};
             requirements[req] = {resolved_module_id, resolved_impl_id, req};
         } else {
-            for (int i = 0; i < resolved_req.size(); i++) {
+            for (std::size_t i = 0; i < resolved_req.size(); i++) {
                 const auto resolved_module_id = resolved_req.at(i).at("module_id");
                 const auto resolved_impl_id = resolved_req.at(i).at("implementation_id");
-                Requirement req(req_id, i);
+                auto req = Requirement{req_id, i};
                 requirements[req] = {resolved_module_id, resolved_impl_id, req};
             }
         }
