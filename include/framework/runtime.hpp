@@ -134,8 +134,7 @@ void populate_module_info_path_from_runtime_settings(ModuleInfo&, std::shared_pt
 
 struct ModuleCallbacks {
     std::function<void(ModuleAdapter module_adapter)> register_module_adapter;
-    std::function<std::vector<cmd>(const std::map<std::string, std::vector<Fulfillment>>& fulfillments)>
-        everest_register;
+    std::function<std::vector<cmd>(const RequirementInitialization& requirement_init)> everest_register;
     std::function<void(ModuleConfigs module_configs, const ModuleInfo& info)> init;
     std::function<void()> ready;
 
@@ -143,8 +142,7 @@ struct ModuleCallbacks {
 
     ModuleCallbacks(
         const std::function<void(ModuleAdapter module_adapter)>& register_module_adapter,
-        const std::function<std::vector<cmd>(const std::map<std::string, std::vector<Fulfillment>>& fulfillments)>&
-            everest_register,
+        const std::function<std::vector<cmd>(const RequirementInitialization& requirement_init)>& everest_register,
         const std::function<void(ModuleConfigs module_configs, const ModuleInfo& info)>& init,
         const std::function<void()>& ready);
 };

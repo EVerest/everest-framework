@@ -756,6 +756,19 @@ std::map<std::string, std::vector<Fulfillment>> Config::get_fulfillments(const s
     return res;
 }
 
+RequirementInitialization Config::get_requirement_initialization(const std::string& module_id) const {
+    BOOST_LOG_FUNCTION();
+
+    RequirementInitialization res;
+
+    for (const auto& [requirement, fulfillment] : this->resolve_requirements(module_id)) {
+        const auto& mapping = this->get_3_tier_model_mapping(fulfillment.module_id, fulfillment.implementation_id);
+        res[requirement.id].push_back({requirement, fulfillment, mapping});
+    }
+
+    return res;
+}
+
 bool Config::contains(const std::string& module_id) const {
     BOOST_LOG_FUNCTION();
     return this->main.contains(module_id);

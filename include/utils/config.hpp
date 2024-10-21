@@ -152,7 +152,6 @@ public:
     /// \returns a map indexed by Requirements
     std::map<Requirement, Fulfillment> resolve_requirements(const std::string& module_id) const;
 
-
     ///
     /// \returns a list of Requirements for \p module_id
     ///
@@ -163,6 +162,12 @@ public:
     /// implemented
     /// \returns a map of Fulfillments for \p module_id
     std::map<std::string, std::vector<Fulfillment>> get_fulfillments(const std::string& module_id) const;
+
+    ///
+    /// \brief A RequirementInitialization contains everything needed to initialize a requirement in user code. This
+    /// includes the Requirement, its Fulfillment and an optional Mapping
+    /// \returns a RequirementInitialization
+    RequirementInitialization get_requirement_initialization(const std::string& module_id) const;
 
     ///
     /// \brief checks if the config contains the given \p module_id

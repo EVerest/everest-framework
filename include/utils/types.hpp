@@ -138,13 +138,22 @@ struct Requirement {
 };
 
 /// \brief A Fulfillment relates a Requirement to its connected implementation, identified via its module and
-/// implementation id. It additionally provides access to the Mapping associated with the Requirement.
+/// implementation id.
 struct Fulfillment {
     std::string module_id;
     std::string implementation_id;
     Requirement requirement;
     std::optional<Mapping> mapping;
 };
+
+/// \brief Contains everything that's needed to initialize a requirement in user code
+struct RequirementInitializer {
+    Requirement requirement;
+    Fulfillment fulfillment;
+    std::optional<Mapping> mapping;
+};
+
+using RequirementInitialization = std::map<std::string, std::vector<RequirementInitializer>>;
 
 struct ImplementationIdentifier {
     ImplementationIdentifier(const std::string& module_id_, const std::string& implementation_id_,

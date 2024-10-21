@@ -385,8 +385,7 @@ RuntimeSettings::RuntimeSettings(const std::string& prefix_, const std::string& 
 
 ModuleCallbacks::ModuleCallbacks(
     const std::function<void(ModuleAdapter module_adapter)>& register_module_adapter,
-    const std::function<std::vector<cmd>(const std::map<std::string, std::vector<Fulfillment>>& fulfillments)>&
-        everest_register,
+    const std::function<std::vector<cmd>(const RequirementInitialization& requirement_init)>& everest_register,
     const std::function<void(ModuleConfigs module_configs, const ModuleInfo& info)>& init,
     const std::function<void()>& ready) :
     register_module_adapter(register_module_adapter), everest_register(everest_register), init(init), ready(ready) {
@@ -502,7 +501,8 @@ int ModuleLoader::initialize() {
         this->callbacks.register_module_adapter(module_adapter);
 
         // FIXME (aw): would be nice to move this config related thing toward the module_init function
-        std::vector<cmd> cmds = this->callbacks.everest_register(config.get_fulfillments(this->module_id));
+        std::vector<cmd> cmds =
+            this->callbacks.everest_register(config.get_requirement_initialization(this->module_id));
 
         for (auto const& command : cmds) {
             everest.provide_cmd(command);
