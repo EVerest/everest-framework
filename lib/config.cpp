@@ -737,7 +737,6 @@ std::list<Requirement> Config::get_requirements(const std::string& module_id) co
 
     for (const auto& [requirement, fulfillment] : this->resolve_requirements(module_id)) {
         res.push_back(requirement);
-        (void)fulfillment; // fulfillment is not used here
     }
 
     return res;
