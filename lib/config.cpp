@@ -714,16 +714,14 @@ std::map<Requirement, Fulfillment> Config::resolve_requirements(const std::strin
         if (!resolved_req.is_array()) {
             const auto resolved_module_id = resolved_req.at("module_id");
             const auto resolved_impl_id = resolved_req.at("implementation_id");
-            const auto mapping = this->get_3_tier_model_mapping(resolved_module_id, resolved_impl_id);
             Requirement req(req_id, 0);
-            requirements[req] = {resolved_module_id, resolved_impl_id, req, mapping};
+            requirements[req] = {resolved_module_id, resolved_impl_id, req};
         } else {
             for (int i = 0; i < resolved_req.size(); i++) {
                 const auto resolved_module_id = resolved_req.at(i).at("module_id");
                 const auto resolved_impl_id = resolved_req.at(i).at("implementation_id");
-                const auto mapping = this->get_3_tier_model_mapping(resolved_module_id, resolved_impl_id);
                 Requirement req(req_id, i);
-                requirements[req] = {resolved_module_id, resolved_impl_id, req, mapping};
+                requirements[req] = {resolved_module_id, resolved_impl_id, req};
             }
         }
     }

@@ -143,7 +143,6 @@ struct Fulfillment {
     std::string module_id;
     std::string implementation_id;
     Requirement requirement;
-    std::optional<Mapping> mapping;
 };
 
 /// \brief Contains everything that's needed to initialize a requirement in user code
