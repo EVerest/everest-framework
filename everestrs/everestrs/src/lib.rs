@@ -49,6 +49,14 @@ mod ffi {
             name: &str,
             json: JsonBlob,
         );
+        fn handle_on_error(
+            self: &Runtime,
+            implementation_id: &str,
+            index: usize,
+            error: ErrorType,
+            raised: bool,
+        );
+
         fn on_ready(&self);
     }
 
@@ -112,6 +120,30 @@ mod ffi {
         slots: usize,
     }
 
+    pub enum ErrorSeverity {
+        Low,
+        Medium,
+        High,
+    }
+
+    /// Rust's version of the `<utils/error.hpp>`'s Error.
+    pub struct ErrorType {
+        /// The type of the error. We generate that in the codegen. The
+        /// full error type looks like "evse_manager/PowermeterTransactionStartFailed"
+        /// and may have a namespace sprinkled into it (?).
+        pub error_type: String,
+
+        /// The description.
+        pub description: String,
+
+        /// The message - no idea what the difference to the description
+        /// actually is.
+        pub message: String,
+
+        /// The severity of the error.
+        pub severity: ErrorSeverity,
+    }
+
     unsafe extern "C++" {
         include!("everestrs/src/everestrs_sys.hpp");
 
@@ -159,12 +191,27 @@ mod ffi {
             name: String,
         );
 
+        /// Subscribes to all errors of the required modules.
+        fn subscribe_all_errors(self: &Module, rt: Pin<&Runtime>);
+
         /// Returns the `connections` block defined in the `config.yaml` for
         /// the current module.
         fn get_module_connections(self: &Module) -> Vec<RsModuleConnections>;
 
         /// Publishes the given `blob` under the `implementation_id` and `name`.
         fn publish_variable(self: &Module, implementation_id: &str, name: &str, blob: JsonBlob);
+
+        /// Raises an error
+        fn raise_error(self: &Module, implementation_id: &str, error: ErrorType);
+
+        /// Clears an error
+        /// If the error_type is empty, we will clear all errors from the module.
+        fn clear_error(
+            self: &Module,
+            implementation_id: &str,
+            error_type: &str,
+            clear_all: bool,
+        );
 
         /// Returns the module config from cpp.
         fn get_module_configs(module_id: &str, prefix: &str, conf: &str) -> Vec<RsModuleConfig>;
@@ -304,6 +351,10 @@ pub trait Subscriber: Sync + Send {
         value: serde_json::Value,
     ) -> Result<()>;
 
+    /// Handler for the error raised/cleared callback
+    /// The `raised` flag indicates if the error is raised or cleared.
+    fn handle_on_error(&self, implementation_id: &str, index: usize, error: ffi::ErrorType, raised: bool);
+
     fn on_ready(&self) {}
 }
 
@@ -361,6 +412,20 @@ impl Runtime {
             .unwrap()
             .handle_variable(impl_id, index, name, json.deserialize())
             .unwrap();
+    }
+
+    fn handle_on_error(&self, impl_id: &str, index: usize, error: ffi::ErrorType, raised: bool) {
+        debug!("handle_error_raised: {impl_id}, {index}");
+
+        // We want to split the error type into the group and the remainder.
+        self.sub_impl
+            .read()
+            .unwrap()
+            .as_ref()
+            .unwrap()
+            .upgrade()
+            .unwrap()
+            .handle_on_error(impl_id, index, error, raised);
     }
 
     pub fn publish_variable<T: serde::Serialize>(
@@ -454,6 +519,8 @@ impl Runtime {
             }
         }
 
+        self.cpp_module.as_ref().unwrap().subscribe_all_errors(self);
+
         // Since users can choose to overwrite `on_ready`, we can call signal_ready right away.
         // TODO(hrapp): There were some doubts if this strategy is too inflexible, discuss design
         // again.
@@ -467,6 +534,28 @@ impl Runtime {
             .into_iter()
             .map(|connection| (connection.implementation_id, connection.slots))
             .collect()
+    }
+
+    /// Called from the generated code.
+    pub fn raise_error(&self, impl_id: &str, error: ffi::ErrorType) {
+        self.cpp_module
+            .as_ref()
+            .unwrap()
+            .raise_error(impl_id, error);
+    }
+
+    /// Called from the generated code.
+    pub fn clear_error(
+        &self,
+        impl_id: &str,
+        error_type: &str,
+        clear_all: bool,
+    ) {
+        self.cpp_module.as_ref().unwrap().clear_error(
+            impl_id,
+            error_type,
+            clear_all,
+        );
     }
 }
 

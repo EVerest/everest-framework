@@ -1,13 +1,15 @@
 use crate::schema::{
+    self,
+    interface::ErrorReference,
     manifest::{ConfigEntry, ConfigEnum},
     types::{DataTypes, ObjectOptions, StringOptions, Type, TypeBase, TypeEnum},
-    Interface, Manifest,
+    ErrorList, Interface, Manifest,
 };
 use anyhow::{anyhow, bail, Context, Result};
 use convert_case::{Case, Casing};
 use minijinja::{Environment, UndefinedBehavior};
 use serde::{de::DeserializeOwned, Serialize};
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::fs;
 use std::path::PathBuf;
 
@@ -17,6 +19,7 @@ use std::path::PathBuf;
 // nothing shipped with it to work.
 const CLIENT_JINJA: &str = include_str!("../jinja/client.jinja2");
 const CONFIG_JINJA: &str = include_str!("../jinja/config.jinja2");
+const ERRORS_JINJA: &str = include_str!("../jinja/errors.jinja2");
 const MODULE_JINJA: &str = include_str!("../jinja/module.jinja2");
 const SERVICE_JINJA: &str = include_str!("../jinja/service.jinja2");
 const TYPES_JINJA: &str = include_str!("../jinja/types.jinja2");
@@ -128,6 +131,7 @@ struct YamlRepo {
     everest_core: Vec<PathBuf>,
     interfaces: HashMap<String, Interface>,
     data_types: HashMap<String, DataTypes>,
+    error_types: HashMap<String, ErrorList>,
 }
 
 impl YamlRepo {
@@ -144,6 +148,10 @@ impl YamlRepo {
 
     pub fn get_data_types<'a>(&'a mut self, name: &str) -> Result<&'a mut DataTypes> {
         lazy_load(&mut self.data_types, &self.everest_core, "types", name)
+    }
+
+    pub fn get_errors<'a>(&'a mut self, prefix: &str, name: &str) -> Result<&'a mut ErrorList> {
+        lazy_load(&mut self.error_types, &self.everest_core, prefix, name)
     }
 }
 
@@ -307,12 +315,122 @@ impl CommandContext {
     }
 }
 
+/// The error group maps to one error yaml file.
+#[derive(Debug, Clone, Serialize)]
+struct ErrorGroupContext {
+    /// The name is basically the yaml file in which the errors are defined.
+    name: String,
+
+    /// The list of errors
+    error_list: schema::error::ErrorList,
+}
+
+impl ErrorGroupContext {
+    /// Generates the [ErrorGroupContext] from the `error_reference`.
+    ///
+    /// The error_reference can have two forms:
+    /// - /errors/example
+    /// - /errors/example#/ExampleErrorA
+    ///
+    /// The first type is straight forward. For the second type however, we want
+    /// to group them by their file name.
+    fn from_yaml(yaml_repo: &mut YamlRepo, errors: &[ErrorReference]) -> Vec<Self> {
+        // We load all of the error files.
+        #[derive(Hash, Eq, PartialEq)]
+        struct ErrorPath<'a> {
+            /// The prefix where the error files are.
+            prefix: &'a str,
+
+            /// The error file itself.
+            file: &'a str,
+        }
+
+        // The errors may be defined multiple times. If we find a definition
+        // which would use all, we use all. Otherwise we use the specific
+        // defintions.
+        enum ErrorOption {
+            /// Use all errors in a file.
+            All,
+
+            /// Use only specific errors in a file.
+            Some(HashSet<String>),
+        }
+
+        // Find all the error options defined.
+        let mut error_definitions = HashMap::new();
+        for error_ref in errors {
+            let parts = error_ref.reference.split("#").collect::<Vec<_>>();
+            // If we cannot split by the `#` then we don't understand the
+            // format.
+            if parts.len() < 1 {
+                panic!("The error definition is invalid {parts:?}");
+            }
+
+            // Split the path and remove the empty parts.
+            // (The first element might be empty if we have a leading `/`).
+            let paths = parts[0]
+                .split("/")
+                .filter(|path| !path.is_empty())
+                .collect::<Vec<_>>();
+
+            // The paths must look like `error/example`.
+            if paths.len() != 2 {
+                panic!("The error path is ill-formed")
+            }
+
+            let error_path = ErrorPath {
+                prefix: paths[0],
+                file: paths[1],
+            };
+
+            let mut error_definition = error_definitions
+                .entry(error_path)
+                .or_insert(ErrorOption::Some(HashSet::new()));
+            // We don't "downgrade" `All` to `Some`.
+            if let ErrorOption::Some(options) = &mut error_definition {
+                if let Some(new_option) = parts.get(1) {
+                    options.insert(new_option.to_string());
+                } else {
+                    *error_definition = ErrorOption::All;
+                }
+            }
+        }
+
+        let mut output = Vec::new();
+        // Load the error yaml form the disk.
+        for (error_path, error_option) in error_definitions {
+            let error_list = yaml_repo
+                .get_errors(error_path.prefix, error_path.file)
+                .unwrap();
+
+            let mut error_group_context = ErrorGroupContext {
+                name: error_path.file.to_string(),
+                error_list: error_list.clone(),
+            };
+
+            // Remove unused options.
+            if let ErrorOption::Some(options) = error_option {
+                error_group_context
+                    .error_list
+                    .errors
+                    .retain(|e| options.contains(&e.name));
+            }
+
+            output.push(error_group_context);
+        }
+
+        output
+    }
+}
+
 #[derive(Debug, Clone, Serialize)]
 struct InterfaceContext {
     name: String,
     description: String,
     cmds: Vec<CommandContext>,
     vars: Vec<ArgumentContext>,
+    /// The errors of an interface.
+    errors: Vec<ErrorGroupContext>,
 }
 
 impl InterfaceContext {
@@ -330,11 +448,19 @@ impl InterfaceContext {
         for (name, cmd) in &interface_yaml.cmds {
             cmds.push(CommandContext::from_schema(name.clone(), cmd, type_refs)?);
         }
+
+        // We can only borrow the yaml_repo once. It's actually not necessary so
+        // we should refactor this.
+        let description = interface_yaml.description.clone();
+        let errors = interface_yaml.errors.clone();
+        let errors = ErrorGroupContext::from_yaml(yaml_repo, &errors);
+
         Ok(InterfaceContext {
             name: name.to_string(),
-            description: interface_yaml.description.clone(),
+            description,
             vars,
             cmds,
+            errors,
         })
     }
 }
@@ -481,6 +607,8 @@ struct RenderContext {
     provided_interfaces: Vec<InterfaceContext>,
     /// The interfaces we are requiring.
     required_interfaces: Vec<InterfaceContext>,
+    /// All errors involved - those we can raise and those we can receive.
+    involved_errors: HashMap<String, Vec<ErrorGroupContext>>,
     provides: Vec<SlotContext>,
     requires: Vec<SlotContext>,
     requires_with_generics: bool,
@@ -563,6 +691,7 @@ pub fn emit(manifest_path: PathBuf, everest_core: Vec<PathBuf>) -> Result<String
     env.add_filter("identifier", identifier_case);
     env.add_template("client", CLIENT_JINJA)?;
     env.add_template("config", CONFIG_JINJA)?;
+    env.add_template("errors", ERRORS_JINJA)?;
     env.add_template("module", MODULE_JINJA)?;
     env.add_template("service", SERVICE_JINJA)?;
     env.add_template("types", TYPES_JINJA)?;
@@ -638,9 +767,16 @@ pub fn emit(manifest_path: PathBuf, everest_core: Vec<PathBuf>) -> Result<String
         .iter()
         .any(|elem| elem.min_connections != 0 || elem.max_connections != 1);
 
+    let involved_errors = provided_interfaces
+        .iter()
+        .chain(required_interfaces.iter())
+        .map(|(key, value)| (key.clone(), value.errors.clone()))
+        .collect();
+
     let context = RenderContext {
         provided_interfaces: provided_interfaces.values().cloned().collect(),
         required_interfaces: required_interfaces.values().cloned().collect(),
+        involved_errors,
         provides,
         requires,
         requires_with_generics,
@@ -651,3 +787,6 @@ pub fn emit(manifest_path: PathBuf, everest_core: Vec<PathBuf>) -> Result<String
     let tmpl = env.get_template("module").unwrap();
     Ok(tmpl.render(context).unwrap())
 }
+
+#[cfg(test)]
+mod test {}

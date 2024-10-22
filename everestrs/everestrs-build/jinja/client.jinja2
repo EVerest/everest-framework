@@ -3,6 +3,16 @@ pub(crate) trait {{trait.name | title}}ClientSubscriber: Sync + Send {
 {% for var in trait.vars %}
    fn on_{{ var.name | snake }}(&self, context: &Context, value: {{ var.data_type.name }});
 {% endfor %}
+
+{% for error in trait.errors %}
+    /// Callback when the error is raised.
+    /// {{ error.description | replace("\n", " ")}}
+    fn on_error_{{ error.name | snake }}_raised(&self, context: &Context, value: {{ error.data_type.name }});
+
+    /// Callback when the error is cleared.
+    /// {{ error.description | replace("\n", " ")}}
+    fn on_error_{{ error.name | snake }}_cleared(&self, context: &Context, value: {{ error.data_type.name }});
+{% endfor %}
 }
 
 fn dispatch_variable_to_{{ trait.name | snake }}(
@@ -22,6 +32,35 @@ fn dispatch_variable_to_{{ trait.name | snake }}(
 {%- endfor %}
      _ => Err(::everestrs::Error::InvalidArgument("Unknown variable received.")),
    }
+}
+
+fn dispatch_error_to_{{ trait.name | snake }}(
+    context: &Context,
+    client_subscriber: &dyn {{trait.name | title}}ClientSubscriber,
+    error: ::everestrs::ffi::ErrorType,
+    raised: bool
+) {
+    // The error_type is something like "evse_manager/PowermeterTransactionStartFailed"
+    // The error_group is then "evse_manager". Not sure how this maps
+    // to the error namespaces.
+    let parts = error.error_type.split("/").collect::<Vec<_>>();
+    // I don't know what to do if there are no 2 elements..
+
+    match parts[0] {
+{%- for error in trait.errors %}
+        "{{ error.name }}" => {
+            let Ok(v) : {{ error.data_type.name }} = __serde_json::from_value(parts[1]) else {
+                return;
+            };
+            if raised {
+                client_subscriber.on_error_{{ error.name | snake }}_raised(context, v);
+            } else {
+                client_subscriber.on_error_{{ error.name | snake }}_cleared(context, v);
+            }
+        },
+{%- endfor }
+        _ => eprintln!("Unknown error {}", error.error_type),
+    }
 }
 
 pub(crate) mod __mockall_{{trait.name | snake }}_client {

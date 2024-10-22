@@ -1,0 +1,30 @@
+{%- for name, errors in involved_errors | items  %}
+    mod {{ name | snake }} {
+
+    {%- for error in errors %}
+
+        /// The error definition of the {{ name }} interface.
+        /// {{ error.description | replace("\n", " ") }}
+        #[derive(Debug, Clone, __serde::Serialize, __serde::Deserialize)]
+        #[serde(crate = "__serde")]
+        enum {{ error.name | title }}Error {
+            {%- for error_entry in error.errors %}
+            /// {{ error_entry.description | replace("\n", " ")}}
+            #[serde(rename = "{{ name }}/{{ error_entry.name }}")]
+            {{ error_entry.name | title}},
+            {%- endfor %}
+        }
+
+    {%- endfor %}
+
+        /// All possible errors of the {{ name }} interface.
+        #[derive(Debug, Clone, __serde::Serialize, __serde::Deserialize)]
+        #[serde(crate = "__serde")]
+        enum {{name | title}}Error {
+            {%- for error_entry in error.errors %}
+            #[serde(flatten)]
+            {{ error_entry.name | title}}({{ error_entry.name | title}}),
+            {%- endfor %}
+        }
+    }
+{%- endfor %}

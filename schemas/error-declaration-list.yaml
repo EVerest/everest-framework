@@ -21,6 +21,7 @@ $defs:
       description:
         type: string
         minLength: 2
+      # this is not used anywhere. what is the idea?
       namespace:
         type: string
         minLength: 2

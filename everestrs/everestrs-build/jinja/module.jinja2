@@ -19,6 +19,10 @@ pub mod types {
 {% include "types" %}
 }
 
+pub mod errors {
+{% include "errors" %}
+}
+
 {% include "config" %}
 
 /// Called when the module receives on_ready from EVerest.
@@ -208,6 +212,32 @@ impl ::everestrs::Subscriber for Module {
       _ => Err(::everestrs::Error::InvalidArgument(
                   "Unknown variable received.",
               ))
+        }
+    }
+
+    fn handle_on_error(
+        &self,
+        implementation_id: &str,
+        index: usize,
+        error_type: ::everestrs::ffi::ErrorType,
+        raised: bool
+    ) {
+        let context = Context {
+            publisher: &self.publisher,
+            name: implementation_id,
+            index,
+        };
+        match implementation_id {     
+{% for req in requires %}
+            "{{ req.implementation_id }}" => {
+    {% if req.min_connections == 1 and req.max_connections == 1 %}
+                dispatch_error_to_{{ req.interface | snake }}(&context, self.{{ req.implementation_id  | identifier }}.as_ref(), error, raised)
+    {% else %}
+                dispatch_error_to_{{ req.interface | snake }}(&context, self.{{ req.implementation_id  | identifier }}_slots[index].as_ref(), error, raised)
+    {% endif %}                
+            },
+{% endfor %}
+            _ => eprintln!("Received an unknonw error from {implementation_id}");
         }
     }
 
