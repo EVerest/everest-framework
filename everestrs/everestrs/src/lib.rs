@@ -19,6 +19,9 @@ static INIT_LOGGER_ONCE: Once = Once::new();
 // Reexport everything so the clients can use it.
 pub use serde;
 pub use serde_json;
+// TODO(ddo) Drop this again - its only there as a MVP for the enum support
+// of errors.
+pub use serde_yaml;
 
 #[derive(Error, Debug)]
 pub enum Error {
@@ -206,12 +209,7 @@ mod ffi {
 
         /// Clears an error
         /// If the error_type is empty, we will clear all errors from the module.
-        fn clear_error(
-            self: &Module,
-            implementation_id: &str,
-            error_type: &str,
-            clear_all: bool,
-        );
+        fn clear_error(self: &Module, implementation_id: &str, error_type: &str, clear_all: bool);
 
         /// Returns the module config from cpp.
         fn get_module_configs(module_id: &str, prefix: &str, conf: &str) -> Vec<RsModuleConfig>;
@@ -355,7 +353,13 @@ pub trait Subscriber: Sync + Send {
 
     /// Handler for the error raised/cleared callback
     /// The `raised` flag indicates if the error is raised or cleared.
-    fn handle_on_error(&self, implementation_id: &str, index: usize, error: ffi::ErrorType, raised: bool);
+    fn handle_on_error(
+        &self,
+        implementation_id: &str,
+        index: usize,
+        error: ffi::ErrorType,
+        raised: bool,
+    );
 
     fn on_ready(&self) {}
 }
@@ -539,25 +543,37 @@ impl Runtime {
     }
 
     /// Called from the generated code.
-    pub fn raise_error(&self, impl_id: &str, error: ffi::ErrorType) {
+    /// The type T should be an error.
+    pub fn raise_error<T: serde::Serialize>(&self, impl_id: &str, error: T) {
+        let error_string = serde_yaml::to_string(&error).unwrap_or_default();
+        // Remove the new line -> this should be gone once we stop usign yaml
+        // since we don't really want yaml.
+        let error_string = error_string.strip_suffix("/n").unwrap_or_default();
+
+        // TODO(ddo) for now we don't support calling passing the `description`,
+        // `message` and `severity` from the user code.
+        let error_type = ErrorType {
+            error_type: error_string.to_string(),
+            description: String::new(),
+            message: String::new(),
+            severity: ErrorSeverity::High,
+        };
         self.cpp_module
             .as_ref()
             .unwrap()
-            .raise_error(impl_id, error);
+            .raise_error(impl_id, error_type);
     }
 
     /// Called from the generated code.
-    pub fn clear_error(
-        &self,
-        impl_id: &str,
-        error_type: &str,
-        clear_all: bool,
-    ) {
-        self.cpp_module.as_ref().unwrap().clear_error(
-            impl_id,
-            error_type,
-            clear_all,
-        );
+    /// The type T should be an error.
+    pub fn clear_error<T: serde::Serialize>(&self, impl_id: &str, error: &T, clear_all: bool) {
+        let error_stirng = serde_yaml::to_string(&error).unwrap_or_default();
+        let error_string = error_stirng.strip_suffix("/n").unwrap_or_default();
+
+        self.cpp_module
+            .as_ref()
+            .unwrap()
+            .clear_error(impl_id, &error_string, clear_all);
     }
 }
 
