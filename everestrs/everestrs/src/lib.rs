@@ -310,6 +310,8 @@ mod logger {
 unsafe impl Sync for ffi::Module {}
 unsafe impl Send for ffi::Module {}
 
+pub use ffi::{ErrorSeverity, ErrorType};
+
 /// Arguments for an EVerest node.
 #[derive(FromArgs, Debug)]
 struct Args {
