@@ -119,7 +119,7 @@ impl Module {
     {% if require.min_connections == 1 and require.max_connections == 1 %}
             {{ require.implementation_id | identifier }},
     {% elif require.min_connections == require.max_connections %}
-            {{ require.implementation_id | identifier }}_slots: ::core::array::from_fn({{ require.implementation_id | identifier }}_cb),  
+            {{ require.implementation_id | identifier }}_slots: ::core::array::from_fn({{ require.implementation_id | identifier }}_cb),
     {% else %}
             {{ require.implementation_id | identifier }}_slots: (0..connections.get("{{require.implementation_id}}").cloned().unwrap_or(0)).map({{ require.implementation_id | identifier }}_cb).collect(),
     {% endif %}
@@ -227,17 +227,17 @@ impl ::everestrs::Subscriber for Module {
             name: implementation_id,
             index,
         };
-        match implementation_id {     
+        match implementation_id {
 {% for req in requires %}
             "{{ req.implementation_id }}" => {
     {% if req.min_connections == 1 and req.max_connections == 1 %}
                 dispatch_error_to_{{ req.interface | snake }}(&context, self.{{ req.implementation_id  | identifier }}.as_ref(), error, raised)
     {% else %}
                 dispatch_error_to_{{ req.interface | snake }}(&context, self.{{ req.implementation_id  | identifier }}_slots[index].as_ref(), error, raised)
-    {% endif %}                
+    {% endif %}
             },
 {% endfor %}
-            _ => eprintln!("Received an unknonw error from {implementation_id}");
+            _ => eprintln!("Received an unknonw error from {implementation_id}"),
         }
     }
 

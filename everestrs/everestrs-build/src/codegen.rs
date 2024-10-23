@@ -375,7 +375,7 @@ impl ErrorGroupContext {
 
             // The paths must look like `error/example`.
             if paths.len() != 2 {
-                panic!("The error path is ill-formed")
+                panic!("The error path is ill-formed: {paths:?}");
             }
 
             let error_path = ErrorPath {
@@ -767,11 +767,14 @@ pub fn emit(manifest_path: PathBuf, everest_core: Vec<PathBuf>) -> Result<String
         .iter()
         .any(|elem| elem.min_connections != 0 || elem.max_connections != 1);
 
-    let involved_errors = provided_interfaces
+    let mut involved_errors = provided_interfaces
         .iter()
         .chain(required_interfaces.iter())
         .map(|(key, value)| (key.clone(), value.errors.clone()))
-        .collect();
+        .collect::<HashMap<_, _>>();
+
+    // Remove the errors which are empty
+    involved_errors.retain(|_key, value| !value.is_empty());
 
     let context = RenderContext {
         provided_interfaces: provided_interfaces.values().cloned().collect(),

@@ -1,30 +1,27 @@
 {%- for name, errors in involved_errors | items  %}
-    mod {{ name | snake }} {
-
-    {%- for error in errors %}
-
+    pub mod {{ name | snake }} {
+        use everestrs::serde as __serde;
+    {%- for error_group in errors %}
         /// The error definition of the {{ name }} interface.
-        /// {{ error.description | replace("\n", " ") }}
+        /// {{ error_group.error_list.description | replace("\n", " ") }}
         #[derive(Debug, Clone, __serde::Serialize, __serde::Deserialize)]
         #[serde(crate = "__serde")]
-        enum {{ error.name | title }}Error {
-            {%- for error_entry in error.errors %}
+        pub enum {{ error_group.name | title }}Error {
+            {%- for error_entry in error_group.error_list.errors %}
             /// {{ error_entry.description | replace("\n", " ")}}
             #[serde(rename = "{{ name }}/{{ error_entry.name }}")]
             {{ error_entry.name | title}},
             {%- endfor %}
         }
-
     {%- endfor %}
-
         /// All possible errors of the {{ name }} interface.
         #[derive(Debug, Clone, __serde::Serialize, __serde::Deserialize)]
         #[serde(crate = "__serde")]
-        enum {{name | title}}Error {
-            {%- for error_entry in error.errors %}
+        pub enum Error {
+    {%- for error_group in errors %}
             #[serde(flatten)]
-            {{ error_entry.name | title}}({{ error_entry.name | title}}),
-            {%- endfor %}
+            {{ error_group.name | title }}Error({{ error_group.name | title }}Error),
+    {%- endfor %}
         }
     }
 {%- endfor %}
