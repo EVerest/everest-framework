@@ -147,9 +147,27 @@ public:
     json resolve_requirement(const std::string& module_id, const std::string& requirement_id) const;
 
     ///
+    /// \brief resolves all Requirements of the given \p module_id to their Fulfillments
+    ///
+    /// \returns a map indexed by Requirements
+    std::map<Requirement, Fulfillment> resolve_requirements(const std::string& module_id) const;
+
+    ///
     /// \returns a list of Requirements for \p module_id
     ///
     std::list<Requirement> get_requirements(const std::string& module_id) const;
+
+    ///
+    /// \brief A Fulfillment is a combination of a Requirement and the module and implementation ids where this is
+    /// implemented
+    /// \returns a map of Fulfillments for \p module_id
+    std::map<std::string, std::vector<Fulfillment>> get_fulfillments(const std::string& module_id) const;
+
+    ///
+    /// \brief A RequirementInitialization contains everything needed to initialize a requirement in user code. This
+    /// includes the Requirement, its Fulfillment and an optional Mapping
+    /// \returns a RequirementInitialization
+    RequirementInitialization get_requirement_initialization(const std::string& module_id) const;
 
     ///
     /// \brief checks if the config contains the given \p module_id
@@ -198,11 +216,11 @@ public:
 
     //
     /// \returns the 3 tier model mappings for the given \p module_id
-    std::optional<ModuleTierMappings> get_3_tier_model_mappings(const std::string& module_id);
+    std::optional<ModuleTierMappings> get_module_3_tier_model_mappings(const std::string& module_id) const;
 
     //
     /// \returns the 3 tier model mapping for the given \p module_id and \p impl_id
-    std::optional<Mapping> get_3_tier_model_mapping(const std::string& module_id, const std::string& impl_id);
+    std::optional<Mapping> get_3_tier_model_mapping(const std::string& module_id, const std::string& impl_id) const;
 
     ///
     /// \brief turns then given \p module_id into a printable identifier
