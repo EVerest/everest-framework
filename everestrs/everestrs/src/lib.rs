@@ -487,7 +487,7 @@ impl Runtime {
             message: String::new(),
             severity: ErrorSeverity::High,
         };
-        log::info!("Raising error {error_type:?} from {error:?}");
+        debug!("Raising error {error_type:?} from {error:?}");
         self.cpp_module
             .as_ref()
             .unwrap()
@@ -496,10 +496,16 @@ impl Runtime {
 
     /// Called from the generated code.
     /// The type T should be an error.
-    pub fn clear_error<T: serde::Serialize>(&self, impl_id: &str, error: T, clear_all: bool) {
-        let error_stirng = serde_yaml::to_string(&error).unwrap_or_default();
-        let error_string = error_stirng.strip_suffix("/n").unwrap_or_default();
+    pub fn clear_error<T: serde::Serialize + core::fmt::Debug>(
+        &self,
+        impl_id: &str,
+        error: T,
+        clear_all: bool,
+    ) {
+        let error_string = serde_yaml::to_string(&error).unwrap_or_default();
+        let error_string = error_string.strip_suffix("\n").unwrap_or(&error_string);
 
+        debug!("Clearing the {error_string} from {error:?}");
         self.cpp_module
             .as_ref()
             .unwrap()
