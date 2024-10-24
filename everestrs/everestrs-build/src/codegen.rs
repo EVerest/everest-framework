@@ -411,7 +411,6 @@ impl ErrorGroupContext {
 
             // Remove unused options.
             if let ErrorOption::Some(options) = error_option {
-                // panic!("The options are {options:?}");
                 error_group_context
                     .error_list
                     .errors
