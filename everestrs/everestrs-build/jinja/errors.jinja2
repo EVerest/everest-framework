@@ -20,7 +20,7 @@
         #[serde(untagged)]
         pub enum Error {
     {%- for error_group in errors %}
-            {{ error_group.name | title }}Error({{ error_group.name | title }}Error),
+            {{ error_group.name | title }}({{ error_group.name | title }}Error),
     {%- endfor %}
         }
     }

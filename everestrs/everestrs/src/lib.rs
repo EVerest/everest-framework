@@ -566,7 +566,7 @@ impl Runtime {
 
     /// Called from the generated code.
     /// The type T should be an error.
-    pub fn clear_error<T: serde::Serialize>(&self, impl_id: &str, error: &T, clear_all: bool) {
+    pub fn clear_error<T: serde::Serialize>(&self, impl_id: &str, error: T, clear_all: bool) {
         let error_stirng = serde_yaml::to_string(&error).unwrap_or_default();
         let error_string = error_stirng.strip_suffix("/n").unwrap_or_default();
 

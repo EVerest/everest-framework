@@ -69,11 +69,11 @@ impl {{trait.name | title }}ServicePublisher {
 
 {%- if trait.errors %}
     pub(crate) fn raise_error(&self, error: crate::generated::errors::{{ trait.name | snake }}::Error) {
-        // TODO(ddo) call here into the runtime
+        self.runtime.raise_error(self.implementation_id, error);
     }
 
     pub(crate) fn clear_error(&self, error: crate::generated::errors::{{ trait.name | snake }}::Error) {
-        // TODO(ddo) call here into the runtime
+        self.runtime.clear_error(self.implementation_id, error, true);
     }
 {%- endif %}
 }

@@ -16,3 +16,8 @@ thiserror = "1.0.48"
 [features]
 build_bazel = []
 link_gcov = []
+
+# We use this for the integration tests in this project.
+[dev-dependencies]
+mockall = "0.13.0"
+mockall_double = "0.3.1"
