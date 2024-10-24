@@ -1,0 +1,16 @@
+description: Tests for the Errors
+provides:
+  duplicate:
+    interface: errors_duplicate
+    description: Duplicated errors
+  multiple:
+    interface: errors_multiple
+    description: Multiple errors
+  selected:
+    interface: errors_selected
+    description: Selected errors
+metadata:
+  license: https://opensource.org/licenses/Apache-2.0
+  authors:
+    - Everest authors
+enable_external_mqtt: false
