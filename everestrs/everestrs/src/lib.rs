@@ -123,6 +123,7 @@ mod ffi {
         slots: usize,
     }
 
+    #[derive(Debug)]
     pub enum ErrorSeverity {
         Low,
         Medium,
@@ -130,6 +131,7 @@ mod ffi {
     }
 
     /// Rust's version of the `<utils/error.hpp>`'s Error.
+    #[derive(Debug)]
     pub struct ErrorType {
         /// The type of the error. We generate that in the codegen. The
         /// full error type looks like "evse_manager/PowermeterTransactionStartFailed"
@@ -229,7 +231,10 @@ impl ffi::JsonBlob {
 
     fn deserialize<T: DeserializeOwned>(self) -> T {
         // TODO(hrapp): Error handling
-        serde_json::from_slice(self.as_bytes()).unwrap()
+        serde_json::from_slice(self.as_bytes()).expect(&format!(
+            "Failed to deserialize {:?}",
+            String::from_utf8_lossy(self.as_bytes())
+        ))
     }
 
     fn from_vec(data: Vec<u8>) -> Self {
@@ -466,6 +471,41 @@ impl Runtime {
         serde_json::from_slice(&return_value.data).unwrap()
     }
 
+    /// Called from the generated code.
+    /// The type T should be an error.
+    pub fn raise_error<T: serde::Serialize + core::fmt::Debug>(&self, impl_id: &str, error: T) {
+        let error_string = serde_yaml::to_string(&error).unwrap_or_default();
+        // Remove the new line -> this should be gone once we stop usign yaml
+        // since we don't really want yaml.
+        let error_string = error_string.strip_suffix("\n").unwrap_or(&error_string);
+
+        // TODO(ddo) for now we don't support calling passing the `description`,
+        // `message` and `severity` from the user code.
+        let error_type = ErrorType {
+            error_type: error_string.to_string(),
+            description: String::new(),
+            message: String::new(),
+            severity: ErrorSeverity::High,
+        };
+        log::info!("Raising error {error_type:?} from {error:?}");
+        self.cpp_module
+            .as_ref()
+            .unwrap()
+            .raise_error(impl_id, error_type);
+    }
+
+    /// Called from the generated code.
+    /// The type T should be an error.
+    pub fn clear_error<T: serde::Serialize>(&self, impl_id: &str, error: T, clear_all: bool) {
+        let error_stirng = serde_yaml::to_string(&error).unwrap_or_default();
+        let error_string = error_stirng.strip_suffix("/n").unwrap_or_default();
+
+        self.cpp_module
+            .as_ref()
+            .unwrap()
+            .clear_error(impl_id, &error_string, clear_all);
+    }
+
     // TODO(hrapp): This function could use some error handling.
     pub fn new() -> Pin<Arc<Self>> {
         let args: Args = argh::from_env();
@@ -496,7 +536,7 @@ impl Runtime {
         // Subscriber.
         for (implementation_id, provides) in manifest.provides {
             let interface_s = self.cpp_module.get_interface(&provides.interface);
-            let interface: schema::Interface = interface_s.deserialize();
+            let interface: schema::InterfaceFromEverest = interface_s.deserialize();
             for (name, _) in interface.cmds {
                 self.cpp_module.as_ref().unwrap().provide_command(
                     self,
@@ -511,7 +551,7 @@ impl Runtime {
         // Subscribe to all variables that might be of interest.
         for (implementation_id, requires) in manifest.requires {
             let interface_s = self.cpp_module.get_interface(&requires.interface);
-            let interface: schema::Interface = interface_s.deserialize();
+            let interface: schema::InterfaceFromEverest = interface_s.deserialize();
 
             for i in 0usize..connections.get(&implementation_id).cloned().unwrap_or(0) {
                 for (name, _) in interface.vars.iter() {
@@ -540,40 +580,6 @@ impl Runtime {
             .into_iter()
             .map(|connection| (connection.implementation_id, connection.slots))
             .collect()
-    }
-
-    /// Called from the generated code.
-    /// The type T should be an error.
-    pub fn raise_error<T: serde::Serialize>(&self, impl_id: &str, error: T) {
-        let error_string = serde_yaml::to_string(&error).unwrap_or_default();
-        // Remove the new line -> this should be gone once we stop usign yaml
-        // since we don't really want yaml.
-        let error_string = error_string.strip_suffix("/n").unwrap_or_default();
-
-        // TODO(ddo) for now we don't support calling passing the `description`,
-        // `message` and `severity` from the user code.
-        let error_type = ErrorType {
-            error_type: error_string.to_string(),
-            description: String::new(),
-            message: String::new(),
-            severity: ErrorSeverity::High,
-        };
-        self.cpp_module
-            .as_ref()
-            .unwrap()
-            .raise_error(impl_id, error_type);
-    }
-
-    /// Called from the generated code.
-    /// The type T should be an error.
-    pub fn clear_error<T: serde::Serialize>(&self, impl_id: &str, error: T, clear_all: bool) {
-        let error_stirng = serde_yaml::to_string(&error).unwrap_or_default();
-        let error_string = error_stirng.strip_suffix("/n").unwrap_or_default();
-
-        self.cpp_module
-            .as_ref()
-            .unwrap()
-            .clear_error(impl_id, &error_string, clear_all);
     }
 }
 

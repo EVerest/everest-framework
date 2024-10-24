@@ -4,6 +4,7 @@ use std::collections::BTreeMap;
 use super::types::Type;
 
 #[derive(Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct Interface {
     pub description: String,
     #[serde(default)]
@@ -14,6 +15,17 @@ pub struct Interface {
     /// we reference an error file.
     #[serde(default)]
     pub errors: Vec<ErrorReference>,
+}
+
+/// The same as the one above but the cpp runtime returns the errors as a map
+/// contrary to the definition inside the yaml file...
+#[derive(Debug, Deserialize, Serialize)]
+pub struct InterfaceFromEverest {
+    pub description: String,
+    #[serde(default)]
+    pub cmds: BTreeMap<String, Command>,
+    #[serde(default)]
+    pub vars: BTreeMap<String, Type>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
