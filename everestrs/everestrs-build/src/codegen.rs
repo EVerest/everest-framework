@@ -389,6 +389,7 @@ impl ErrorGroupContext {
             // We don't "downgrade" `All` to `Some`.
             if let ErrorOption::Some(options) = &mut error_definition {
                 if let Some(new_option) = parts.get(1) {
+                    let new_option = new_option.strip_prefix("/").unwrap_or(new_option);
                     options.insert(new_option.to_string());
                 } else {
                     *error_definition = ErrorOption::All;
@@ -410,6 +411,7 @@ impl ErrorGroupContext {
 
             // Remove unused options.
             if let ErrorOption::Some(options) = error_option {
+                // panic!("The options are {options:?}");
                 error_group_context
                     .error_list
                     .errors
