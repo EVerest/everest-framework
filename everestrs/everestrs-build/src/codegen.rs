@@ -325,6 +325,55 @@ struct ErrorGroupContext {
     error_list: schema::error::ErrorList,
 }
 
+mod impl_error {
+    #[derive(Hash, Eq, PartialEq)]
+    pub struct ErrorPath<'a> {
+        /// The prefix where the error files are.
+        pub prefix: &'a str,
+
+        /// The error file itself.
+        pub file: &'a str,
+    }
+
+    pub struct ErrorDefinition<'a> {
+        /// The path of the error.
+        pub path: ErrorPath<'a>,
+
+        /// The type which is optional. If the type is not defined we accept
+        /// all errors in the path.
+        pub error_type: Option<&'a str>,
+    }
+
+    impl<'a> ErrorDefinition<'a> {
+        /// Try to construct an error definition from the string.
+        pub fn try_new(value: &'a str) -> anyhow::Result<Self> {
+            let mut splits = value.split("#/");
+            let path = splits.next().ok_or(anyhow::anyhow!("No path defined"))?;
+
+            // Split the path and remove the empty parts.
+            // (The first element might be empty if we have a leading `/`).
+            let paths = path
+                .split("/")
+                .filter(|path| !path.is_empty())
+                .collect::<Vec<_>>();
+
+            anyhow::ensure!(paths.len() == 2);
+            anyhow::ensure!(paths.iter().all(|path| !path.is_empty()));
+
+            let path = ErrorPath {
+                prefix: paths[0],
+                file: paths[1],
+            };
+
+            let error_type = splits.next();
+            if let Some(inner) = error_type {
+                anyhow::ensure!(!inner.is_empty());
+            }
+            Ok(Self { path, error_type })
+        }
+    }
+}
+
 impl ErrorGroupContext {
     /// Generates the [ErrorGroupContext] from the `error_reference`.
     ///
@@ -335,16 +384,6 @@ impl ErrorGroupContext {
     /// The first type is straight forward. For the second type however, we want
     /// to group them by their file name.
     fn from_yaml(yaml_repo: &mut YamlRepo, errors: &[ErrorReference]) -> Vec<Self> {
-        // We load all of the error files.
-        #[derive(Hash, Eq, PartialEq)]
-        struct ErrorPath<'a> {
-            /// The prefix where the error files are.
-            prefix: &'a str,
-
-            /// The error file itself.
-            file: &'a str,
-        }
-
         // The errors may be defined multiple times. If we find a definition
         // which would use all, we use all. Otherwise we use the specific
         // defintions.
@@ -359,37 +398,15 @@ impl ErrorGroupContext {
         // Find all the error options defined.
         let mut error_definitions = HashMap::new();
         for error_ref in errors {
-            let parts = error_ref.reference.split("#").collect::<Vec<_>>();
-            // If we cannot split by the `#` then we don't understand the
-            // format.
-            if parts.len() < 1 {
-                panic!("The error definition is invalid {parts:?}");
-            }
-
-            // Split the path and remove the empty parts.
-            // (The first element might be empty if we have a leading `/`).
-            let paths = parts[0]
-                .split("/")
-                .filter(|path| !path.is_empty())
-                .collect::<Vec<_>>();
-
-            // The paths must look like `error/example`.
-            if paths.len() != 2 {
-                panic!("The error path is ill-formed: {paths:?}");
-            }
-
-            let error_path = ErrorPath {
-                prefix: paths[0],
-                file: paths[1],
-            };
+            let new_error = impl_error::ErrorDefinition::try_new(&error_ref.reference)
+                .expect("Failed to parse {error_ref}");
 
             let mut error_definition = error_definitions
-                .entry(error_path)
+                .entry(new_error.path)
                 .or_insert(ErrorOption::Some(HashSet::new()));
             // We don't "downgrade" `All` to `Some`.
             if let ErrorOption::Some(options) = &mut error_definition {
-                if let Some(new_option) = parts.get(1) {
-                    let new_option = new_option.strip_prefix("/").unwrap_or(new_option);
+                if let Some(new_option) = new_error.error_type {
                     options.insert(new_option.to_string());
                 } else {
                     *error_definition = ErrorOption::All;
@@ -793,4 +810,47 @@ pub fn emit(manifest_path: PathBuf, everest_core: Vec<PathBuf>) -> Result<String
     };
     let tmpl = env.get_template("module").unwrap();
     Ok(tmpl.render(context).unwrap())
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test_split_paths_invalid() {
+        use super::impl_error::*;
+        let invalid_input = [
+            "/foo/bar/baz", // too many
+            "/foo",         // too view,
+            "/foo/",        // no type
+            "//foo",        // no path,
+            "",             // just empty
+        ];
+
+        for input in invalid_input {
+            assert!(ErrorDefinition::try_new(input).is_err());
+        }
+    }
+
+    #[test]
+    fn test_split_paths() {
+        use super::impl_error::*;
+        let res = ErrorDefinition::try_new("/foo/bar#/baz").unwrap();
+        assert_eq!(res.path.prefix, "foo");
+        assert_eq!(res.path.file, "bar");
+        assert!(matches!(res.error_type, Some("baz")));
+
+        let res = ErrorDefinition::try_new("/foo/bar").unwrap();
+        assert_eq!(res.path.prefix, "foo");
+        assert_eq!(res.path.file, "bar");
+        assert!(res.error_type.is_none());
+
+        let res = ErrorDefinition::try_new("foo/bar#/baz").unwrap();
+        assert_eq!(res.path.prefix, "foo");
+        assert_eq!(res.path.file, "bar");
+        assert!(matches!(res.error_type, Some("baz")));
+
+        let res = ErrorDefinition::try_new("foo/bar").unwrap();
+        assert_eq!(res.path.prefix, "foo");
+        assert_eq!(res.path.file, "bar");
+        assert!(res.error_type.is_none());
+    }
 }
