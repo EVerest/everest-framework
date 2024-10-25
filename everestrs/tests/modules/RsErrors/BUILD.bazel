@@ -34,10 +34,8 @@ rust_binary(
 
 rust_test(
     name = "RsErrorsTest",
+    deps = ["@crate_index//:serde_yaml"],
     edition="2021",
-    deps = ["@crate_index//:mockall",],
-    proc_macro_deps = ["@crate_index//:mockall_double",],
     srcs = [],
-    crate_features = ["mockall", "mockall_double"],
     crate = ":RsErrors",
 )

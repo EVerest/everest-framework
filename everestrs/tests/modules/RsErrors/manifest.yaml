@@ -9,6 +9,12 @@ provides:
   selected:
     interface: errors_selected
     description: Selected errors
+  none:
+    interface: errors_none
+    description: No errors defined
+  empty:
+    interface: empty
+    description: An empty interface
 metadata:
   license: https://opensource.org/licenses/Apache-2.0
   authors:

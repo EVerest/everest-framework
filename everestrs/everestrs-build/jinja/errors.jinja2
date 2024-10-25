@@ -4,7 +4,7 @@
     {%- for error_group in errors %}
         /// The error definition of the {{ name }} interface.
         /// {{ error_group.error_list.description | replace("\n", " ") }}
-        #[derive(Debug, Clone, __serde::Serialize, __serde::Deserialize)]
+        #[derive(Debug, Clone, PartialEq, __serde::Serialize, __serde::Deserialize)]
         #[serde(crate = "__serde")]
         pub enum {{ error_group.name | title }}Error {
             {%- for error_entry in error_group.error_list.errors %}
@@ -15,7 +15,7 @@
         }
     {%- endfor %}
         /// All possible errors of the {{ name }} interface.
-        #[derive(Debug, Clone, __serde::Serialize, __serde::Deserialize)]
+        #[derive(Debug, Clone, PartialEq, __serde::Serialize, __serde::Deserialize)]
         #[serde(crate = "__serde")]
         #[serde(untagged)]
         pub enum Error {

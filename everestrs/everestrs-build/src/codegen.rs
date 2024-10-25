@@ -417,7 +417,12 @@ impl ErrorGroupContext {
                     .retain(|e| options.contains(&e.name));
             }
 
-            output.push(error_group_context);
+            // The yaml file might have no errors defined at all. This would
+            // still comply with the EVerest schema but the user can't do
+            // anything with it.
+            if !error_group_context.error_list.errors.is_empty() {
+                output.push(error_group_context);
+            }
         }
 
         output
@@ -768,14 +773,12 @@ pub fn emit(manifest_path: PathBuf, everest_core: Vec<PathBuf>) -> Result<String
         .iter()
         .any(|elem| elem.min_connections != 0 || elem.max_connections != 1);
 
-    let mut involved_errors = provided_interfaces
+    let involved_errors = provided_interfaces
         .iter()
         .chain(required_interfaces.iter())
+        .filter(|(_key, value)| !value.errors.is_empty())
         .map(|(key, value)| (key.clone(), value.errors.clone()))
         .collect::<HashMap<_, _>>();
-
-    // Remove the errors which are empty
-    involved_errors.retain(|_key, value| !value.is_empty());
 
     let context = RenderContext {
         provided_interfaces: provided_interfaces.values().cloned().collect(),
@@ -791,6 +794,3 @@ pub fn emit(manifest_path: PathBuf, everest_core: Vec<PathBuf>) -> Result<String
     let tmpl = env.get_template("module").unwrap();
     Ok(tmpl.render(context).unwrap())
 }
-
-#[cfg(test)]
-mod test {}
