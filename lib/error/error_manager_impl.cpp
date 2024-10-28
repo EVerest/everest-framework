@@ -14,7 +14,8 @@
 namespace Everest {
 namespace error {
 
-ErrorManagerImpl::ErrorManagerImpl(ErrorTypeMapPtr error_type_map_, std::shared_ptr<ErrorDatabase> error_database_,
+ErrorManagerImpl::ErrorManagerImpl(ErrorTypeMap::ConstPtr error_type_map_,
+                                   std::shared_ptr<ErrorDatabase> error_database_,
                                    std::list<ErrorType> allowed_error_types_,
                                    ErrorManagerImpl::PublishErrorFunc publish_raised_error_,
                                    ErrorManagerImpl::PublishErrorFunc publish_cleared_error_,

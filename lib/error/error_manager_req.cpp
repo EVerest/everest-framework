@@ -12,7 +12,7 @@
 namespace Everest {
 namespace error {
 
-ErrorManagerReq::ErrorManagerReq(ErrorTypeMapPtr error_type_map_, std::shared_ptr<ErrorDatabase> error_database_,
+ErrorManagerReq::ErrorManagerReq(ErrorTypeMap::ConstPtr error_type_map_, std::shared_ptr<ErrorDatabase> error_database_,
                                  std::list<ErrorType> allowed_error_types_, SubscribeErrorFunc subscribe_error_func_) :
     error_type_map(error_type_map_),
     database(error_database_),

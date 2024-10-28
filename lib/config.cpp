@@ -551,7 +551,7 @@ Config::Config(std::shared_ptr<RuntimeSettings> rs, bool manager) : rs(rs), mana
     parse_3_tier_model_mapping();
 }
 
-error::ErrorTypeMapPtr Config::get_error_map() const {
+error::ErrorTypeMap::ConstPtr Config::get_error_map() const {
     return this->error_map;
 }
 

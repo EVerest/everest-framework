@@ -9,7 +9,7 @@
 namespace Everest {
 namespace error {
 
-ErrorManagerReqGlobal::ErrorManagerReqGlobal(ErrorTypeMapPtr error_type_map_,
+ErrorManagerReqGlobal::ErrorManagerReqGlobal(ErrorTypeMap::ConstPtr error_type_map_,
                                              std::shared_ptr<ErrorDatabase> error_database_,
                                              SubscribeGlobalAllErrorsFunc subscribe_global_all_errors_func_) :
     error_type_map(error_type_map_),

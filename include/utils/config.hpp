@@ -123,7 +123,7 @@ private:
 
     void load_and_validate_manifest(const std::string& module_id, const json& module_config);
 
-    error::ErrorTypeMapPtr error_map;
+    error::ErrorTypeMap::ConstPtr error_map;
 
     ///
     /// \brief loads and validates the given file \p file_path with the schema \p schema
@@ -132,7 +132,7 @@ private:
     std::tuple<json, int> load_and_validate_with_schema(const fs::path& file_path, const json& schema);
 
 public:
-    error::ErrorTypeMapPtr get_error_map() const;
+    error::ErrorTypeMap::ConstPtr get_error_map() const;
     std::string get_module_name(const std::string& module_id) const;
     bool module_provides(const std::string& module_name, const std::string& impl_id);
     json get_module_cmds(const std::string& module_name, const std::string& impl_id);

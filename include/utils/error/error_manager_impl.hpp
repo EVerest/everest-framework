@@ -20,7 +20,7 @@ class ErrorManagerImpl {
 public:
     using PublishErrorFunc = std::function<void(const error::Error&)>;
 
-    ErrorManagerImpl(ErrorTypeMapPtr error_type_map, std::shared_ptr<ErrorDatabase> error_database,
+    ErrorManagerImpl(ErrorTypeMap::ConstPtr error_type_map, std::shared_ptr<ErrorDatabase> error_database,
                      std::list<ErrorType> allowed_error_types, PublishErrorFunc publish_raised_error,
                      PublishErrorFunc publish_cleared_error, const bool validate_error_types = true);
 
@@ -62,7 +62,7 @@ private:
     PublishErrorFunc publish_cleared_error;
 
     std::shared_ptr<ErrorDatabase> database;
-    ErrorTypeMapPtr error_type_map;
+    ErrorTypeMap::ConstPtr error_type_map;
     std::list<ErrorType> allowed_error_types;
 
     const bool validate_error_types;

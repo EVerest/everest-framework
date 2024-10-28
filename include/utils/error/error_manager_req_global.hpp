@@ -20,7 +20,7 @@ class ErrorManagerReqGlobal {
 public:
     using SubscribeGlobalAllErrorsFunc = std::function<void(const ErrorCallback&, const ErrorCallback&)>;
 
-    ErrorManagerReqGlobal(ErrorTypeMapPtr error_type_map, std::shared_ptr<ErrorDatabase> error_database,
+    ErrorManagerReqGlobal(ErrorTypeMap::ConstPtr error_type_map, std::shared_ptr<ErrorDatabase> error_database,
                           SubscribeGlobalAllErrorsFunc subscribe_global_all_errors_func);
 
     void subscribe_global_all_errors(const ErrorCallback& callback, const ErrorCallback& clear_callback);
@@ -39,7 +39,7 @@ private:
 
     SubscribeGlobalAllErrorsFunc subscribe_global_all_errors_func;
 
-    ErrorTypeMapPtr error_type_map;
+    ErrorTypeMap::ConstPtr error_type_map;
     std::shared_ptr<ErrorDatabase> database;
 };
 

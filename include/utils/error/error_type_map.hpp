@@ -53,13 +53,13 @@ public:
     ///
     bool has(const ErrorType& error_type) const;
 
+    /// Const pointer to a ErrorTypeMap. This is the default how we share the
+    /// error type map between different classes.
+    using ConstPtr = std::shared_ptr<const ErrorTypeMap>;
+
 private:
     std::map<ErrorType, std::string> error_types;
 };
-
-/// Const pointer to a ErrorTypeMap. This is the default how we share the error
-/// map between different types.
-using ErrorTypeMapPtr = std::shared_ptr<const ErrorTypeMap>;
 
 } // namespace error
 } // namespace Everest
