@@ -5,6 +5,9 @@
 #define UTILS_ERROR_TYPE_MAP_HPP
 
 #include <filesystem>
+#include <map>
+#include <memory>
+#include <string>
 
 #include <utils/error.hpp>
 
@@ -53,6 +56,10 @@ public:
 private:
     std::map<ErrorType, std::string> error_types;
 };
+
+/// Const pointer to a ErrorTypeMap. This is the default how we share the error
+/// map between different types.
+using ErrorTypeMapPtr = std::shared_ptr<const ErrorTypeMap>;
 
 } // namespace error
 } // namespace Everest

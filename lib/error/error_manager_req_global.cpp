@@ -5,12 +5,11 @@
 
 #include <everest/logging.hpp>
 #include <utils/error/error_database.hpp>
-#include <utils/error/error_type_map.hpp>
 
 namespace Everest {
 namespace error {
 
-ErrorManagerReqGlobal::ErrorManagerReqGlobal(std::shared_ptr<ErrorTypeMap> error_type_map_,
+ErrorManagerReqGlobal::ErrorManagerReqGlobal(ErrorTypeMapPtr error_type_map_,
                                              std::shared_ptr<ErrorDatabase> error_database_,
                                              SubscribeGlobalAllErrorsFunc subscribe_global_all_errors_func_) :
     error_type_map(error_type_map_),

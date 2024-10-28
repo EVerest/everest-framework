@@ -5,6 +5,7 @@
 #define UTILS_ERROR_MANAGER_REQ_HPP
 
 #include <utils/error.hpp>
+#include <utils/error/error_type_map.hpp>
 
 #include <list>
 #include <map>
@@ -14,13 +15,12 @@ namespace Everest {
 namespace error {
 
 struct ErrorDatabase;
-struct ErrorTypeMap;
 
 class ErrorManagerReq {
 public:
     using SubscribeErrorFunc = std::function<void(const ErrorType&, const ErrorCallback&, const ErrorCallback&)>;
 
-    ErrorManagerReq(std::shared_ptr<ErrorTypeMap> error_type_map, std::shared_ptr<ErrorDatabase> error_database,
+    ErrorManagerReq(ErrorTypeMapPtr error_type_map, std::shared_ptr<ErrorDatabase> error_database,
                     std::list<ErrorType> allowed_error_types, SubscribeErrorFunc subscribe_error_func);
 
     void subscribe_error(const ErrorType& type, const ErrorCallback& callback, const ErrorCallback& clear_callback);
@@ -42,7 +42,7 @@ private:
 
     SubscribeErrorFunc subscribe_error_func;
 
-    std::shared_ptr<ErrorTypeMap> error_type_map;
+    ErrorTypeMapPtr error_type_map;
     std::shared_ptr<ErrorDatabase> database;
     std::list<ErrorType> allowed_error_types;
 };

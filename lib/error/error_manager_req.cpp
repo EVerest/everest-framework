@@ -6,15 +6,13 @@
 #include <utils/error.hpp>
 #include <utils/error/error_database.hpp>
 #include <utils/error/error_filter.hpp>
-#include <utils/error/error_type_map.hpp>
 
 #include <everest/logging.hpp>
 
 namespace Everest {
 namespace error {
 
-ErrorManagerReq::ErrorManagerReq(std::shared_ptr<ErrorTypeMap> error_type_map_,
-                                 std::shared_ptr<ErrorDatabase> error_database_,
+ErrorManagerReq::ErrorManagerReq(ErrorTypeMapPtr error_type_map_, std::shared_ptr<ErrorDatabase> error_database_,
                                  std::list<ErrorType> allowed_error_types_, SubscribeErrorFunc subscribe_error_func_) :
     error_type_map(error_type_map_),
     database(error_database_),

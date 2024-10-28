@@ -73,8 +73,7 @@ Everest::Everest(std::string module_id_, const Config& config_, bool validate_da
                 this->subscribe_global_all_errors(callback, clear_callback);
             };
         this->global_error_manager = std::make_shared<error::ErrorManagerReqGlobal>(
-            std::make_shared<error::ErrorTypeMap>(this->config.get_error_map()), global_error_database,
-            subscribe_global_all_errors_func);
+            this->config.get_error_map(), global_error_database, subscribe_global_all_errors_func);
         this->global_error_state_monitor = std::make_shared<error::ErrorStateMonitor>(global_error_database);
     } else {
         this->global_error_manager = nullptr;
@@ -103,9 +102,9 @@ Everest::Everest(std::string module_id_, const Config& config_, bool validate_da
         error::ErrorManagerImpl::PublishErrorFunc publish_cleared_error = [this, impl](const error::Error& error) {
             this->publish_cleared_error(impl, error);
         };
-        this->impl_error_managers[impl] = std::make_shared<error::ErrorManagerImpl>(
-            std::make_shared<error::ErrorTypeMap>(this->config.get_error_map()), error_database, allowed_error_types,
-            publish_raised_error, publish_cleared_error);
+        this->impl_error_managers[impl] =
+            std::make_shared<error::ErrorManagerImpl>(this->config.get_error_map(), error_database, allowed_error_types,
+                                                      publish_raised_error, publish_cleared_error);
 
         // setup error state monitor
         this->impl_error_state_monitors[impl] = std::make_shared<error::ErrorStateMonitor>(error_database);
@@ -153,8 +152,8 @@ Everest::Everest(std::string module_id_, const Config& config_, bool validate_da
 
         // setup error factory
         ImplementationIdentifier default_origin(this->module_id, impl, mapping);
-        this->error_factories[impl] = std::make_shared<error::ErrorFactory>(
-            std::make_shared<error::ErrorTypeMap>(this->config.get_error_map()), default_origin);
+        this->error_factories[impl] =
+            std::make_shared<error::ErrorFactory>(this->config.get_error_map(), default_origin);
     }
 
     // setup error_databases, error_managers and error_state_monitors for all requirements
@@ -177,8 +176,7 @@ Everest::Everest(std::string module_id_, const Config& config_, bool validate_da
                 this->subscribe_error(req, type, callback, clear_callback);
             };
         this->req_error_managers[req] = std::make_shared<error::ErrorManagerReq>(
-            std::make_shared<error::ErrorTypeMap>(this->config.get_error_map()), error_database, allowed_error_types,
-            subscribe_error_func);
+            this->config.get_error_map(), error_database, allowed_error_types, subscribe_error_func);
 
         // setup error state monitor
         this->req_error_state_monitors[req] = std::make_shared<error::ErrorStateMonitor>(error_database);

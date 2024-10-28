@@ -8,24 +8,23 @@
 namespace Everest {
 namespace error {
 
-ErrorFactory::ErrorFactory(std::shared_ptr<ErrorTypeMap> error_type_map_) :
+ErrorFactory::ErrorFactory(ErrorTypeMapPtr error_type_map_) :
     ErrorFactory(error_type_map_, std::nullopt, std::nullopt, std::nullopt, std::nullopt, std::nullopt, std::nullopt,
                  std::nullopt) {
 }
 
-ErrorFactory::ErrorFactory(std::shared_ptr<ErrorTypeMap> error_type_map_, ImplementationIdentifier default_origin_) :
+ErrorFactory::ErrorFactory(ErrorTypeMapPtr error_type_map_, ImplementationIdentifier default_origin_) :
     ErrorFactory(error_type_map_, default_origin_, std::nullopt, std::nullopt, std::nullopt, std::nullopt, std::nullopt,
                  std::nullopt) {
 }
 
-ErrorFactory::ErrorFactory(std::shared_ptr<ErrorTypeMap> error_type_map_, ImplementationIdentifier default_origin_,
+ErrorFactory::ErrorFactory(ErrorTypeMapPtr error_type_map_, ImplementationIdentifier default_origin_,
                            Severity default_severity_) :
     ErrorFactory(error_type_map_, default_origin_, default_severity_, std::nullopt, std::nullopt, std::nullopt,
                  std::nullopt, std::nullopt) {
 }
 
-ErrorFactory::ErrorFactory(std::shared_ptr<ErrorTypeMap> error_type_map_,
-                           std::optional<ImplementationIdentifier> default_origin_,
+ErrorFactory::ErrorFactory(ErrorTypeMapPtr error_type_map_, std::optional<ImplementationIdentifier> default_origin_,
                            std::optional<Severity> default_severity_, std::optional<State> default_state_,
                            std::optional<ErrorType> default_type_, std::optional<ErrorSubType> default_sub_type_,
                            std::optional<std::string> default_message_, std::optional<std::string> default_vendor_id_) :
