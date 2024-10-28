@@ -73,8 +73,6 @@ Everest::Everest(std::string module_id_, const Config& config_, bool validate_da
                 this->subscribe_global_all_errors(callback, clear_callback);
             };
         this->global_error_manager = std::make_shared<error::ErrorManagerReqGlobal>(
-            // it would seem that instead of sharing one error type map we copy
-            // it over at least 4 times below... why??
             std::make_shared<error::ErrorTypeMap>(this->config.get_error_map()), global_error_database,
             subscribe_global_all_errors_func);
         this->global_error_state_monitor = std::make_shared<error::ErrorStateMonitor>(global_error_database);

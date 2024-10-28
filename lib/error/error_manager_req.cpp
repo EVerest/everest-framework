@@ -77,9 +77,6 @@ void ErrorManagerReq::on_error_cleared(const Error& error) {
         EVLOG_error << "Error wasn't raised, type: " << error.type << ", sub_type: " << error.sub_type << ", ignored.";
         return;
     }
-    // so if multiple errors are cleared we don't notify the client's callback
-    // how would then the use code learn that the errors are cleared? and why
-    // is this an error?
     if (res.size() > 1) {
         EVLOG_error << "More than one error is cleared, type: " << error.type << ", sub_type: " << error.sub_type
                     << ", ignored.";

@@ -37,7 +37,6 @@ void ErrorTypeMap::load_error_types(std::filesystem::path error_types_dir) {
             continue;
         }
         if (!error_type_file.at("errors").is_array()) {
-            // why is this an error if the schema allows it?
             EVLOG_error << "Error type file '" << entry.path().string()
                         << "' does not contain an array with key 'errors', skipped.";
             continue;
@@ -49,8 +48,6 @@ void ErrorTypeMap::load_error_types(std::filesystem::path error_types_dir) {
                 continue;
             }
             std::string description;
-            // the description is requried in the schema? why are we still
-            // continuing?
             if (!error.contains("description")) {
                 EVLOG_error << "Error type file '" << entry.path().string()
                             << "' contains an error without a 'description' key, using default description";

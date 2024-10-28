@@ -475,7 +475,7 @@ impl Runtime {
     /// The type T should be an error.
     pub fn raise_error<T: serde::Serialize + core::fmt::Debug>(&self, impl_id: &str, error: T) {
         let error_string = serde_yaml::to_string(&error).unwrap_or_default();
-        // Remove the new line -> this should be gone once we stop usign yaml
+        // Remove the new line -> this should be gone once we stop using yaml
         // since we don't really want yaml.
         let error_string = error_string.strip_suffix("\n").unwrap_or(&error_string);
 
