@@ -357,8 +357,11 @@ mod impl_error {
                 .filter(|path| !path.is_empty())
                 .collect::<Vec<_>>();
 
-            anyhow::ensure!(paths.len() == 2);
-            anyhow::ensure!(paths.iter().all(|path| !path.is_empty()));
+            anyhow::ensure!(paths.len() == 2, "Expecting exactly two paths");
+            anyhow::ensure!(
+                paths.iter().all(|path| !path.is_empty()),
+                "Empty paths not allowed"
+            );
 
             let path = ErrorPath {
                 prefix: paths[0],
@@ -367,7 +370,7 @@ mod impl_error {
 
             let error_type = splits.next();
             if let Some(inner) = error_type {
-                anyhow::ensure!(!inner.is_empty());
+                anyhow::ensure!(!inner.is_empty(), "Type must not be empty");
             }
             Ok(Self { path, error_type })
         }
