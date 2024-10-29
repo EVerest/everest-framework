@@ -819,7 +819,7 @@ mod tests {
         use super::impl_error::*;
         let invalid_input = [
             "/foo/bar/baz", // too many
-            "/foo",         // too view,
+            "/foo",         // too few,
             "/foo/",        // no type
             "//foo",        // no path,
             "",             // just empty
