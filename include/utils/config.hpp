@@ -105,12 +105,17 @@ private:
 
     ///
     /// \brief Parses the 3 tier model mappings in the config
+    /// A "mapping" can be specified in the following way:
     /// You can set a EVSE id called "evse" and Connector id called "connector" for the whole module.
-    /// Additionally a "mapping" can be specified in the following way:
+    /// Alternatively you can set individual mappings for implementations.
     /// mapping:
-    ///   implementation_id:
+    ///   module:
     ///     evse: 1
     ///     connector: 1
+    ///   implementations:
+    ///     implementation_id:
+    ///       evse: 1
+    ///       connector: 1
     /// If no mappings are found it will be assumed that the module is mapped to the charging station.
     /// If only a module mapping is defined alle implementations are mapped to this module mapping.
     /// Implementations can have overwritten mappings.

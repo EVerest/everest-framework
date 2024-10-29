@@ -1214,36 +1214,44 @@ void Config::resolve_all_requirements() {
 void Config::parse_3_tier_model_mapping() {
     for (auto& element : this->main.items()) {
         const auto& module_id = element.key();
-        const auto impl_info = this->extract_implementation_info(module_id);
-        const auto provides = this->manifests.at(impl_info.at("module_name")).at("provides");
+        const auto& impl_info = this->extract_implementation_info(module_id);
+        const auto& provides = this->manifests.at(impl_info.at("module_name")).at("provides");
 
         ModuleTierMappings module_tier_mappings;
         const auto& module_config = element.value();
-        if (module_config.contains("evse")) {
-            auto mapping = Mapping(module_config.at("evse").get<int>());
-            if (module_config.contains("connector")) {
-                mapping.connector = module_config.at("connector").get<int>();
-            }
-            module_tier_mappings.module = mapping;
-        }
-        const auto& mapping = module_config.at("mapping");
+        const auto& config_mapping = module_config.at("mapping");
         // an empty mapping means it is mapped to the charging station and gets no specific mapping attached
-        if (not mapping.empty()) {
-            for (auto& tier_mapping : mapping.items()) {
-                const auto impl_id = tier_mapping.key();
-                const auto tier_mapping_value = tier_mapping.value();
-                if (provides.contains(impl_id)) {
-                    if (tier_mapping_value.contains("connector")) {
-                        module_tier_mappings.implementations[impl_id] = Mapping(
-                            tier_mapping_value.at("evse").get<int>(), tier_mapping_value.at("connector").get<int>());
-                    } else {
-                        module_tier_mappings.implementations[impl_id] =
-                            Mapping(tier_mapping_value.at("evse").get<int>());
+        if (not config_mapping.empty()) {
+            if (config_mapping.contains("module")) {
+                const auto& module_mapping = config_mapping.at("module");
+                if (module_mapping.contains("evse")) {
+                    auto mapping = Mapping(module_mapping.at("evse").get<int>());
+                    if (module_mapping.contains("connector")) {
+                        mapping.connector = module_mapping.at("connector").get<int>();
                     }
-                } else {
-                    EVLOG_warning << fmt::format(
-                        "Mapping {} of module {} in config refers to a provides that does not exist, please fix this",
-                        impl_id, printable_identifier(module_id));
+                    module_tier_mappings.module = mapping;
+                }
+            }
+
+            if (config_mapping.contains("implementations")) {
+                const auto& implementations_mapping = config_mapping.at("implementations");
+                for (auto& tier_mapping : implementations_mapping.items()) {
+                    const auto& impl_id = tier_mapping.key();
+                    const auto& tier_mapping_value = tier_mapping.value();
+                    if (provides.contains(impl_id)) {
+                        if (tier_mapping_value.contains("connector")) {
+                            module_tier_mappings.implementations[impl_id] =
+                                Mapping(tier_mapping_value.at("evse").get<int>(),
+                                        tier_mapping_value.at("connector").get<int>());
+                        } else {
+                            module_tier_mappings.implementations[impl_id] =
+                                Mapping(tier_mapping_value.at("evse").get<int>());
+                        }
+                    } else {
+                        EVLOG_warning << fmt::format("Mapping {} of module {} in config refers to a provides that does "
+                                                     "not exist, please fix this",
+                                                     impl_id, printable_identifier(module_id));
+                    }
                 }
             }
         }
