@@ -66,8 +66,7 @@ inline ConfigField get_config_field(const std::string& _name, int _value) {
 
 } // namespace
 
-Module::Module(const std::string& module_id, const std::string& prefix,
-               const Everest::MQTTSettings& mqtt_settings) :
+Module::Module(const std::string& module_id, const std::string& prefix, const Everest::MQTTSettings& mqtt_settings) :
     module_id_(module_id), mqtt_settings_(mqtt_settings) {
 
     this->mqtt_abstraction_ = std::make_shared<Everest::MQTTAbstraction>(this->mqtt_settings_);
@@ -136,10 +135,9 @@ void Module::publish_variable(rust::Str implementation_id, rust::Str name, JsonB
 
 std::shared_ptr<Module> mod;
 
-std::shared_ptr<Module> create_module(rust::Str module_name, rust::Str prefix,
-                                      rust::Str mqtt_broker_socket_path, rust::Str mqtt_broker_host,
-                                      rust::Str mqtt_broker_port, rust::Str mqtt_everest_prefix,
-                                      rust::Str mqtt_external_prefix) {
+std::shared_ptr<Module> create_module(rust::Str module_name, rust::Str prefix, rust::Str mqtt_broker_socket_path,
+                                      rust::Str mqtt_broker_host, rust::Str mqtt_broker_port,
+                                      rust::Str mqtt_everest_prefix, rust::Str mqtt_external_prefix) {
     auto socket_path = std::string(mqtt_broker_socket_path);
     Everest::MQTTSettings mqtt_settings;
     if (not socket_path.empty()) {
@@ -150,8 +148,7 @@ std::shared_ptr<Module> create_module(rust::Str module_name, rust::Str prefix,
                                         std::stoi(std::string(mqtt_broker_port)), std::string(mqtt_everest_prefix),
                                         std::string(mqtt_external_prefix));
     }
-    mod =
-        std::make_shared<Module>(std::string(module_name), std::string(prefix), mqtt_settings);
+    mod = std::make_shared<Module>(std::string(module_name), std::string(prefix), mqtt_settings);
     return mod;
 }
 

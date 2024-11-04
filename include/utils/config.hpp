@@ -171,7 +171,6 @@ public:
     //
     /// \returns the 3 tier model mapping for the given \p module_id and \p impl_id
     std::optional<Mapping> get_3_tier_model_mapping(const std::string& module_id, const std::string& impl_id) const;
-
 };
 
 ///

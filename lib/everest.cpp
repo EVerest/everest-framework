@@ -99,9 +99,8 @@ Everest::Everest(std::string module_id_, const Config& config_, bool validate_da
         const error::ErrorManagerImpl::PublishErrorFunc publish_raised_error = [this, impl](const error::Error& error) {
             this->publish_raised_error(impl, error);
         };
-        const error::ErrorManagerImpl::PublishErrorFunc publish_cleared_error = [this, impl](const error::Error& error) {
-            this->publish_cleared_error(impl, error);
-        };
+        const error::ErrorManagerImpl::PublishErrorFunc publish_cleared_error =
+            [this, impl](const error::Error& error) { this->publish_cleared_error(impl, error); };
         this->impl_error_managers[impl] = std::make_shared<error::ErrorManagerImpl>(
             std::make_shared<error::ErrorTypeMap>(this->config.get_error_map()), error_database, allowed_error_types,
             publish_raised_error, publish_cleared_error);
@@ -477,7 +476,7 @@ void Everest::subscribe_var(const Requirement& req, const std::string& var_name,
     auto requirement_manifest_vardef = requirement_impl_manifest["vars"][var_name];
 
     const Handler handler = [this, requirement_module_id, requirement_impl_id, requirement_manifest_vardef, var_name,
-                       callback](json const& data) {
+                             callback](json const& data) {
         EVLOG_verbose << fmt::format(
             "Incoming {}->{}", this->config.printable_identifier(requirement_module_id, requirement_impl_id), var_name);
 
@@ -543,7 +542,8 @@ void Everest::subscribe_error(const Requirement& req, const error::ErrorType& er
         return;
     }
 
-    const Handler raise_handler = [this, requirement_module_id, requirement_impl_id, error_type, callback](json const& data) {
+    const Handler raise_handler = [this, requirement_module_id, requirement_impl_id, error_type,
+                                   callback](json const& data) {
         EVLOG_debug << fmt::format("Incoming error {}->{}",
                                    this->config.printable_identifier(requirement_module_id, requirement_impl_id),
                                    error_type);
@@ -552,7 +552,7 @@ void Everest::subscribe_error(const Requirement& req, const error::ErrorType& er
     };
 
     const Handler clear_handler = [this, requirement_module_id, requirement_impl_id, error_type,
-                             clear_callback](json const& data) {
+                                   clear_callback](json const& data) {
         EVLOG_debug << fmt::format("Error cleared {}->{}",
                                    this->config.printable_identifier(requirement_module_id, requirement_impl_id),
                                    error_type);

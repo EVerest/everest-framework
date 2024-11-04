@@ -365,7 +365,7 @@ std::optional<ModuleTierMappings> ConfigBase::get_module_3_tier_model_mappings(c
 }
 
 std::optional<Mapping> ConfigBase::get_3_tier_model_mapping(const std::string& module_id,
-                                                        const std::string& impl_id) const {
+                                                            const std::string& impl_id) const {
     const auto module_tier_mappings = this->get_module_3_tier_model_mappings(module_id);
     if (not module_tier_mappings.has_value()) {
         return std::nullopt;
@@ -971,7 +971,6 @@ void ManagerConfig::parse_3_tier_model_mapping() {
         const auto& module_id = element.key();
         const auto& impl_info = this->extract_implementation_info(module_id);
         const auto& provides = this->manifests.at(impl_info.module_name).at("provides");
-
 
         ModuleTierMappings module_tier_mappings;
         const auto& module_config = element.value();

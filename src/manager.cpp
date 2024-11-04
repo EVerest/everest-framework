@@ -340,8 +340,8 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
                              QOS::QOS2, true);
 
     auto module_config_cache = config.get_module_config_cache();
-    mqtt_abstraction.publish(fmt::format("{}module_config_cache", ms.mqtt_settings.everest_prefix),
-                             module_config_cache, QOS::QOS2, true);
+    mqtt_abstraction.publish(fmt::format("{}module_config_cache", ms.mqtt_settings.everest_prefix), module_config_cache,
+                             QOS::QOS2, true);
 
     for (const auto& module : serialized_config.at("module_names").items()) {
         std::string module_name = module.key();
@@ -411,7 +411,7 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
                     TERMINAL_STYLE_OK, "🚙🚙🚙 All modules are initialized. EVerest up and running [{}ms] 🚙🚙🚙",
                     std::chrono::duration_cast<std::chrono::milliseconds>(complete_end_time - complete_start_time)
                         .count());
-                //cleanup_retained_topics(config, mqtt_abstraction, mqtt_everest_prefix);
+                // cleanup_retained_topics(config, mqtt_abstraction, mqtt_everest_prefix);
                 mqtt_abstraction.publish(fmt::format("{}ready", mqtt_everest_prefix), nlohmann::json(true));
             } else if (!standalone_modules.empty()) {
                 if (modules_spawned == modules_ready.size() - standalone_modules.size()) {
