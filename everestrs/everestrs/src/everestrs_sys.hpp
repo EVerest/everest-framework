@@ -19,7 +19,7 @@ enum class ConfigTypes : uint8_t;
 
 class Module {
 public:
-    Module(const std::string& module_id, const std::string& prefix, const std::string& conf,
+    Module(const std::string& module_id, const std::string& prefix,
            const Everest::MQTTSettings& mqtt_settings);
 
     JsonBlob initialize() const;
@@ -42,7 +42,7 @@ private:
     std::unique_ptr<Everest::Everest> handle_;
 };
 
-std::shared_ptr<Module> create_module(rust::Str module_name, rust::Str prefix, rust::Str log_config,
+std::shared_ptr<Module> create_module(rust::Str module_name, rust::Str prefix,
                                       rust::Str mqtt_broker_socket_path, rust::Str mqtt_broker_host,
                                       rust::Str mqtt_broker_port, rust::Str mqtt_everest_prefix,
                                       rust::Str mqtt_external_prefix);
@@ -50,5 +50,5 @@ std::shared_ptr<Module> create_module(rust::Str module_name, rust::Str prefix, r
 rust::Vec<RsModuleConfig> get_module_configs(rust::Str module_name);
 rust::Vec<RsModuleConnections> get_module_connections();
 
-int init_logging(rust::Str module_name, rust::Str prefix, rust::Str conf);
+int init_logging(rust::Str module_name, rust::Str prefix, rust::Str logging_config_file);
 void log2cxx(int level, int line, rust::Str file, rust::Str message);

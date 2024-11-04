@@ -66,11 +66,10 @@ inline ConfigField get_config_field(const std::string& _name, int _value) {
 
 } // namespace
 
-Module::Module(const std::string& module_id, const std::string& prefix, const std::string& log_config,
+Module::Module(const std::string& module_id, const std::string& prefix,
                const Everest::MQTTSettings& mqtt_settings) :
     module_id_(module_id), mqtt_settings_(mqtt_settings) {
 
-    Everest::Logging::init(log_config, module_id);
     this->mqtt_abstraction_ = std::make_shared<Everest::MQTTAbstraction>(this->mqtt_settings_);
     this->mqtt_abstraction_->connect();
     this->mqtt_abstraction_->spawn_main_loop_thread();
@@ -137,7 +136,7 @@ void Module::publish_variable(rust::Str implementation_id, rust::Str name, JsonB
 
 std::shared_ptr<Module> mod;
 
-std::shared_ptr<Module> create_module(rust::Str module_name, rust::Str prefix, rust::Str log_config,
+std::shared_ptr<Module> create_module(rust::Str module_name, rust::Str prefix,
                                       rust::Str mqtt_broker_socket_path, rust::Str mqtt_broker_host,
                                       rust::Str mqtt_broker_port, rust::Str mqtt_everest_prefix,
                                       rust::Str mqtt_external_prefix) {
@@ -152,7 +151,7 @@ std::shared_ptr<Module> create_module(rust::Str module_name, rust::Str prefix, r
                                         std::string(mqtt_external_prefix));
     }
     mod =
-        std::make_shared<Module>(std::string(module_name), std::string(prefix), std::string(log_config), mqtt_settings);
+        std::make_shared<Module>(std::string(module_name), std::string(prefix), mqtt_settings);
     return mod;
 }
 
@@ -191,24 +190,23 @@ rust::Vec<RsModuleConnections> Module::get_module_connections() const {
     return out;
 }
 
-int init_logging(rust::Str module_id, rust::Str prefix, rust::Str config_file) {
+int init_logging(rust::Str module_id, rust::Str prefix, rust::Str logging_config_file) {
     using namespace boost::log;
     using namespace Everest::Logging;
 
     const std::string module_id_cpp{module_id};
     const std::string prefix_cpp{prefix};
-    const std::string config_file_cpp{config_file};
+    const std::string logging_config_file_cpp{logging_config_file};
 
     // Init the CPP logger.
-    Everest::RuntimeSettings rs{prefix_cpp, config_file_cpp};
-    init(rs.logging_config_file, module_id_cpp);
+    init(logging_config_file_cpp, module_id_cpp);
 
     // Below is something really ugly. Boost's log filter rules may actually be
     // quite "complex" but the library does not expose any way to check the
     // already installed filters. We therefore reopen the config and construct
     // or own filter - and feed it with dummy values to determine its filtering
     // behaviour (the lowest severity which is accepted by the filter)
-    std::filesystem::path logging_path{rs.logging_config_file};
+    std::filesystem::path logging_path{logging_config_file_cpp};
     std::ifstream logging_config(logging_path.c_str());
     if (!logging_config.is_open()) {
         return info;

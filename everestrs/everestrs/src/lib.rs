@@ -116,7 +116,7 @@ mod ffi {
         include!("everestrs/src/everestrs_sys.hpp");
 
         type Module;
-        fn create_module(module_id: &str, prefix: &str, log_config: &str, mqtt_broker_socket_path: &str, mqtt_broker_host: &str,
+        fn create_module(module_id: &str, prefix: &str, mqtt_broker_socket_path: &str, mqtt_broker_host: &str,
              mqtt_broker_port: &str,  mqtt_everest_prefix: &str,
              mqtt_external_prefix: &str) -> SharedPtr<Module>;
 
@@ -427,17 +427,16 @@ impl Runtime {
             &args.module,
             &args.prefix.to_string_lossy(),
             &args.log_config.to_string_lossy(),
-            &args.mqtt_broker_socket_path.to_string_lossy(),
-            &args.mqtt_broker_host,
-            &args.mqtt_broker_port,
-            &args.mqtt_everest_prefix,
-            &args.mqtt_external_prefix,
         );
 
         let cpp_module = ffi::create_module(
             &args.module,
             &args.prefix.to_string_lossy(),
-            &args.conf.to_string_lossy(),
+            &args.mqtt_broker_socket_path.to_string_lossy(),
+            &args.mqtt_broker_host,
+            &args.mqtt_broker_port,
+            &args.mqtt_everest_prefix,
+            &args.mqtt_external_prefix,
         );
 
         Arc::pin(Self {
@@ -592,17 +591,4 @@ pub fn get_module_configs() -> HashMap<String, HashMap<String, Config>> {
     }
 
     out
-}
-
-/// The interface for fetching the module connections though the C++ runtime.
-pub fn get_module_connections() -> HashMap<String, usize> {
-    let args: Args = argh::from_env();
-    let raw_connections = ffi::get_module_connections(
-        &args.module
-    );
-
-    raw_connections
-        .into_iter()
-        .map(|connection| (connection.implementation_id, connection.slots))
-        .collect()
 }
