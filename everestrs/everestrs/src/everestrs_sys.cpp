@@ -117,14 +117,14 @@ void Module::provide_command(const Runtime& rt, rust::String implementation_id, 
 
 void Module::subscribe_variable(const Runtime& rt, rust::String implementation_id, std::size_t index,
                                 rust::String name) const {
-    const Requirement req(std::string(implementation_id), index);
+    const auto req = Requirement{std::string(implementation_id), index};
     handle_->subscribe_var(req, std::string(name), [&rt, implementation_id, index, name](json args) {
         rt.handle_variable(implementation_id, index, name, json2blob(args));
     });
 }
 
 JsonBlob Module::call_command(rust::Str implementation_id, std::size_t index, rust::Str name, JsonBlob blob) const {
-    const Requirement req(std::string(implementation_id), index);
+    const auto req = Requirement{std::string(implementation_id), index};
     json return_value = handle_->call_cmd(req, std::string(name), json::parse(blob.data.begin(), blob.data.end()));
 
     return json2blob(return_value);
@@ -179,8 +179,8 @@ rust::Vec<RsModuleConfig> get_module_configs(rust::Str module_id) {
     return out;
 }
 
-rust::Vec<RsModuleConnections> get_module_connections(rust::Str module_id) {
-    const auto connections = mod->get_config()->get_main_config().at(std::string(module_id))["connections"];
+rust::Vec<RsModuleConnections> Module::get_module_connections() const {
+    const auto connections = config_->get_main_config().at(std::string(module_id_))["connections"];
 
     // Iterate over the connections block.
     rust::Vec<RsModuleConnections> out;
@@ -191,18 +191,25 @@ rust::Vec<RsModuleConnections> get_module_connections(rust::Str module_id) {
     return out;
 }
 
-int Module::get_log_level() const {
+int init_logging(rust::Str module_id, rust::Str prefix, rust::Str config_file) {
+    using namespace boost::log;
+    using namespace Everest::Logging;
+
+    const std::string module_id_cpp{module_id};
+    const std::string prefix_cpp{prefix};
+    const std::string config_file_cpp{config_file};
+
+    // Init the CPP logger.
+    Everest::RuntimeSettings rs{prefix_cpp, config_file_cpp};
+    init(rs.logging_config_file, module_id_cpp);
+
     // Below is something really ugly. Boost's log filter rules may actually be
     // quite "complex" but the library does not expose any way to check the
     // already installed filters. We therefore reopen the config and construct
     // or own filter - and feed it with dummy values to determine its filtering
     // behaviour (the lowest severity which is accepted by the filter)
-    std::filesystem::path logging_path{rs_->logging_config_file};
+    std::filesystem::path logging_path{rs.logging_config_file};
     std::ifstream logging_config(logging_path.c_str());
-
-    using namespace boost::log;
-    using namespace Everest::Logging;
-
     if (!logging_config.is_open()) {
         return info;
     }

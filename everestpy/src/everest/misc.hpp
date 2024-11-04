@@ -6,6 +6,7 @@
 #include <string>
 
 #include <framework/runtime.hpp>
+#include <utils/types.hpp>
 
 const std::string get_variable_from_env(const std::string& variable);
 const std::string get_variable_from_env(const std::string& variable, const std::string& default_value);
@@ -22,12 +23,6 @@ public:
 
 private:
     Everest::MQTTSettings mqtt_settings;
-};
-
-struct Fulfillment {
-    std::string module_id;
-    std::string implementation_id;
-    Requirement requirement;
 };
 
 struct Interface {

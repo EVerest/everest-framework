@@ -30,8 +30,8 @@ public:
     JsonBlob call_command(rust::Str implementation_id, std::size_t index, rust::Str name, JsonBlob args) const;
     void subscribe_variable(const Runtime& rt, rust::String implementation_id, std::size_t index, rust::String name) const;
     void publish_variable(rust::Str implementation_id, rust::Str name, JsonBlob blob) const;
-    int get_log_level() const;
     std::shared_ptr<Everest::Config> get_config() const;
+    rust::Vec<RsModuleConnections> get_module_connections() const;
 
 private:
     const std::string module_id_;
@@ -48,5 +48,7 @@ std::shared_ptr<Module> create_module(rust::Str module_name, rust::Str prefix, r
                                       rust::Str mqtt_external_prefix);
 
 rust::Vec<RsModuleConfig> get_module_configs(rust::Str module_name);
-rust::Vec<RsModuleConnections> get_module_connections(rust::Str module_name);
+rust::Vec<RsModuleConnections> get_module_connections();
+
+int init_logging(rust::Str module_name, rust::Str prefix, rust::Str conf);
 void log2cxx(int level, int line, rust::Str file, rust::Str message);

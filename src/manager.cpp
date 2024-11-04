@@ -348,7 +348,7 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
         json serialized_mod_config = serialized_config;
         serialized_mod_config["module_config"] = json::object();
         serialized_mod_config["module_config"][module_name] = serialized_config.at("main").at(module_name);
-        auto mappings = config.get_3_tier_model_mappings(module_name);
+        auto mappings = config.get_module_3_tier_model_mappings(module_name);
         if (mappings.has_value()) {
             serialized_mod_config["mappings"] = json::object();
             serialized_mod_config["mappings"][module_name] = mappings.value();
