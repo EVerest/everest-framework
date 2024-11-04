@@ -68,7 +68,7 @@ MessageHandler::MessageHandler() : running(true) {
             this->message_queue.pop();
             lock.unlock();
 
-            auto data = *message.get();
+            auto data = *message.data;
 
             // get the registered handlers
             std::vector<std::shared_ptr<TypedHandler>> local_handlers;
@@ -89,7 +89,7 @@ MessageHandler::MessageHandler() : running(true) {
                         continue;
                     }
                     if (data.at("type") == "call") {
-                        handler(data.at("data"));
+                        handler(message.topic, data.at("data"));
                     }
                 } else if (handler_->type == HandlerType::Result) {
                     // unpack result
@@ -99,7 +99,7 @@ MessageHandler::MessageHandler() : running(true) {
                     if (data.at("type") == "result") {
                         // only deliver result to handler with matching id
                         if (handler_->id == data.at("data").at("id")) {
-                            handler(data.at("data"));
+                            handler(message.topic, data.at("data"));
                         }
                     }
                 } else if (handler_->type == HandlerType::SubscribeVar) {
@@ -107,20 +107,20 @@ MessageHandler::MessageHandler() : running(true) {
                     if (handler_->name != data.at("name")) {
                         continue;
                     }
-                    handler(data.at("data"));
+                    handler(message.topic, data.at("data"));
                 } else {
                     // external or unknown, no preprocessing
-                    handler(data);
+                    handler(message.topic, data);
                 }
             }
         }
     });
 }
 
-void MessageHandler::add(std::shared_ptr<json> message) {
+void MessageHandler::add(MessageDetails message) {
     {
         std::lock_guard<std::mutex> lock(this->handler_ctrl_mutex);
-        this->message_queue.push(message);
+        this->message_queue.emplace(message);
     }
     this->cv.notify_all();
 }

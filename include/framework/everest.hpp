@@ -128,6 +128,11 @@ public:
     UnsubscribeToken provide_external_mqtt_handler(const std::string& topic, const StringHandler& handler);
 
     ///
+    /// \brief Allows a module to indicate that it provides a external mqtt \p handler at the given \p topic
+    ///
+    UnsubscribeToken provide_external_mqtt_handler(const std::string& topic, const StringPairHandler& handler);
+
+    ///
     /// \brief publishes the given telemetry \p data on the given \p topic
     ///
     void telemetry_publish(const std::string& topic, const std::string& data);

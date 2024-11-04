@@ -14,6 +14,7 @@ namespace error {
 class ErrorDatabaseMap : public ErrorDatabase {
 public:
     ErrorDatabaseMap() = default;
+    virtual ~ErrorDatabaseMap() = default;
 
     void add_error(ErrorPtr error) override;
     std::list<ErrorPtr> get_errors(const std::list<ErrorFilter>& filters) const override;

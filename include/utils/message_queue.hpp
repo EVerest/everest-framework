@@ -51,10 +51,16 @@ public:
 
 /// \brief Contains a message queue driven list of handler callbacks
 class MessageHandler {
+public:
+    struct MessageDetails {
+        std::string topic;
+        std::shared_ptr<json> data;
+    };
+
 private:
     std::unordered_set<std::shared_ptr<TypedHandler>> handlers;
     std::thread handler_thread;
-    std::queue<std::shared_ptr<json>> message_queue;
+    std::queue<MessageDetails> message_queue;
     std::mutex handler_ctrl_mutex;
     std::mutex handler_list_mutex;
     std::condition_variable cv;
@@ -68,7 +74,7 @@ public:
     ~MessageHandler();
 
     /// \brief Adds a \p message to the message queue which will be delivered to the registered handlers
-    void add(std::shared_ptr<json> message);
+    void add(MessageDetails message);
 
     /// \brief Stops the message handler
     void stop();
