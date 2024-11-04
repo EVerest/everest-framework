@@ -905,67 +905,6 @@ void ManagerConfig::parse(json config) {
     // TODO: cleanup "descriptions" from config ?
 }
 
-std::map<Requirement, Fulfillment> Config::resolve_requirements(const std::string& module_id) const {
-    std::map<Requirement, Fulfillment> requirements;
-
-    const auto& module_name = get_module_name(module_id);
-    for (const auto& req_id : Config::keys(this->manifests.at(module_name).at("requires"))) {
-        const auto& resolved_req = this->resolve_requirement(module_id, req_id);
-        if (!resolved_req.is_array()) {
-            const auto& resolved_module_id = resolved_req.at("module_id");
-            const auto& resolved_impl_id = resolved_req.at("implementation_id");
-            const auto req = Requirement{req_id, 0};
-            requirements[req] = {resolved_module_id, resolved_impl_id, req};
-        } else {
-            for (std::size_t i = 0; i < resolved_req.size(); i++) {
-                const auto& resolved_module_id = resolved_req.at(i).at("module_id");
-                const auto& resolved_impl_id = resolved_req.at(i).at("implementation_id");
-                const auto req = Requirement{req_id, i};
-                requirements[req] = {resolved_module_id, resolved_impl_id, req};
-            }
-        }
-    }
-
-    return requirements;
-}
-
-std::list<Requirement> Config::get_requirements(const std::string& module_id) const {
-    BOOST_LOG_FUNCTION();
-
-    std::list<Requirement> res;
-
-    for (const auto& [requirement, fulfillment] : this->resolve_requirements(module_id)) {
-        res.push_back(requirement);
-    }
-
-    return res;
-}
-
-std::map<std::string, std::vector<Fulfillment>> Config::get_fulfillments(const std::string& module_id) const {
-    BOOST_LOG_FUNCTION();
-
-    std::map<std::string, std::vector<Fulfillment>> res;
-
-    for (const auto& [requirement, fulfillment] : this->resolve_requirements(module_id)) {
-        res[requirement.id].push_back(fulfillment);
-    }
-
-    return res;
-}
-
-RequirementInitialization Config::get_requirement_initialization(const std::string& module_id) const {
-    BOOST_LOG_FUNCTION();
-
-    RequirementInitialization res;
-
-    for (const auto& [requirement, fulfillment] : this->resolve_requirements(module_id)) {
-        const auto& mapping = this->get_3_tier_model_mapping(fulfillment.module_id, fulfillment.implementation_id);
-        res[requirement.id].push_back({requirement, fulfillment, mapping});
-    }
-
-    return res;
-}
-
 void ManagerConfig::parse_3_tier_model_mapping() {
     for (auto& element : this->main.items()) {
         const auto& module_id = element.key();
@@ -1138,6 +1077,67 @@ json Config::resolve_requirement(const std::string& module_id, const std::string
         return module_config["connections"][requirement_id].at(0);
     }
     return module_config["connections"][requirement_id];
+}
+
+std::map<Requirement, Fulfillment> Config::resolve_requirements(const std::string& module_id) const {
+    std::map<Requirement, Fulfillment> requirements;
+
+    const auto& module_name = get_module_name(module_id);
+    for (const auto& req_id : Config::keys(this->manifests.at(module_name).at("requires"))) {
+        const auto& resolved_req = this->resolve_requirement(module_id, req_id);
+        if (!resolved_req.is_array()) {
+            const auto& resolved_module_id = resolved_req.at("module_id");
+            const auto& resolved_impl_id = resolved_req.at("implementation_id");
+            const auto req = Requirement{req_id, 0};
+            requirements[req] = {resolved_module_id, resolved_impl_id, req};
+        } else {
+            for (std::size_t i = 0; i < resolved_req.size(); i++) {
+                const auto& resolved_module_id = resolved_req.at(i).at("module_id");
+                const auto& resolved_impl_id = resolved_req.at(i).at("implementation_id");
+                const auto req = Requirement{req_id, i};
+                requirements[req] = {resolved_module_id, resolved_impl_id, req};
+            }
+        }
+    }
+
+    return requirements;
+}
+
+std::list<Requirement> Config::get_requirements(const std::string& module_id) const {
+    BOOST_LOG_FUNCTION();
+
+    std::list<Requirement> res;
+
+    for (const auto& [requirement, fulfillment] : this->resolve_requirements(module_id)) {
+        res.push_back(requirement);
+    }
+
+    return res;
+}
+
+std::map<std::string, std::vector<Fulfillment>> Config::get_fulfillments(const std::string& module_id) const {
+    BOOST_LOG_FUNCTION();
+
+    std::map<std::string, std::vector<Fulfillment>> res;
+
+    for (const auto& [requirement, fulfillment] : this->resolve_requirements(module_id)) {
+        res[requirement.id].push_back(fulfillment);
+    }
+
+    return res;
+}
+
+RequirementInitialization Config::get_requirement_initialization(const std::string& module_id) const {
+    BOOST_LOG_FUNCTION();
+
+    RequirementInitialization res;
+
+    for (const auto& [requirement, fulfillment] : this->resolve_requirements(module_id)) {
+        const auto& mapping = this->get_3_tier_model_mapping(fulfillment.module_id, fulfillment.implementation_id);
+        res[requirement.id].push_back({requirement, fulfillment, mapping});
+    }
+
+    return res;
 }
 
 ModuleConfigs Config::get_module_configs(const std::string& module_id) const {
