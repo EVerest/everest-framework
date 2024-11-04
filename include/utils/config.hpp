@@ -92,7 +92,7 @@ protected:
 public:
     ///
     /// \brief Create a ConfigBase with the provided \p mqtt_settings
-    explicit ConfigBase(const MQTTSettings& mqtt_settings) : mqtt_settings(mqtt_settings) {};
+    explicit ConfigBase(const MQTTSettings& mqtt_settings) : mqtt_settings(mqtt_settings){};
 
     ///
     /// \brief turns then given \p module_id into a printable identifier
