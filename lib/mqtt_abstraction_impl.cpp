@@ -1,11 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright 2020 - 2023 Pionix GmbH and Contributors to EVerest
-#include "utils/message_queue.hpp"
-#include <algorithm>
-#include <chrono>
+
 #include <cstdio>
 #include <cstring>
-#include <sstream>
 #include <thread>
 
 #include <fcntl.h>
@@ -276,8 +273,10 @@ void MQTTAbstractionImpl::on_mqtt_message(std::shared_ptr<Message> message) {
 
     try {
         std::shared_ptr<json> data;
+        bool is_everest_topic = false;
         if (topic.find(mqtt_everest_prefix) == 0) {
             EVLOG_verbose << fmt::format("topic {} starts with {}", topic, mqtt_everest_prefix);
+            is_everest_topic = true;
             try {
                 data = std::make_shared<json>(json::parse(payload));
             } catch (nlohmann::detail::parse_error& e) {
@@ -295,7 +294,16 @@ void MQTTAbstractionImpl::on_mqtt_message(std::shared_ptr<Message> message) {
         std::unique_lock<std::mutex> lock(handlers_mutex);
         std::vector<Handler> local_handlers;
         for (auto& [handler_topic, handler] : this->message_handlers) {
-            bool topic_matches = MQTTAbstractionImpl::check_topic_matches(topic, handler_topic);
+            bool topic_matches = false;
+            if (is_everest_topic) {
+                // everest topics never contain wildcards, so a direct comparison is enough
+                if (topic == handler_topic) {
+                    topic_matches = true;
+                }
+            } else {
+                topic_matches = MQTTAbstractionImpl::check_topic_matches(topic, handler_topic);
+            }
+
             if (topic_matches) {
                 found = true;
                 handler.add({topic, data});

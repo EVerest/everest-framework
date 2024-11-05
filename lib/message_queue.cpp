@@ -68,7 +68,7 @@ MessageHandler::MessageHandler() : running(true) {
             this->message_queue.pop();
             lock.unlock();
 
-            auto data = *message.data;
+            auto& data = *message.data;
 
             // get the registered handlers
             std::vector<std::shared_ptr<TypedHandler>> local_handlers;
