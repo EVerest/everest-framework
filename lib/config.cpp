@@ -25,7 +25,7 @@ public:
         SCHEMA
     };
     ConfigParseException(ParseErrorType err_t, const std::string& entry, const std::string& what = "") :
-        err_t(err_t), entry(entry), what(what) {};
+        err_t(err_t), entry(entry), what(what){};
 
     const ParseErrorType err_t;
     const std::string entry;
