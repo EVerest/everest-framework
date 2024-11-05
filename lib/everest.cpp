@@ -2,6 +2,7 @@
 // Copyright 2020 - 2023 Pionix GmbH and Contributors to EVerest
 #include <future>
 #include <map>
+#include <memory>
 #include <set>
 
 #include <boost/any.hpp>
@@ -721,55 +722,26 @@ void Everest::external_mqtt_publish(const std::string& topic, const std::string&
 
 UnsubscribeToken Everest::provide_external_mqtt_handler(const std::string& topic, const StringHandler& handler) {
     BOOST_LOG_FUNCTION();
-
-    // check if external mqtt is enabled
-    if (!this->module_manifest.contains("enable_external_mqtt") &&
-        this->module_manifest["enable_external_mqtt"] == false) {
-        EVLOG_AND_THROW(EverestApiError(fmt::format("Module {} tries to provide an external MQTT handler, but didn't "
-                                                    "set 'enable_external_mqtt' to 'true' in its manifest",
-                                                    this->config.printable_identifier(this->module_id))));
-    }
-
-    std::string external_topic = fmt::format("{}{}", this->mqtt_external_prefix, topic);
-
-    Handler external_handler = [handler, external_topic](const std::string&, json const& data) {
-        EVLOG_verbose << fmt::format("Incoming external mqtt data for topic '{}'...", external_topic);
-        if (!data.is_string()) {
-            EVLOG_AND_THROW(EverestInternalError("External mqtt result is not a string (that should never happen)"));
-        }
-        handler(data.get<std::string>());
-    };
-
-    std::shared_ptr<TypedHandler> token =
-        std::make_shared<TypedHandler>(HandlerType::ExternalMQTT, std::make_shared<Handler>(external_handler));
-    this->mqtt_abstraction.register_handler(external_topic, token, QOS::QOS0);
-    return [this, topic, token]() { this->mqtt_abstraction.unregister_handler(topic, token); };
+    auto external_topic = check_external_mqtt(topic);
+    return create_external_handler(
+        topic, external_topic, [handler, external_topic](const std::string&, json const& data) {
+            EVLOG_verbose << fmt::format("Incoming external mqtt data for topic '{}'...", external_topic);
+            if (!data.is_string()) {
+                EVLOG_AND_THROW(
+                    EverestInternalError("External mqtt result is not a string (that should never happen)"));
+            }
+            handler(data.get<std::string>());
+        });
 }
 
 UnsubscribeToken Everest::provide_external_mqtt_handler(const std::string& topic, const StringPairHandler& handler) {
     BOOST_LOG_FUNCTION();
-
-    // check if external mqtt is enabled
-    if (!this->module_manifest.contains("enable_external_mqtt") &&
-        this->module_manifest["enable_external_mqtt"] == false) {
-        EVLOG_AND_THROW(EverestApiError(fmt::format("Module {} tries to provide an external MQTT handler, but didn't "
-                                                    "set 'enable_external_mqtt' to 'true' in its manifest",
-                                                    this->config.printable_identifier(this->module_id))));
-    }
-
-    std::string external_topic = fmt::format("{}{}", this->mqtt_external_prefix, topic);
-
-    // must be json and not std::string
-    Handler external_handler = [handler](const std::string& topic, const json& data) {
+    auto external_topic = check_external_mqtt(topic);
+    return create_external_handler(topic, external_topic, [handler](const std::string& topic, const json& data) {
         EVLOG_verbose << fmt::format("Incoming external mqtt data for topic '{}'...", topic);
-        std::string data_s = (data.is_string()) ? std::string(data) : data.dump();
+        const std::string data_s = (data.is_string()) ? std::string(data) : data.dump();
         handler(topic, data_s);
-    };
-
-    std::shared_ptr<TypedHandler> token =
-        std::make_shared<TypedHandler>(HandlerType::ExternalMQTT, std::make_shared<Handler>(external_handler));
-    this->mqtt_abstraction.register_handler(external_topic, token, QOS::QOS0);
-    return [this, topic, token]() { this->mqtt_abstraction.unregister_handler(topic, token); };
+    });
 }
 
 void Everest::telemetry_publish(const std::string& topic, const std::string& data) {
@@ -1107,6 +1079,23 @@ bool Everest::check_arg(ArgumentType arg_types, json manifest_arg) {
         }
     }
     return true;
+}
+
+std::string Everest::check_external_mqtt(const std::string& topic) {
+    // check if external mqtt is enabled
+    if (!module_manifest.contains("enable_external_mqtt") && !module_manifest["enable_external_mqtt"]) {
+        EVLOG_AND_THROW(EverestApiError(fmt::format("Module {} tries to provide an external MQTT handler, but didn't "
+                                                    "set 'enable_external_mqtt' to 'true' in its manifest",
+                                                    config.printable_identifier(module_id))));
+    }
+    return fmt::format("{}{}", mqtt_external_prefix, topic);
+}
+
+UnsubscribeToken Everest::create_external_handler(const std::string& topic, const std::string& external_topic,
+                                                  const StringPairHandler& handler) {
+    auto token = std::make_shared<TypedHandler>(HandlerType::ExternalMQTT, std::make_shared<Handler>(handler));
+    mqtt_abstraction.register_handler(external_topic, token, QOS::QOS0);
+    return [this, topic, token]() { this->mqtt_abstraction.unregister_handler(topic, token); };
 }
 
 std::optional<Mapping> get_impl_mapping(std::optional<ModuleTierMappings> module_tier_mappings,

@@ -80,37 +80,37 @@ MessageHandler::MessageHandler() : running(true) {
             }
 
             // distribute this message to the registered handlers
-            for (auto handler_ : local_handlers) {
-                auto handler = *handler_.get()->handler;
+            for (auto& handler : local_handlers) {
+                auto handler_fn = *handler->handler;
 
-                if (handler_->type == HandlerType::Call) {
+                if (handler->type == HandlerType::Call) {
                     // unpack call
-                    if (handler_->name != data.at("name")) {
+                    if (handler->name != data.at("name")) {
                         continue;
                     }
                     if (data.at("type") == "call") {
-                        handler(message.topic, data.at("data"));
+                        handler_fn(message.topic, data.at("data"));
                     }
-                } else if (handler_->type == HandlerType::Result) {
+                } else if (handler->type == HandlerType::Result) {
                     // unpack result
-                    if (handler_->name != data.at("name")) {
+                    if (handler->name != data.at("name")) {
                         continue;
                     }
                     if (data.at("type") == "result") {
                         // only deliver result to handler with matching id
-                        if (handler_->id == data.at("data").at("id")) {
-                            handler(message.topic, data.at("data"));
+                        if (handler->id == data.at("data").at("id")) {
+                            handler_fn(message.topic, data.at("data"));
                         }
                     }
-                } else if (handler_->type == HandlerType::SubscribeVar) {
+                } else if (handler->type == HandlerType::SubscribeVar) {
                     // unpack var
-                    if (handler_->name != data.at("name")) {
+                    if (handler->name != data.at("name")) {
                         continue;
                     }
-                    handler(message.topic, data.at("data"));
+                    handler_fn(message.topic, data.at("data"));
                 } else {
                     // external or unknown, no preprocessing
-                    handler(message.topic, data);
+                    handler_fn(message.topic, data);
                 }
             }
         }
@@ -120,7 +120,7 @@ MessageHandler::MessageHandler() : running(true) {
 void MessageHandler::add(MessageDetails message) {
     {
         std::lock_guard<std::mutex> lock(this->handler_ctrl_mutex);
-        this->message_queue.emplace(message);
+        this->message_queue.push(std::move(message));
     }
     this->cv.notify_all();
 }

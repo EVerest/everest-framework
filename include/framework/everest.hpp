@@ -4,6 +4,7 @@
 #define FRAMEWORK_EVEREST_HPP
 
 #include <chrono>
+#include <functional>
 #include <future>
 #include <map>
 #include <set>
@@ -248,6 +249,19 @@ private:
     /// raised. The given \p clear_callback is called when an error is cleared
     ///
     void subscribe_global_all_errors(const error::ErrorCallback& callback, const error::ErrorCallback& clear_callback);
+
+    ///
+    /// \brief Check that external MQTT is configured - raises exception on error
+    /// \returns the full external MQTT topic
+    ///
+    std::string check_external_mqtt(const std::string& topic);
+
+    ///
+    /// \brief Create external MQTT with an unsubscribe token
+    /// \returns the unsubscribe token
+    ///
+    UnsubscribeToken create_external_handler(const std::string& topic, const std::string& external_topic,
+                                             const StringPairHandler& handler);
 };
 
 ///
