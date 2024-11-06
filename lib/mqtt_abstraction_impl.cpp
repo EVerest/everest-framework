@@ -26,13 +26,13 @@ namespace Everest {
 const auto mqtt_keep_alive = 600;
 
 MessageWithQOS::MessageWithQOS(const std::string& topic, const std::string& payload, QOS qos) :
-    Message(topic, payload), qos(qos) {
+    Message{topic, payload}, qos(qos) {
 }
 
 MQTTAbstractionImpl::MQTTAbstractionImpl(const std::string& mqtt_server_address, const std::string& mqtt_server_port,
                                          const std::string& mqtt_everest_prefix,
                                          const std::string& mqtt_external_prefix) :
-    message_queue(([this](std::shared_ptr<Message> message) { this->on_mqtt_message(message); })),
+    message_queue(([this](const Message& message) { this->on_mqtt_message(message); })),
     mqtt_server_address(mqtt_server_address),
     mqtt_server_port(mqtt_server_port),
     mqtt_everest_prefix(mqtt_everest_prefix),
@@ -57,7 +57,7 @@ MQTTAbstractionImpl::MQTTAbstractionImpl(const std::string& mqtt_server_address,
 MQTTAbstractionImpl::MQTTAbstractionImpl(const std::string& mqtt_server_socket_path,
                                          const std::string& mqtt_everest_prefix,
                                          const std::string& mqtt_external_prefix) :
-    message_queue(([this](std::shared_ptr<Message> message) { this->on_mqtt_message(message); })),
+    message_queue(([this](const Message& message) { this->on_mqtt_message(message); })),
     mqtt_server_socket_path(mqtt_server_socket_path),
     mqtt_everest_prefix(mqtt_everest_prefix),
     mqtt_external_prefix(mqtt_external_prefix),
@@ -265,20 +265,20 @@ std::future<void> MQTTAbstractionImpl::spawn_main_loop_thread() {
     return future;
 }
 
-void MQTTAbstractionImpl::on_mqtt_message(std::shared_ptr<Message> message) {
+void MQTTAbstractionImpl::on_mqtt_message(const Message& message) {
     BOOST_LOG_FUNCTION();
 
-    const std::string& topic = message->topic;
-    const std::string& payload = message->payload;
+    const auto& topic = message.topic;
+    const auto& payload = message.payload;
 
     try {
-        std::shared_ptr<json> data;
+        json data;
         bool is_everest_topic = false;
         if (topic.find(mqtt_everest_prefix) == 0) {
             EVLOG_verbose << fmt::format("topic {} starts with {}", topic, mqtt_everest_prefix);
             is_everest_topic = true;
             try {
-                data = std::make_shared<json>(json::parse(payload));
+                data = json::parse(payload);
             } catch (nlohmann::detail::parse_error& e) {
                 EVLOG_warning << fmt::format("Could not decode json for incoming topic '{}': {}", topic, payload);
                 return;
@@ -286,7 +286,7 @@ void MQTTAbstractionImpl::on_mqtt_message(std::shared_ptr<Message> message) {
         } else {
             EVLOG_debug << fmt::format("Message parsing for topic '{}' not implemented. Wrapping in json object.",
                                        topic);
-            data = std::make_shared<json>(json(payload));
+            data = json(payload);
         }
 
         bool found = false;
@@ -306,7 +306,7 @@ void MQTTAbstractionImpl::on_mqtt_message(std::shared_ptr<Message> message) {
 
             if (topic_matches) {
                 found = true;
-                handler.add({topic, data});
+                handler.add(std::unique_ptr<ParsedMessage>(new ParsedMessage{topic, std::move(data)}));
             }
         }
         lock.unlock();
@@ -642,9 +642,9 @@ void MQTTAbstractionImpl::publish_callback(void** state, struct mqtt_response_pu
     auto message_queue = static_cast<MessageQueue*>(*state);
 
     // topic_name and application_message are NOT null-terminated, hence copy construct strings
-    message_queue->add(std::make_shared<Message>(
+    message_queue->add(std::unique_ptr<Message>(new Message{
         std::string(static_cast<const char*>(published->topic_name), published->topic_name_size),
-        std::string(static_cast<const char*>(published->application_message), published->application_message_size)));
+        std::string(static_cast<const char*>(published->application_message), published->application_message_size)}));
 }
 
 } // namespace Everest

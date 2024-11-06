@@ -10,34 +10,30 @@
 
 namespace Everest {
 
-Message::Message(const std::string& topic, const std::string& payload) : topic(topic), payload(payload) {
-}
-
-MessageQueue::MessageQueue(const std::function<void(std::shared_ptr<Message> message)>& message_callback) :
-    message_callback(message_callback), running(true) {
+MessageQueue::MessageQueue(MessageCallback message_callback_) :
+    message_callback(std::move(message_callback_)), running(true) {
     this->worker_thread = std::thread([this]() {
         while (true) {
-            std::shared_ptr<Message> message;
             std::unique_lock<std::mutex> lock(this->queue_ctrl_mutex);
             this->cv.wait(lock, [this]() { return !this->message_queue.empty() || this->running == false; });
             if (!this->running) {
                 return;
             }
 
-            message = this->message_queue.front();
+            const auto message = std::move(this->message_queue.front());
             this->message_queue.pop();
             lock.unlock();
 
             // pass the message to the message callback
-            this->message_callback(message);
+            this->message_callback(*message);
         }
     });
 }
 
-void MessageQueue::add(std::shared_ptr<Message> message) {
+void MessageQueue::add(std::unique_ptr<Message> message) {
     {
         std::lock_guard<std::mutex> lock(this->queue_ctrl_mutex);
-        this->message_queue.push(message);
+        this->message_queue.push(std::move(message));
     }
     this->cv.notify_all();
 }
@@ -64,11 +60,11 @@ MessageHandler::MessageHandler() : running(true) {
                 return;
             }
 
-            auto message = std::move(this->message_queue.front());
+            const auto message = std::move(this->message_queue.front());
             this->message_queue.pop();
             lock.unlock();
 
-            auto& data = *message.data;
+            const auto& data = message->data;
 
             // get the registered handlers
             std::vector<std::shared_ptr<TypedHandler>> local_handlers;
@@ -89,7 +85,7 @@ MessageHandler::MessageHandler() : running(true) {
                         continue;
                     }
                     if (data.at("type") == "call") {
-                        handler_fn(message.topic, data.at("data"));
+                        handler_fn(message->topic, data.at("data"));
                     }
                 } else if (handler->type == HandlerType::Result) {
                     // unpack result
@@ -99,7 +95,7 @@ MessageHandler::MessageHandler() : running(true) {
                     if (data.at("type") == "result") {
                         // only deliver result to handler with matching id
                         if (handler->id == data.at("data").at("id")) {
-                            handler_fn(message.topic, data.at("data"));
+                            handler_fn(message->topic, data.at("data"));
                         }
                     }
                 } else if (handler->type == HandlerType::SubscribeVar) {
@@ -107,17 +103,17 @@ MessageHandler::MessageHandler() : running(true) {
                     if (handler->name != data.at("name")) {
                         continue;
                     }
-                    handler_fn(message.topic, data.at("data"));
+                    handler_fn(message->topic, data.at("data"));
                 } else {
                     // external or unknown, no preprocessing
-                    handler_fn(message.topic, data);
+                    handler_fn(message->topic, data);
                 }
             }
         }
     });
 }
 
-void MessageHandler::add(MessageDetails message) {
+void MessageHandler::add(std::unique_ptr<ParsedMessage> message) {
     {
         std::lock_guard<std::mutex> lock(this->handler_ctrl_mutex);
         this->message_queue.push(std::move(message));
