@@ -252,6 +252,11 @@ private:
 
     ///
     /// \brief Check that external MQTT is configured - raises exception on error
+    ///
+    void check_external_mqtt();
+
+    ///
+    /// \brief Check that external MQTT is configured - raises exception on error
     /// \returns the full external MQTT topic
     ///
     std::string check_external_mqtt(const std::string& topic);
