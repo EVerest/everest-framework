@@ -2,6 +2,9 @@
 #include "everestrs/src/lib.rs.h"
 
 #include <everest/logging.hpp>
+#include <utils/error/error_manager_impl.hpp>
+#include <utils/error/error_manager_req.hpp>
+
 #include <utils/types.hpp>
 
 #include <cstdlib>
@@ -121,6 +124,22 @@ void Module::subscribe_variable(const Runtime& rt, rust::String implementation_i
     });
 }
 
+void Module::subscribe_all_errors(const Runtime& rt) const {
+    for (const Requirement& req : config_->get_requirements(module_id_)) {
+        handle_->get_error_manager_req(req)->subscribe_all_errors(
+            [&rt, req](Everest::error::Error error) {
+                const ErrorType rust_error{rust::String(error.type), rust::String(error.description),
+                                           rust::String(error.message), static_cast<ErrorSeverity>(error.severity)};
+                rt.handle_on_error(rust::Str(req.id), req.index, rust_error, true);
+            },
+            [&rt, req](Everest::error::Error error) {
+                const ErrorType rust_error{rust::String(error.type), rust::String(error.description),
+                                           rust::String(error.message), static_cast<ErrorSeverity>(error.severity)};
+                rt.handle_on_error(rust::Str(req.id), req.index, rust_error, false);
+            });
+    }
+}
+
 JsonBlob Module::call_command(rust::Str implementation_id, std::size_t index, rust::Str name, JsonBlob blob) const {
     const auto req = Requirement{std::string(implementation_id), index};
     json return_value = handle_->call_cmd(req, std::string(name), json::parse(blob.data.begin(), blob.data.end()));
@@ -150,6 +169,27 @@ std::shared_ptr<Module> create_module(rust::Str module_name, rust::Str prefix, r
     }
     mod = std::make_shared<Module>(std::string(module_name), std::string(prefix), mqtt_settings);
     return mod;
+}
+
+void Module::raise_error(rust::Str implementation_id, ErrorType error_type) const {
+    const Everest::error::Error error{std::string(error_type.error_type),
+                                      std::string{},
+                                      std::string(error_type.message),
+                                      std::string(error_type.description),
+                                      module_id_,
+                                      std::string(implementation_id),
+                                      static_cast<Everest::error::Severity>(error_type.severity)};
+    handle_->get_error_manager_impl(std::string(implementation_id))->raise_error(error);
+}
+
+void Module::clear_error(rust::Str implementation_id, rust::Str error_type, bool clear_all) const {
+    const auto manager = handle_->get_error_manager_impl(std::string(implementation_id));
+
+    if (error_type.empty()) {
+        manager->clear_all_errors();
+    } else {
+        manager->clear_error(std::string(error_type), clear_all);
+    }
 }
 
 rust::Vec<RsModuleConfig> get_module_configs(rust::Str module_id) {

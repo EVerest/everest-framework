@@ -15,7 +15,11 @@ struct Runtime;
 struct RsModuleConfig;
 struct RsModuleConnections;
 struct ConfigField;
+struct ErrorType;
+
 enum class ConfigTypes : uint8_t;
+enum class ErrorState : uint8_t;
+enum class ErrorSeverity : uint8_t;
 
 class Module {
 public:
@@ -29,9 +33,15 @@ public:
     JsonBlob call_command(rust::Str implementation_id, std::size_t index, rust::Str name, JsonBlob args) const;
     void subscribe_variable(const Runtime& rt, rust::String implementation_id, std::size_t index,
                             rust::String name) const;
+    void subscribe_all_errors(const Runtime& rt) const;
+
     void publish_variable(rust::Str implementation_id, rust::Str name, JsonBlob blob) const;
     std::shared_ptr<Everest::Config> get_config() const;
     rust::Vec<RsModuleConnections> get_module_connections() const;
+
+    void raise_error(rust::Str implementation_id, ErrorType error_type) const;
+
+    void clear_error(rust::Str implementation_id, rust::Str error_type, bool clear_all) const;
 
 private:
     const std::string module_id_;
