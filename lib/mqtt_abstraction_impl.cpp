@@ -231,7 +231,8 @@ json MQTTAbstractionImpl::get(const std::string& topic, QOS qos) {
     json result;
     if (res_future_status == std::future_status::timeout) {
         EVLOG_AND_THROW(EverestTimeoutError(fmt::format("Timeout while waiting for result of get()")));
-    } else if (res_future_status == std::future_status::ready) {
+    }
+    if (res_future_status == std::future_status::ready) {
         result = res_future.get();
     }
     this->unregister_handler(topic, res_token);

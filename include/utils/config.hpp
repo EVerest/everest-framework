@@ -109,8 +109,7 @@ public:
 
     ///
     /// \returns a json object that contains the main config
-    // FIXME (aw): this should be const and return the config by const ref!
-    json get_main_config();
+    const json& get_main_config() const;
 
     ///
     /// \brief checks if the config contains the given \p module_id
@@ -118,23 +117,23 @@ public:
 
     ///
     /// \returns a json object that contains the manifests
-    const json& get_manifests();
+    const json& get_manifests() const;
 
     ///
     /// \returns a json object that contains the interface definitions
-    json get_interface_definitions();
+    const json& get_interface_definitions() const;
 
     ///
     /// \returns a json object that contains the available interfaces
-    json get_interfaces();
+    const json& get_interfaces() const;
 
     ///
     /// \returns a json object that contains the settings
-    const json get_settings();
+    const json& get_settings() const;
 
     ///
     /// \returns a json object that contains the schemas
-    json get_schemas();
+    const json get_schemas() const;
 
     ///
     /// \returns a json object that contains the schemas
@@ -142,7 +141,7 @@ public:
 
     ///
     /// \returns a json object that contains the types
-    json get_types();
+    const json& get_types() const;
 
     ///
     /// \returns the module config cache
@@ -311,7 +310,7 @@ public:
     /// authors, license)
     ///
     /// \returns a ModuleInfo object
-    ModuleInfo get_module_info(const std::string& module_id);
+    ModuleInfo get_module_info(const std::string& module_id) const;
 
     ///
     /// \returns a TelemetryConfig if this has been configured
@@ -319,7 +318,7 @@ public:
 
     ///
     /// \returns a json object that contains the interface definition
-    json get_interface_definition(const std::string& interface_name);
+    json get_interface_definition(const std::string& interface_name) const;
 
     ///
     /// \brief A json schema loader that can handle type refs and otherwise uses the builtin draft7 schema of

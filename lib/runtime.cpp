@@ -421,7 +421,7 @@ int ModuleLoader::initialize() {
     this->mqtt->spawn_main_loop_thread();
 
     const auto result = get_module_config(this->mqtt, this->module_id);
-    auto get_config_time = std::chrono::system_clock::now();
+    const auto get_config_time = std::chrono::system_clock::now();
     EVLOG_debug << "Module " << fmt::format(TERMINAL_STYLE_OK, "{}", module_id) << " get_config() ["
                 << std::chrono::duration_cast<std::chrono::milliseconds>(get_config_time - start_time).count() << "ms]";
 
@@ -431,7 +431,7 @@ int ModuleLoader::initialize() {
         return 0;
     }
 
-    auto& rs = this->runtime_settings;
+    const auto& rs = this->runtime_settings;
     try {
         Config config = Config(this->mqtt_settings, result);
         auto config_instantiation_time = std::chrono::system_clock::now();
@@ -537,18 +537,18 @@ int ModuleLoader::initialize() {
         this->callbacks.register_module_adapter(module_adapter);
 
         // FIXME (aw): would be nice to move this config related thing toward the module_init function
-        std::vector<cmd> cmds =
+        const std::vector<cmd> cmds =
             this->callbacks.everest_register(config.get_requirement_initialization(this->module_id));
 
         for (auto const& command : cmds) {
             everest.provide_cmd(command);
         }
 
-        auto module_configs = config.get_module_configs(this->module_id);
+        const auto module_configs = config.get_module_configs(this->module_id);
         auto module_info = config.get_module_info(this->module_id);
         populate_module_info_path_from_runtime_settings(module_info, *rs);
         module_info.telemetry_enabled = everest.is_telemetry_enabled();
-        auto module_mappings = everest.get_3_tier_model_mapping();
+        const auto module_mappings = everest.get_3_tier_model_mapping();
         if (module_mappings.has_value()) {
             module_info.mapping = module_mappings.value().module;
         }
@@ -564,7 +564,7 @@ int ModuleLoader::initialize() {
         // the module should now be ready
         everest.signal_ready();
 
-        auto end_time = std::chrono::system_clock::now();
+        const auto end_time = std::chrono::system_clock::now();
         EVLOG_info << "Module " << fmt::format(TERMINAL_STYLE_BLUE, "{}", module_id) << " initialized ["
                    << std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count() << "ms]";
 

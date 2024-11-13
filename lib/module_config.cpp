@@ -57,7 +57,7 @@ json get_module_config(std::shared_ptr<MQTTAbstraction> mqtt, const std::string&
     const auto interface_names_topic = fmt::format("{}interfaces", everest_prefix);
     const auto interface_names = mqtt->get(interface_names_topic, QOS::QOS2);
     auto interface_definitions = json::object();
-    for (auto& interface : interface_names) {
+    for (const auto& interface : interface_names) {
         auto interface_topic = fmt::format("{}interface_definitions/{}", everest_prefix, interface.get<std::string>());
         auto interface_definition = mqtt->get(interface_topic, QOS::QOS2);
         interface_definitions[interface] = interface_definition;

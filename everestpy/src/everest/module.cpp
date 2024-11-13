@@ -10,7 +10,7 @@
 #include <utils/error/error_state_monitor.hpp>
 
 std::unique_ptr<Everest::Everest>
-Module::create_everest_instance(const std::string& module_id, Everest::Config& config,
+Module::create_everest_instance(const std::string& module_id, const Everest::Config& config,
                                 const Everest::RuntimeSettings& rs,
                                 std::shared_ptr<Everest::MQTTAbstraction> mqtt_abstraction) {
     return std::make_unique<Everest::Everest>(module_id, config, rs.validate_schema, mqtt_abstraction,
@@ -33,20 +33,20 @@ Module::Module(const std::string& module_id_, const RuntimeSession& session_) :
 
     this->config_ = std::make_unique<Everest::Config>(session.get_mqtt_settings(), result);
 
-    auto& config = get_config();
+    const auto& config = get_config();
 
     this->handle = create_everest_instance(module_id, config, *this->rs, this->mqtt_abstraction);
 
     // determine the fulfillments for our requirements
     const std::string& module_name = config.get_main_config().at(module_id).at("module");
-    auto module_manifest = config.get_manifests().at(module_name);
+    const auto module_manifest = config.get_manifests().at(module_name);
 
     // setup module info
     module_info = config.get_module_info(module_id);
     populate_module_info_path_from_runtime_settings(module_info, *this->rs);
 
     // setup implementations
-    for (auto& implementation : module_manifest.at("provides").items()) {
+    for (const auto& implementation : module_manifest.at("provides").items()) {
         const auto& implementation_id = implementation.key();
         const std::string interface_name = implementation.value().at("interface");
         const auto& interface_def = config.get_interface_definition(interface_name);
@@ -54,7 +54,7 @@ Module::Module(const std::string& module_id_, const RuntimeSession& session_) :
     }
 
     // setup requirements
-    for (auto& requirement : module_manifest.at("requires").items()) {
+    for (const auto& requirement : module_manifest.at("requires").items()) {
         const auto& requirement_id = requirement.key();
         const std::string interface_name = requirement.value().at("interface");
         const auto& interface_def = config.get_interface_definition(interface_name);

@@ -74,12 +74,12 @@ ModuleSetup create_setup_from_config(const std::string& module_id, Everest::Conf
     ModuleSetup setup;
 
     const std::string& module_name = config.get_main_config().at(module_id).at("module");
-    auto module_manifest = config.get_manifests().at(module_name);
+    const auto module_manifest = config.get_manifests().at(module_name);
 
     // setup connections
-    for (auto& requirement : module_manifest.at("requires").items()) {
+    for (const auto& requirement : module_manifest.at("requires").items()) {
 
-        auto const& requirement_id = requirement.key();
+        const auto& requirement_id = requirement.key();
 
         json req_route_list = config.resolve_requirement(module_id, requirement_id);
         // if this was a requirement with min_connections == 1 and max_connections == 1,
@@ -96,7 +96,8 @@ ModuleSetup create_setup_from_config(const std::string& module_id, Everest::Conf
 
         for (std::size_t i = 0; i < req_route_list.size(); i++) {
             const auto& req_route = req_route_list[i];
-            auto fulfillment = Fulfillment{req_route["module_id"], req_route["implementation_id"], {requirement_id, i}};
+            const auto fulfillment =
+                Fulfillment{req_route["module_id"], req_route["implementation_id"], {requirement_id, i}};
             fulfillment_list.emplace_back(std::move(fulfillment));
         }
     }

@@ -42,7 +42,7 @@ using namespace Everest;
 
 const auto PARENT_DIED_SIGNAL = SIGTERM;
 const int CONTROLLER_IPC_READ_TIMEOUT_MS = 50;
-auto complete_start_time = std::chrono::system_clock::now();
+const auto complete_start_time = std::chrono::system_clock::now();
 
 #ifdef ENABLE_ADMIN_PANEL
 class ControllerHandle {
@@ -148,7 +148,7 @@ static void exec_cpp_module(system::SubProcess& proc_handle, const ModuleStartIn
                                            std::to_string(mqtt_settings.broker_port)});
     }
 
-    auto argv_list = arguments_to_exec_argv(arguments);
+    const auto argv_list = arguments_to_exec_argv(arguments);
     execv(exec_binary, argv_list.data());
 
     // exec failed
@@ -175,7 +175,7 @@ static void exec_javascript_module(system::SubProcess& proc_handle, const Module
         module_info.path.string(),
     };
 
-    auto argv_list = arguments_to_exec_argv(arguments);
+    const auto argv_list = arguments_to_exec_argv(arguments);
     execvp(node_binary, argv_list.data());
 
     // exec failed
@@ -198,7 +198,7 @@ static void exec_python_module(system::SubProcess& proc_handle, const ModuleStar
 
     std::vector<std::string> arguments = {python_binary, module_info.path.c_str()};
 
-    auto argv_list = arguments_to_exec_argv(arguments);
+    const auto argv_list = arguments_to_exec_argv(arguments);
     execvp(python_binary, argv_list.data());
 
     // exec failed
@@ -229,7 +229,7 @@ static std::map<pid_t, std::string> spawn_modules(const std::vector<ModuleStartI
                                                   const ManagerSettings& ms) {
     std::map<pid_t, std::string> started_modules;
 
-    auto rs = ms.get_runtime_settings();
+    const auto rs = ms.get_runtime_settings();
 
     for (const auto& module : modules) {
 
@@ -246,7 +246,7 @@ static std::map<pid_t, std::string> spawn_modules(const std::vector<ModuleStartI
         }
 
         // we can only come here, if we're the parent!
-        auto child_pid = proc_handle.check_child_executed();
+        const auto child_pid = proc_handle.check_child_executed();
 
         EVLOG_debug << fmt::format("Forked module {} with pid: {}", module.name, child_pid);
         started_modules[child_pid] = module.name;
@@ -267,7 +267,7 @@ std::mutex modules_ready_mutex;
 
 void cleanup_retained_topics(ManagerConfig& config, MQTTAbstraction& mqtt_abstraction,
                              const std::string& mqtt_everest_prefix) {
-    auto interface_definitions = config.get_interface_definitions();
+    const auto interface_definitions = config.get_interface_definitions();
 
     mqtt_abstraction.publish(fmt::format("{}interfaces", mqtt_everest_prefix), std::string(), QOS::QOS2, true);
 
@@ -300,11 +300,11 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
 
     std::vector<ModuleStartInfo> modules_to_spawn;
 
-    auto main_config = config.get_main_config();
+    const auto main_config = config.get_main_config();
     modules_to_spawn.reserve(main_config.size());
 
-    auto serialized_config = config.serialize();
-    auto interface_definitions = config.get_interface_definitions();
+    const auto serialized_config = config.serialize();
+    const auto interface_definitions = config.get_interface_definitions();
     std::vector<std::string> interface_names;
     for (auto& interface_definition : interface_definitions.items()) {
         interface_names.push_back(interface_definition.key());
@@ -319,42 +319,42 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
     }
 
     // TODO: maybe split this up into individual entries to keep message sizes as small as possible
-    auto types = config.get_types();
+    const auto types = config.get_types();
     mqtt_abstraction.publish(fmt::format("{}types", ms.mqtt_settings.everest_prefix), types, QOS::QOS2, true);
 
-    auto module_provides = config.get_interfaces();
+    const auto module_provides = config.get_interfaces();
     mqtt_abstraction.publish(fmt::format("{}module_provides", ms.mqtt_settings.everest_prefix), module_provides,
                              QOS::QOS2, true);
 
-    auto settings = config.get_settings();
+    const auto settings = config.get_settings();
     mqtt_abstraction.publish(fmt::format("{}settings", ms.mqtt_settings.everest_prefix), settings, QOS::QOS2, true);
 
-    auto schemas = config.get_schemas();
+    const auto schemas = config.get_schemas();
     mqtt_abstraction.publish(fmt::format("{}schemas", ms.mqtt_settings.everest_prefix), schemas, QOS::QOS2, true);
 
-    auto manifests = config.get_manifests();
+    const auto manifests = config.get_manifests();
     mqtt_abstraction.publish(fmt::format("{}manifests", ms.mqtt_settings.everest_prefix), manifests, QOS::QOS2, true);
 
-    auto error_types_map = config.get_error_types_map();
+    const auto error_types_map = config.get_error_types_map();
     mqtt_abstraction.publish(fmt::format("{}error_types_map", ms.mqtt_settings.everest_prefix), error_types_map,
                              QOS::QOS2, true);
 
-    auto module_config_cache = config.get_module_config_cache();
+    const auto module_config_cache = config.get_module_config_cache();
     mqtt_abstraction.publish(fmt::format("{}module_config_cache", ms.mqtt_settings.everest_prefix), module_config_cache,
                              QOS::QOS2, true);
 
     for (const auto& module : serialized_config.at("module_names").items()) {
-        std::string module_name = module.key();
+        const std::string module_name = module.key();
         json serialized_mod_config = serialized_config;
         serialized_mod_config["module_config"] = json::object();
         serialized_mod_config["module_config"][module_name] = serialized_config.at("main").at(module_name);
-        auto mappings = config.get_module_3_tier_model_mappings(module_name);
+        const auto mappings = config.get_module_3_tier_model_mappings(module_name);
         if (mappings.has_value()) {
             serialized_mod_config["mappings"] = json::object();
             serialized_mod_config["mappings"][module_name] = mappings.value();
         }
         serialized_mod_config.erase("main"); // FIXME: do not put this "main" config in there in the first place
-        auto telemetry_config = config.get_telemetry_config(module_name);
+        const auto telemetry_config = config.get_telemetry_config(module_name);
         if (telemetry_config.has_value()) {
             serialized_mod_config["telemetry_config"] = telemetry_config.value();
         }
@@ -365,7 +365,7 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
         }
 
         // FIXME (aw): shall create a ref to main_confit.at(module_name)!
-        std::string module_type = main_config[module_name]["module"];
+        const std::string module_type = main_config.at(module_name).at("module");
         // FIXME (aw): implicitely adding ModuleReadyInfo and setting its ready member
         auto module_it = modules_ready.emplace(module_name, ModuleReadyInfo{false, nullptr, nullptr}).first;
 
@@ -392,7 +392,7 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
             modules_ready.at(module_name).ready = json.get<bool>();
             std::size_t modules_spawned = 0;
             for (const auto& mod : modules_ready) {
-                std::string text_ready =
+                const std::string text_ready =
                     fmt::format((mod.second.ready) ? TERMINAL_STYLE_OK : TERMINAL_STYLE_ERROR, "ready");
                 EVLOG_debug << fmt::format("  {}: {}", mod.first, text_ready);
                 if (mod.second.ready) {
@@ -405,7 +405,7 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
             }
             if (std::all_of(modules_ready.begin(), modules_ready.end(),
                             [](const auto& element) { return element.second.ready; })) {
-                auto complete_end_time = std::chrono::system_clock::now();
+                const auto complete_end_time = std::chrono::system_clock::now();
                 status_fifo.update(StatusFifo::ALL_MODULES_STARTED);
                 EVLOG_info << fmt::format(
                     TERMINAL_STYLE_OK, "🚙🚙🚙 All modules are initialized. EVerest up and running [{}ms] 🚙🚙🚙",
@@ -447,11 +447,11 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
         const std::string binary_filename = fmt::format("{}", module_type);
         const std::string javascript_library_filename = "index.js";
         const std::string python_filename = "module.py";
-        auto module_path = ms.runtime_settings->modules_dir / module_type;
+        const auto module_path = ms.runtime_settings->modules_dir / module_type;
         const auto printable_module_name = config.printable_identifier(module_name);
-        auto binary_path = module_path / binary_filename;
-        auto javascript_library_path = module_path / javascript_library_filename;
-        auto python_module_path = module_path / python_filename;
+        const auto binary_path = module_path / binary_filename;
+        const auto javascript_library_path = module_path / javascript_library_filename;
+        const auto python_module_path = module_path / python_filename;
 
         if (fs::exists(binary_path)) {
             EVLOG_debug << fmt::format("module: {} ({}) provided as binary", module_name, module_type);
@@ -532,7 +532,7 @@ static ControllerHandle start_controller(const ManagerSettings& ms) {
         // FIXME (aw): hack to get the correct directory of the controller
         const auto bin_dir = fs::canonical("/proc/self/exe").parent_path();
 
-        auto controller_binary = bin_dir / "controller";
+        const auto controller_binary = bin_dir / "controller";
 
         close(manager_socket);
         dup2(controller_socket, STDIN_FILENO);
@@ -573,7 +573,7 @@ int boot(const po::variables_map& vm) {
     const auto prefix_opt = parse_string_option(vm, "prefix");
     const auto config_opt = parse_string_option(vm, "config");
 
-    auto ms = ManagerSettings(prefix_opt, config_opt);
+    const auto ms = ManagerSettings(prefix_opt, config_opt);
 
     Logging::init(ms.runtime_settings->logging_config_file.string());
 
@@ -627,14 +627,14 @@ int boot(const po::variables_map& vm) {
 
     // dump all manifests if requested and terminate afterwards
     if (vm.count("dumpmanifests")) {
-        auto dumpmanifests_path = fs::path(vm["dumpmanifests"].as<std::string>());
+        const auto dumpmanifests_path = fs::path(vm["dumpmanifests"].as<std::string>());
         EVLOG_debug << fmt::format("Dumping all known validated manifests into '{}'", dumpmanifests_path.string());
 
         auto manifests = Config::load_all_manifests(ms.runtime_settings->modules_dir.string(), ms.schemas_dir.string());
 
         for (const auto& module : manifests.items()) {
             const std::string filename = module.key() + ".yaml";
-            auto module_output_path = dumpmanifests_path / filename;
+            const auto module_output_path = dumpmanifests_path / filename;
             // FIXME (aw): should we check if the directory exists?
             std::ofstream output_stream(module_output_path);
 
@@ -645,7 +645,7 @@ int boot(const po::variables_map& vm) {
         return EXIT_SUCCESS;
     }
 
-    auto start_time = std::chrono::system_clock::now();
+    const auto start_time = std::chrono::system_clock::now();
     std::unique_ptr<ManagerConfig> config;
     try {
         config = std::make_unique<ManagerConfig>(ms);
@@ -661,26 +661,26 @@ int boot(const po::variables_map& vm) {
         EVLOG_critical << fmt::format("Caught top level std::exception:\n{}", boost::diagnostic_information(e, true));
         return EXIT_FAILURE;
     }
-    auto end_time = std::chrono::system_clock::now();
+    const auto end_time = std::chrono::system_clock::now();
     EVLOG_info << "Config loading completed in "
                << std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count() << "ms";
 
     // dump config if requested
     if (vm.count("dump")) {
-        auto dump_path = fs::path(vm["dump"].as<std::string>());
+        const auto dump_path = fs::path(vm["dump"].as<std::string>());
         EVLOG_debug << fmt::format("Dumping validated config and manifests into '{}'", dump_path.string());
 
-        auto config_dump_path = dump_path / "config.json";
+        const auto config_dump_path = dump_path / "config.json";
 
         std::ofstream output_config_stream(config_dump_path);
 
         output_config_stream << config->get_main_config().dump(DUMP_INDENT);
 
-        auto manifests = config->get_manifests();
+        const auto manifests = config->get_manifests();
 
         for (const auto& module : manifests.items()) {
             const std::string filename = module.key() + ".json";
-            auto module_output_path = dump_path / filename;
+            const auto module_output_path = dump_path / filename;
             std::ofstream output_stream(module_output_path);
 
             output_stream << module.value().dump(DUMP_INDENT);
@@ -779,7 +779,7 @@ int boot(const po::variables_map& vm) {
             }
 #endif
 
-            auto module_iter = module_handles.find(pid);
+            const auto module_iter = module_handles.find(pid);
             if (module_iter == module_handles.end()) {
                 throw std::runtime_error(fmt::format("Unkown child width pid ({}) died.", pid));
             }
@@ -810,7 +810,7 @@ int boot(const po::variables_map& vm) {
         }
 
         // check for news from the controller
-        auto msg = controller_handle.receive_message();
+        const auto msg = controller_handle.receive_message();
         if (msg.status == controller_ipc::MESSAGE_RETURN_STATUS::OK) {
             // FIXME (aw): implement all possible messages here, for now just log them
             const auto& payload = msg.json;

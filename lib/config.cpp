@@ -48,14 +48,14 @@ struct ParsedConfigMap {
 static void validate_config_schema(const json& config_map_schema) {
     // iterate over every config entry
     json_validator validator(Config::loader, Config::format_checker);
-    for (auto& config_item : config_map_schema.items()) {
+    for (const auto& config_item : config_map_schema.items()) {
         if (!config_item.value().contains("default")) {
             continue;
         }
 
         try {
             validator.set_root_schema(config_item.value());
-            validator.validate(config_item.value()["default"]);
+            validator.validate(config_item.value().at("default"));
         } catch (const std::exception& e) {
             throw std::runtime_error(fmt::format("Config item '{}' has issues:\n{}", config_item.key(), e.what()));
         }
@@ -74,9 +74,9 @@ static ParsedConfigMap parse_config_map(const json& config_map_schema, const jso
                         std::inserter(unknown_config_entries, unknown_config_entries.end()));
 
     // validate each config entry
-    for (auto& config_entry_el : config_map_schema.items()) {
+    for (const auto& config_entry_el : config_map_schema.items()) {
         const std::string config_entry_name = config_entry_el.key();
-        json config_entry = config_entry_el.value();
+        const json config_entry = config_entry_el.value();
 
         // only convenience exception, would be catched by schema validation below if not thrown here
         if (!config_entry.contains("default") and !config_map.contains(config_entry_name)) {
@@ -87,7 +87,7 @@ static ParsedConfigMap parse_config_map(const json& config_map_schema, const jso
         if (config_map.contains(config_entry_name)) {
             config_entry_value = config_map[config_entry_name];
         } else if (config_entry.contains("default")) {
-            config_entry_value = config_entry["default"]; // use default value defined in manifest
+            config_entry_value = config_entry.at("default"); // use default value defined in manifest
         }
         json_validator validator(Config::loader, Config::format_checker);
         validator.set_root_schema(config_entry);
@@ -109,8 +109,6 @@ static ParsedConfigMap parse_config_map(const json& config_map_schema, const jso
 
 static auto get_provides_for_probe_module(const std::string& probe_module_id, const json& config,
                                           const json& manifests) {
-    auto probe_module_config = config.at(probe_module_id);
-
     auto provides = json::object();
 
     for (const auto& item : config.items()) {
@@ -160,7 +158,7 @@ static auto get_provides_for_probe_module(const std::string& probe_module_id, co
 
 static auto get_requirements_for_probe_module(const std::string& probe_module_id, const json& config,
                                               const json& manifests) {
-    auto probe_module_config = config.at(probe_module_id);
+    const auto probe_module_config = config.at(probe_module_id);
 
     auto requirements = json::object();
 
@@ -307,7 +305,7 @@ std::string ConfigBase::mqtt_module_prefix(const std::string& module_id) {
     return fmt::format("{}modules/{}", this->mqtt_settings.everest_prefix, module_id);
 }
 
-json ConfigBase::get_main_config() {
+const json& ConfigBase::get_main_config() const {
     BOOST_LOG_FUNCTION();
     return this->main;
 }
@@ -317,27 +315,27 @@ bool ConfigBase::contains(const std::string& module_id) const {
     return this->main.contains(module_id);
 }
 
-const json& ConfigBase::get_manifests() {
+const json& ConfigBase::get_manifests() const {
     BOOST_LOG_FUNCTION();
     return this->manifests;
 }
 
-json ConfigBase::get_interface_definitions() {
+const json& ConfigBase::get_interface_definitions() const {
     BOOST_LOG_FUNCTION();
     return this->interface_definitions;
 }
 
-json ConfigBase::get_interfaces() {
+const json& ConfigBase::get_interfaces() const {
     BOOST_LOG_FUNCTION();
     return this->interfaces;
 }
 
-const json ConfigBase::get_settings() {
+const json& ConfigBase::get_settings() const {
     BOOST_LOG_FUNCTION();
     return this->settings;
 }
 
-json ConfigBase::get_schemas() {
+const json ConfigBase::get_schemas() const {
     BOOST_LOG_FUNCTION();
     return this->_schemas;
 }
@@ -347,7 +345,7 @@ json ConfigBase::get_error_types_map() {
     return this->error_map.get_error_types_map();
 }
 
-json ConfigBase::get_types() {
+const json& ConfigBase::get_types() const {
     BOOST_LOG_FUNCTION();
     return this->types;
 }
@@ -384,7 +382,7 @@ std::optional<Mapping> ConfigBase::get_3_tier_model_mapping(const std::string& m
 
 // ManagerConfig
 void ManagerConfig::load_and_validate_manifest(const std::string& module_id, const json& module_config) {
-    std::string module_name = module_config["module"];
+    const std::string module_name = module_config.at("module");
 
     this->module_config_cache[module_id] = ConfigCache();
     this->module_names[module_id] = module_name;
@@ -403,7 +401,7 @@ void ManagerConfig::load_and_validate_manifest(const std::string& module_id, con
 
         json_validator validator(Config::loader, Config::format_checker);
         validator.set_root_schema(this->_schemas.manifest);
-        auto patch = validator.validate(this->manifests[module_name]);
+        const auto patch = validator.validate(this->manifests[module_name]);
         if (!patch.is_null()) {
             // extend manifest with default values
             this->manifests[module_name] = this->manifests[module_name].patch(patch);
@@ -422,9 +420,9 @@ void ManagerConfig::load_and_validate_manifest(const std::string& module_id, con
                         module_name, e.what())));
     }
 
-    for (auto& impl : this->manifests[module_name]["provides"].items()) {
+    for (const auto& impl : this->manifests[module_name]["provides"].items()) {
         try {
-            validate_config_schema(impl.value()["config"]);
+            validate_config_schema(impl.value().at("config"));
         } catch (const std::exception& e) {
             EVLOG_AND_THROW(
                 EverestConfigError(fmt::format("Failed to validate the implementation configuration meta-schema "
@@ -457,7 +455,7 @@ void ManagerConfig::load_and_validate_manifest(const std::string& module_id, con
     if (!unknown_impls_in_config.empty()) {
         EVLOG_AND_THROW(EverestApiError(
             fmt::format("Implementation id(s)[{}] mentioned in config, but not defined in manifest of module '{}'!",
-                        fmt::join(unknown_impls_in_config, " "), module_config["module"])));
+                        fmt::join(unknown_impls_in_config, " "), module_config.at("module"))));
     }
 
     // validate config entries against manifest file
@@ -469,15 +467,15 @@ void ManagerConfig::load_and_validate_manifest(const std::string& module_id, con
         const json config_map =
             module_config.value("config_implementation", json::object()).value(impl_id, json::object());
         const json config_map_schema =
-            this->manifests[module_config["module"].get<std::string>()]["provides"][impl_id]["config"];
+            this->manifests[module_config.at("module").get<std::string>()]["provides"][impl_id]["config"];
 
         try {
-            auto parsed_config_map = parse_config_map(config_map_schema, config_map);
+            const auto parsed_config_map = parse_config_map(config_map_schema, config_map);
             if (parsed_config_map.unknown_config_entries.size()) {
                 for (const auto& unknown_entry : parsed_config_map.unknown_config_entries) {
                     EVLOG_error << fmt::format(
                         "Unknown config entry '{}' of {} of module '{}' ignored, please fix your config file!",
-                        unknown_entry, printable_identifier(module_id, impl_id), module_config["module"]);
+                        unknown_entry, printable_identifier(module_id, impl_id), module_config.at("module"));
                 }
             }
             this->main[module_id]["config_maps"][impl_id] = parsed_config_map.parsed_config_map;
@@ -497,8 +495,8 @@ void ManagerConfig::load_and_validate_manifest(const std::string& module_id, con
 
     // validate config for !module
     {
-        const json config_map = module_config["config_module"];
-        const json config_map_schema = this->manifests[module_config["module"].get<std::string>()]["config"];
+        const json config_map = module_config.at("config_module");
+        const json config_map_schema = this->manifests[module_config.at("module").get<std::string>()]["config"];
 
         try {
             auto parsed_config_map = parse_config_map(config_map_schema, config_map);
@@ -506,7 +504,7 @@ void ManagerConfig::load_and_validate_manifest(const std::string& module_id, con
                 for (const auto& unknown_entry : parsed_config_map.unknown_config_entries) {
                     EVLOG_error << fmt::format(
                         "Unknown config entry '{}' of module '{}' ignored, please fix your config file!", unknown_entry,
-                        module_config["module"]);
+                        module_config.at("module"));
                 }
             }
             this->main[module_id]["config_maps"]["!module"] = parsed_config_map.parsed_config_map;
@@ -514,11 +512,11 @@ void ManagerConfig::load_and_validate_manifest(const std::string& module_id, con
             if (err.err_t == ConfigParseException::MISSING_ENTRY) {
                 EVLOG_AND_THROW(
                     EverestConfigError(fmt::format("Missing mandatory config entry '{}' for module config in module {}",
-                                                   err.entry, module_config["module"])));
+                                                   err.entry, module_config.at("module"))));
             } else if (err.err_t == ConfigParseException::SCHEMA) {
                 EVLOG_AND_THROW(EverestConfigError(fmt::format(
                     "Schema validation for config entry '{}' failed for module config in module {}! Reason:\n{}",
-                    err.entry, module_config["module"], err.what)));
+                    err.entry, module_config.at("module"), err.what)));
             } else {
                 throw err;
             }
@@ -530,11 +528,11 @@ std::tuple<json, int64_t> ManagerConfig::load_and_validate_with_schema(const fs:
     const json json_to_validate = load_yaml(file_path);
     int64_t validation_ms = 0;
 
-    auto start_time_validate = std::chrono::system_clock::now();
+    const auto start_time_validate = std::chrono::system_clock::now();
     json_validator validator(Config::loader, Config::format_checker);
     validator.set_root_schema(schema);
     validator.validate(json_to_validate);
-    auto end_time_validate = std::chrono::system_clock::now();
+    const auto end_time_validate = std::chrono::system_clock::now();
     EVLOG_debug
         << "YAML validation of " << file_path.string() << " took: "
         << std::chrono::duration_cast<std::chrono::milliseconds>(end_time_validate - start_time_validate).count()
@@ -548,7 +546,7 @@ std::tuple<json, int64_t> ManagerConfig::load_and_validate_with_schema(const fs:
 
 json ManagerConfig::resolve_interface(const std::string& intf_name) {
     // load and validate interface.json and mark interface as seen
-    auto intf_definition = load_interface_file(intf_name);
+    const auto intf_definition = load_interface_file(intf_name);
 
     this->interface_definitions[intf_name] = intf_definition;
     return intf_definition;
@@ -636,7 +634,7 @@ std::list<json> ManagerConfig::resolve_error_ref(const std::string& reference) {
     BOOST_LOG_FUNCTION();
     const std::string ref_prefix = "/errors/";
     const std::string err_ref = reference.substr(ref_prefix.length());
-    auto result = err_ref.find("#/");
+    const auto result = err_ref.find("#/");
     std::string err_namespace;
     std::string err_name;
     bool is_error_list;
@@ -676,7 +674,7 @@ json ManagerConfig::replace_error_refs(json& interface_json) {
     }
     json errors_new = json::object();
     for (auto& error_entry : interface_json.at("errors")) {
-        std::list<json> errors = resolve_error_ref(error_entry.at("reference"));
+        const std::list<json> errors = resolve_error_ref(error_entry.at("reference"));
         for (auto& error : errors) {
             if (!errors_new.contains(error.at("namespace"))) {
                 errors_new[error.at("namespace")] = json::object();
@@ -721,10 +719,10 @@ void ManagerConfig::resolve_all_requirements() {
 
         for (auto& element : this->manifests[module_config["module"].get<std::string>()]["requires"].items()) {
             const auto& requirement_id = element.key();
-            auto& requirement = element.value();
+            const auto& requirement = element.value();
 
             if (!module_config["connections"].contains(requirement_id)) {
-                if (requirement["min_connections"] < 1) {
+                if (requirement.at("min_connections") < 1) {
                     EVLOG_debug << fmt::format("Manifest of {} lists OPTIONAL requirement '{}' which could not be "
                                                "fulfilled and will be ignored...",
                                                printable_identifier(module_id), requirement_id);
@@ -737,18 +735,18 @@ void ManagerConfig::resolve_all_requirements() {
             const json& connections = module_config["connections"][requirement_id];
 
             // check if min_connections and max_connections are fulfilled
-            if (connections.size() < requirement["min_connections"] ||
-                connections.size() > requirement["max_connections"]) {
-                EVLOG_AND_THROW(
-                    EverestConfigError(fmt::format("Requirement '{}' of module {} not fulfilled: requirement list does "
-                                                   "not have an entry count between {} and {}!",
-                                                   requirement_id, printable_identifier(module_id),
-                                                   requirement["min_connections"], requirement["max_connections"])));
+            if (connections.size() < requirement.at("min_connections") ||
+                connections.size() > requirement.at("max_connections")) {
+                EVLOG_AND_THROW(EverestConfigError(
+                    fmt::format("Requirement '{}' of module {} not fulfilled: requirement list does "
+                                "not have an entry count between {} and {}!",
+                                requirement_id, printable_identifier(module_id), requirement.at("min_connections"),
+                                requirement.at("max_connections"))));
             }
 
             for (uint64_t connection_num = 0; connection_num < connections.size(); connection_num++) {
-                auto& connection = connections[connection_num];
-                const std::string& connection_module_id = connection["module_id"];
+                const auto& connection = connections[connection_num];
+                const std::string& connection_module_id = connection.at("module_id");
                 if (!this->main.contains(connection_module_id)) {
                     EVLOG_AND_THROW(EverestConfigError(fmt::format(
                         "Requirement '{}' of module {} not fulfilled: module id '{}' (configured in "
@@ -757,38 +755,38 @@ void ManagerConfig::resolve_all_requirements() {
                 }
 
                 const std::string& connection_module_name = this->main[connection_module_id]["module"];
-                const std::string& connection_impl_id = connection["implementation_id"];
-                auto& connection_manifest = this->manifests[connection_module_name];
-                if (!connection_manifest["provides"].contains(connection_impl_id)) {
+                const std::string& connection_impl_id = connection.at("implementation_id");
+                const auto& connection_manifest = this->manifests[connection_module_name];
+                if (!connection_manifest.at("provides").contains(connection_impl_id)) {
                     EVLOG_AND_THROW(EverestConfigError(
                         fmt::format("Requirement '{}' of module {} not fulfilled: required module {} does not provide "
                                     "an implementation for '{}'!",
                                     requirement_id, printable_identifier(module_id),
-                                    printable_identifier(connection["module_id"]), connection_impl_id)));
+                                    printable_identifier(connection.at("module_id")), connection_impl_id)));
                 }
 
                 // FIXME: copy here so we can safely erase description and config entries
                 // FIXME: if we were to copy here this costs us a huge amount of performance during startup
                 // FIXME: or does it really? tests are inconclusive right now...
-                auto connection_provides = connection_manifest["provides"][connection_impl_id];
+                auto connection_provides = connection_manifest.at("provides").at(connection_impl_id);
                 if (connection_provides.contains("config")) {
                     connection_provides.erase("config");
                 }
                 if (connection_provides.contains("description")) {
                     connection_provides.erase("description");
                 }
-                const std::string& requirement_interface = requirement["interface"];
+                const std::string& requirement_interface = requirement.at("interface");
 
                 // check interface requirement
-                if (requirement_interface != connection_provides["interface"]) {
+                if (requirement_interface != connection_provides.at("interface")) {
                     EVLOG_AND_THROW(EverestConfigError(fmt::format(
                         "Requirement '{}' of module {} not fulfilled by connection to module {}: required "
                         "interface "
                         "'{}' is not provided by this implementation! Connected implementation provides interface "
                         "'{}'.",
                         requirement_id, printable_identifier(module_id),
-                        printable_identifier(connection["module_id"], connection_impl_id), requirement_interface,
-                        connection_provides["interface"].get<std::string>())));
+                        printable_identifier(connection.at("module_id"), connection_impl_id), requirement_interface,
+                        connection_provides.at("interface").get<std::string>())));
                 }
 
                 module_config["connections"][requirement_id][connection_num]["provides"] = connection_provides;
@@ -797,7 +795,7 @@ void ManagerConfig::resolve_all_requirements() {
                 EVLOG_debug << fmt::format(
                     "Manifest of {} lists requirement '{}' which will be fulfilled by {}...",
                     printable_identifier(module_id), requirement_id,
-                    printable_identifier(connection["module_id"], connection["implementation_id"]));
+                    printable_identifier(connection.at("module_id"), connection.at("implementation_id")));
             }
         }
     }
@@ -810,25 +808,27 @@ void ManagerConfig::parse(json config) {
     if (this->ms.runtime_settings->validate_schema) {
         int64_t total_time_validation_ms = 0, total_time_parsing_ms = 0;
         for (auto const& types_entry : fs::recursive_directory_iterator(this->ms.types_dir)) {
-            auto start_time = std::chrono::system_clock::now();
-            auto const& type_file_path = types_entry.path();
+            const auto start_time = std::chrono::system_clock::now();
+            const auto& type_file_path = types_entry.path();
             if (fs::is_regular_file(type_file_path) && type_file_path.extension() == ".yaml") {
-                auto type_path = std::string("/") + fs::relative(type_file_path, this->ms.types_dir).stem().string();
+                const auto type_path =
+                    std::string("/") + fs::relative(type_file_path, this->ms.types_dir).stem().string();
 
                 try {
                     // load and validate type file, store validated result in this->types
                     EVLOG_verbose << fmt::format("Loading type file at: {}", fs::canonical(type_file_path).c_str());
 
-                    auto [type_json, validate_ms] = load_and_validate_with_schema(type_file_path, this->_schemas.type);
+                    const auto [type_json, validate_ms] =
+                        load_and_validate_with_schema(type_file_path, this->_schemas.type);
                     total_time_validation_ms += validate_ms;
 
-                    this->types[type_path] = type_json["types"];
+                    this->types[type_path] = type_json.at("types");
                 } catch (const std::exception& e) {
                     EVLOG_AND_THROW(EverestConfigError(fmt::format(
                         "Failed to load and parse type file '{}', reason: {}", type_file_path.string(), e.what())));
                 }
             }
-            auto end_time = std::chrono::system_clock::now();
+            const auto end_time = std::chrono::system_clock::now();
             total_time_parsing_ms +=
                 std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
             EVLOG_debug << "Parsing of type " << types_entry.path().string() << " took: "
@@ -842,14 +842,14 @@ void ManagerConfig::parse(json config) {
     if (this->ms.runtime_settings->validate_schema) {
         int64_t total_time_validation_ms = 0, total_time_parsing_ms = 0;
         for (auto const& errors_entry : fs::recursive_directory_iterator(this->ms.errors_dir)) {
-            auto start_time = std::chrono::system_clock::now();
-            auto const& error_file_path = errors_entry.path();
+            const auto start_time = std::chrono::system_clock::now();
+            const auto& error_file_path = errors_entry.path();
             if (fs::is_regular_file(error_file_path) && error_file_path.extension() == ".yaml") {
                 try {
                     // load and validate error file
                     EVLOG_verbose << fmt::format("Loading error file at: {}", fs::canonical(error_file_path).c_str());
 
-                    auto [error_json, validate_ms] =
+                    const auto [error_json, validate_ms] =
                         load_and_validate_with_schema(error_file_path, this->_schemas.error_declaration_list);
                     total_time_validation_ms += validate_ms;
 
@@ -858,7 +858,7 @@ void ManagerConfig::parse(json config) {
                         "Failed to load and parse error file '{}', reason: {}", error_file_path.string(), e.what())));
                 }
             }
-            auto end_time = std::chrono::system_clock::now();
+            const auto end_time = std::chrono::system_clock::now();
             total_time_parsing_ms +=
                 std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
             EVLOG_debug << "Parsing of error " << errors_entry.path().string() << " took: "
@@ -870,7 +870,7 @@ void ManagerConfig::parse(json config) {
     std::optional<std::string> probe_module_id;
 
     // load manifest files of configured modules
-    for (auto& element : this->main.items()) {
+    for (const auto& element : this->main.items()) {
         const auto& module_id = element.key();
         const auto& module_config = element.value();
 
@@ -892,7 +892,7 @@ void ManagerConfig::parse(json config) {
     }
 
     // load telemetry configs
-    for (auto& element : this->main.items()) {
+    for (const auto& element : this->main.items()) {
         const auto& module_id = element.key();
         auto& module_config = element.value();
         if (module_config.contains("telemetry")) {
@@ -910,7 +910,7 @@ void ManagerConfig::parse(json config) {
 }
 
 void ManagerConfig::parse_3_tier_model_mapping() {
-    for (auto& element : this->main.items()) {
+    for (const auto& element : this->main.items()) {
         const auto& module_id = element.key();
         const auto& module_name = this->get_module_name(module_id);
         const auto& provides = this->manifests.at(module_name).at("provides");
@@ -977,7 +977,7 @@ ManagerConfig::ManagerConfig(const ManagerSettings& ms) : ConfigBase(ms.mqtt_set
         // config_file. The config is supposed to have the same name as the parent config.
         // TODO(kai): introduce a parameter that can overwrite the location of the user config?
         // TODO(kai): or should we introduce a "meta-config" that references all configs that should be merged here?
-        auto user_config_path = config_path.parent_path() / "user-config" / config_path.filename();
+        const auto user_config_path = config_path.parent_path() / "user-config" / config_path.filename();
         if (fs::exists(user_config_path)) {
             EVLOG_info << fmt::format("Loading user-config file at: {}", fs::canonical(user_config_path).string());
             auto user_config = load_yaml(user_config_path);
@@ -989,13 +989,13 @@ ManagerConfig::ManagerConfig(const ManagerSettings& ms) : ConfigBase(ms.mqtt_set
 
         json_validator validator(Config::loader, Config::format_checker);
         validator.set_root_schema(this->_schemas.config);
-        auto patch = validator.validate(complete_config);
+        const auto patch = validator.validate(complete_config);
         if (!patch.is_null()) {
             // extend config with default values
             complete_config = complete_config.patch(patch);
         }
 
-        auto config = complete_config.at("active_modules");
+        const auto config = complete_config.at("active_modules");
         this->settings = this->ms.get_runtime_settings();
         this->parse(config);
     } catch (const std::exception& e) {
@@ -1004,8 +1004,7 @@ ManagerConfig::ManagerConfig(const ManagerSettings& ms) : ConfigBase(ms.mqtt_set
 }
 
 json ManagerConfig::serialize() {
-    auto serialized = json::object({{"main", this->main}, {"module_names", this->module_names}});
-    return serialized;
+    return json::object({{"main", this->main}, {"module_names", this->module_names}});
 }
 
 std::optional<TelemetryConfig> ManagerConfig::get_telemetry_config(const std::string& module_id) {
@@ -1045,7 +1044,7 @@ error::ErrorTypeMap Config::get_error_map() const {
 }
 
 bool Config::module_provides(const std::string& module_name, const std::string& impl_id) {
-    auto& provides = this->module_config_cache.at(module_name).provides_impl;
+    const auto& provides = this->module_config_cache.at(module_name).provides_impl;
     return (provides.find(impl_id) != provides.end());
 }
 
@@ -1060,27 +1059,27 @@ json Config::resolve_requirement(const std::string& module_id, const std::string
     //             isn't even listed in the module manifest
     // FIXME (aw): the following if doesn't check for the requirement id
     //             at all
-    auto module_name_it = this->module_names.find(module_id);
+    const auto module_name_it = this->module_names.find(module_id);
     if (module_name_it == this->module_names.end()) {
         EVLOG_AND_THROW(EverestApiError(fmt::format("Requested requirement id '{}' of module {} not found in config!",
                                                     requirement_id, printable_identifier(module_id))));
     }
 
     // check for connections for this requirement
-    auto& module_config = this->main[module_id];
+    const auto& module_config = this->main.at(module_id);
     const std::string module_name = module_name_it->second;
-    auto& requirement = this->manifests[module_name]["requires"][requirement_id];
-    if (!module_config["connections"].contains(requirement_id)) {
+    const auto& requirement = this->manifests.at(module_name).at("requires").at(requirement_id);
+    if (!module_config.at("connections").contains(requirement_id)) {
         return json::array(); // return an empty array if our config does not contain any connections for this
                               // requirement id
     }
 
     // if only one single connection entry was required, return only this one
     // callers can check with is_array() if this is a single connection (legacy) or a connection list
-    if (requirement["min_connections"] == 1 && requirement["max_connections"] == 1) {
-        return module_config["connections"][requirement_id].at(0);
+    if (requirement.at("min_connections") == 1 && requirement.at("max_connections") == 1) {
+        return module_config.at("connections").at(requirement_id).at(0);
     }
-    return module_config["connections"][requirement_id];
+    return module_config.at("connections").at(requirement_id);
 }
 
 std::map<Requirement, Fulfillment> Config::resolve_requirements(const std::string& module_id) const {
@@ -1150,16 +1149,17 @@ ModuleConfigs Config::get_module_configs(const std::string& module_id) const {
 
     // FIXME (aw): throw exception if module_id does not exist
     if (contains(module_id)) {
-        const auto module_type = this->main[module_id]["module"].get<std::string>();
-        json config_maps = this->main[module_id]["config_maps"];
-        json manifest = this->manifests[module_type];
+        const auto module_type = this->main.at(module_id).at("module").get<std::string>();
+        const json config_maps = this->main.at(module_id).at("config_maps");
+        const json manifest = this->manifests.at(module_type);
 
-        for (auto& conf_map : config_maps.items()) {
-            json config_schema =
-                (conf_map.key() == "!module") ? manifest["config"] : manifest["provides"][conf_map.key()]["config"];
+        for (const auto& conf_map : config_maps.items()) {
+            const json config_schema = (conf_map.key() == "!module")
+                                           ? manifest.at("config")
+                                           : manifest.at("provides").at(conf_map.key()).at("config");
             ConfigMap processed_conf_map;
-            for (auto& entry : conf_map.value().items()) {
-                const json entry_type = config_schema[entry.key()]["type"];
+            for (const auto& entry : conf_map.value().items()) {
+                const json entry_type = config_schema.at(entry.key()).at("type");
                 ConfigEntry value;
                 const json data = entry.value();
 
@@ -1196,7 +1196,7 @@ json Config::get_module_json_config(const std::string& module_id) {
     return this->main[module_id]["config_maps"];
 }
 
-ModuleInfo Config::get_module_info(const std::string& module_id) {
+ModuleInfo Config::get_module_info(const std::string& module_id) const {
     BOOST_LOG_FUNCTION();
     // FIXME (aw): the following if block is used so often, it should be
     //             refactored into a helper function
@@ -1206,13 +1206,13 @@ ModuleInfo Config::get_module_info(const std::string& module_id) {
 
     ModuleInfo module_info;
     module_info.id = module_id;
-    module_info.name = this->main[module_id]["module"].get<std::string>();
+    module_info.name = this->main.at(module_id).at("module").get<std::string>();
     module_info.global_errors_enabled = this->manifests.at(module_info.name).at("enable_global_errors");
-    auto& module_metadata = this->manifests[module_info.name]["metadata"];
-    for (auto& author : module_metadata["authors"]) {
+    const auto& module_metadata = this->manifests.at(module_info.name).at("metadata");
+    for (auto& author : module_metadata.at("authors")) {
         module_info.authors.emplace_back(author.get<std::string>());
     }
-    module_info.license = module_metadata["license"].get<std::string>();
+    module_info.license = module_metadata.at("license").get<std::string>();
 
     return module_info;
 }
@@ -1221,7 +1221,7 @@ std::optional<TelemetryConfig> Config::get_telemetry_config() {
     return this->telemetry_config;
 }
 
-json Config::get_interface_definition(const std::string& interface_name) {
+json Config::get_interface_definition(const std::string& interface_name) const {
     BOOST_LOG_FUNCTION();
     return this->interface_definitions.value(interface_name, json());
 }
@@ -1233,7 +1233,7 @@ void Config::ref_loader(const json_uri& uri, json& schema) {
         schema = nlohmann::json_schema::draft7_schema_builtin;
         return;
     } else {
-        auto path = uri.path();
+        const auto path = uri.path();
         if (this->types.contains(path)) {
             schema = this->types[path];
             EVLOG_verbose << fmt::format("ref path \"{}\" schema has been found.", path);
@@ -1271,7 +1271,7 @@ json Config::load_schema(const fs::path& path) {
 
     EVLOG_debug << fmt::format("Loading schema file at: {}", fs::canonical(path).string());
 
-    json schema = load_yaml(path);
+    const json schema = load_yaml(path);
 
     json_validator validator(Config::loader, Config::format_checker);
 
@@ -1300,7 +1300,7 @@ json Config::load_all_manifests(const std::string& modules_dir, const std::strin
             continue;
         }
 
-        std::string module_name = module_path.path().filename().string();
+        const std::string module_name = module_path.path().filename().string();
         EVLOG_debug << fmt::format("Found module {}, loading and verifying manifest...", module_name);
 
         try {
@@ -1308,7 +1308,7 @@ json Config::load_all_manifests(const std::string& modules_dir, const std::strin
 
             json_validator validator(Config::loader, Config::format_checker);
             validator.set_root_schema(schemas.manifest);
-            validator.validate(manifests[module_name]);
+            validator.validate(manifests.at(module_name));
         } catch (const std::exception& e) {
             EVLOG_AND_THROW(EverestConfigError(
                 fmt::format("Failed to load and parse module manifest file of module {}: {}", module_name, e.what())));
@@ -1331,7 +1331,7 @@ std::set<std::string> Config::keys(const json& object) {
             EverestInternalError(fmt::format("Provided value is not an object. It is a: {}", object.type_name())));
     }
 
-    for (auto& element : object.items()) {
+    for (const auto& element : object.items()) {
         keys.insert(element.key());
     }
 

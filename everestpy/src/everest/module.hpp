@@ -92,7 +92,8 @@ private:
     std::deque<std::function<void(json)>> err_cleared_susbcription_callbacks{};
 
     static std::unique_ptr<Everest::Everest>
-    create_everest_instance(const std::string& module_id, Everest::Config& config, const Everest::RuntimeSettings& rs,
+    create_everest_instance(const std::string& module_id, const Everest::Config& config,
+                            const Everest::RuntimeSettings& rs,
                             std::shared_ptr<Everest::MQTTAbstraction> mqtt_abstraction);
 
     ModuleInfo module_info{};
