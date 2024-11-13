@@ -6,6 +6,7 @@
 
 #include <framework/everest.hpp>
 #include <framework/runtime.hpp>
+#include <utils/mqtt_settings.hpp>
 #include <utils/types.hpp>
 
 #include "rust/cxx.h"

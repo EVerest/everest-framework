@@ -29,6 +29,7 @@
 #include <utils/error/error_state_monitor.hpp>
 #include <utils/filesystem.hpp>
 #include <utils/module_config.hpp>
+#include <utils/mqtt_settings.hpp>
 
 namespace EverestJs {
 

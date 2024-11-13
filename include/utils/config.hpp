@@ -18,6 +18,7 @@
 #include <utils/error.hpp>
 #include <utils/error/error_type_map.hpp>
 #include <utils/module_config.hpp>
+#include <utils/mqtt_settings.hpp>
 #include <utils/types.hpp>
 
 namespace Everest {

@@ -32,6 +32,7 @@ target_sources(framework
         module_config.cpp
         mqtt_abstraction.cpp
         mqtt_abstraction_impl.cpp
+        mqtt_settings.cpp
         thread.cpp
         types.cpp
         serial.cpp
