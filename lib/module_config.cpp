@@ -48,8 +48,8 @@ json get_module_config(std::shared_ptr<MQTTAbstraction> mqtt, const std::string&
     if (res_future_status == std::future_status::timeout) {
         EVLOG_AND_THROW(
             EverestTimeoutError(fmt::format("Timeout while waiting for result of get_config of {}", module_id)));
-    } else if (res_future_status == std::future_status::ready) {
-        EVLOG_verbose << "res future ready";
+    }
+    if (res_future_status == std::future_status::ready) {
         result = res_future.get();
     }
     mqtt->unregister_handler(config_topic, res_token);
