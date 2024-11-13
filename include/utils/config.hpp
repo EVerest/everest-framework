@@ -75,20 +75,6 @@ protected:
 
     const MQTTSettings mqtt_settings;
 
-    ///
-    /// \brief extracts information about the provided module given via \p module_id from the config and manifest
-    ///
-    /// \returns a ImplementationInfo object containing module_id, module_name, impl_id and impl_intf
-    ImplementationInfo extract_implementation_info(const std::string& module_id) const;
-
-    ///
-    /// \brief extracts information about the provided implementation given via \p module_id and \p impl_id from the
-    /// config and
-    /// manifest
-    ///
-    /// \returns a ImplementationInfo object containing module_id, module_name, impl_id and impl_intf
-    ImplementationInfo extract_implementation_info(const std::string& module_id, const std::string& impl_id) const;
-
 public:
     ///
     /// \brief Create a ConfigBase with the provided \p mqtt_settings

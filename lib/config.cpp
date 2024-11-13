@@ -234,40 +234,49 @@ static void setup_probe_module_manifest(const std::string& probe_module_id, cons
     }
 }
 
-// ConfigBase
-ImplementationInfo ConfigBase::extract_implementation_info(const std::string& module_id) const {
+ImplementationInfo extract_implementation_info(const json& config,
+                                               const std::unordered_map<std::string, std::string>& module_names,
+                                               const json& manifests, const std::string& module_id,
+                                               const std::string& impl_id) {
     BOOST_LOG_FUNCTION();
 
-    return extract_implementation_info(module_id, "");
-}
-
-ImplementationInfo ConfigBase::extract_implementation_info(const std::string& module_id,
-                                                           const std::string& impl_id) const {
-    BOOST_LOG_FUNCTION();
-
-    if (!this->main.contains(module_id)) {
+    if (not config.contains(module_id)) {
         EVTHROW(EverestApiError(fmt::format("Module id '{}' not found in config!", module_id)));
     }
     ImplementationInfo info;
     info.module_id = module_id;
-    info.module_name = get_module_name(module_id);
+    info.module_name = module_names.at(module_id); // TODO: check if exists first
     info.impl_id = impl_id;
 
     if (!impl_id.empty()) {
-        if (!this->manifests.contains(info.module_name)) {
+        if (not manifests.contains(info.module_name)) {
             EVTHROW(EverestApiError(fmt::format("No known manifest for module name '{}'!", info.module_name)));
         }
 
-        if (!this->manifests[info.module_name]["provides"].contains(impl_id)) {
+        if (not manifests.at(info.module_name).at("provides").contains(impl_id)) {
             EVTHROW(EverestApiError(fmt::format("Implementation id '{}' not defined in manifest of module '{}'!",
                                                 impl_id, info.module_name)));
         }
 
-        info.impl_intf = this->manifests[info.module_name]["provides"][impl_id]["interface"];
+        info.impl_intf = manifests.at(info.module_name).at("provides").at(impl_id).at("interface");
     }
 
     return info;
 }
+
+std::string create_printable_identifier(const ImplementationInfo& info, const std::string& module_id,
+                                        const std::string& impl_id) {
+    BOOST_LOG_FUNCTION();
+
+    // no implementation id yet so only return this kind of string:
+    const auto module_string = fmt::format("{}:{}", info.module_id, info.module_name);
+    if (impl_id.empty()) {
+        return module_string;
+    }
+    return fmt::format("{}->{}:{}", module_string, info.impl_id, info.impl_intf);
+}
+
+// ConfigBase
 
 std::string ConfigBase::printable_identifier(const std::string& module_id) const {
     BOOST_LOG_FUNCTION();
@@ -278,13 +287,8 @@ std::string ConfigBase::printable_identifier(const std::string& module_id) const
 std::string ConfigBase::printable_identifier(const std::string& module_id, const std::string& impl_id) const {
     BOOST_LOG_FUNCTION();
 
-    auto info = extract_implementation_info(module_id, impl_id);
-    // no implementation id yet so only return this kind of string:
-    const auto module_string = fmt::format("{}:{}", info.module_id, info.module_name);
-    if (impl_id.empty()) {
-        return module_string;
-    }
-    return fmt::format("{}->{}:{}", module_string, info.impl_id, info.impl_intf);
+    const auto info = extract_implementation_info(this->main, this->module_names, this->manifests, module_id, impl_id);
+    return create_printable_identifier(info, module_id, impl_id);
 }
 
 std::string ConfigBase::get_module_name(const std::string& module_id) const {
