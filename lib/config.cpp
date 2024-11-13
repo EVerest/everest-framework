@@ -908,8 +908,8 @@ void ManagerConfig::parse(json config) {
 void ManagerConfig::parse_3_tier_model_mapping() {
     for (auto& element : this->main.items()) {
         const auto& module_id = element.key();
-        const auto& impl_info = this->extract_implementation_info(module_id);
-        const auto& provides = this->manifests.at(impl_info.module_name).at("provides");
+        const auto& module_name = this->get_module_name(module_id);
+        const auto& provides = this->manifests.at(module_name).at("provides");
 
         ModuleTierMappings module_tier_mappings;
         const auto& module_config = element.value();
