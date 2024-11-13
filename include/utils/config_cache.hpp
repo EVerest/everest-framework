@@ -20,14 +20,9 @@ struct ConfigCache {
 } // namespace Everest
 NLOHMANN_JSON_NAMESPACE_BEGIN
 template <> struct adl_serializer<Everest::ConfigCache> {
-    static void to_json(nlohmann::json& j, const Everest::ConfigCache& c) {
-        j = {{"provides_impl", c.provides_impl}, {"cmds", c.cmds}};
-    }
+    static void to_json(nlohmann::json& j, const Everest::ConfigCache& c);
 
-    static void from_json(const nlohmann::json& j, Everest::ConfigCache& c) {
-        c.provides_impl = j.at("provides_impl");
-        c.cmds = j.at("cmds");
-    }
+    static void from_json(const nlohmann::json& j, Everest::ConfigCache& c);
 };
 NLOHMANN_JSON_NAMESPACE_END
 

@@ -15,6 +15,7 @@ set_target_properties(framework PROPERTIES SOVERSION ${PROJECT_VERSION})
 target_sources(framework
     PRIVATE
         config.cpp
+        config_cache.cpp
         error/error.cpp
         error/error_database_map.cpp
         error/error_filter.cpp
