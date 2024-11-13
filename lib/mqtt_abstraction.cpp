@@ -7,16 +7,21 @@
 
 namespace Everest {
 
-MQTTAbstraction::MQTTAbstraction(const MQTTSettings& mqtt_settings) :
-    everest_prefix(mqtt_settings.everest_prefix), external_prefix(mqtt_settings.external_prefix) {
+std::unique_ptr<MQTTAbstractionImpl> create_mqtt_client(const MQTTSettings& mqtt_settings) {
     if (mqtt_settings.socket) {
-        mqtt_abstraction = std::make_unique<MQTTAbstractionImpl>(
-            mqtt_settings.broker_socket_path, mqtt_settings.everest_prefix, mqtt_settings.external_prefix);
+        return std::make_unique<MQTTAbstractionImpl>(mqtt_settings.broker_socket_path, mqtt_settings.everest_prefix,
+                                                     mqtt_settings.external_prefix);
     } else {
-        mqtt_abstraction =
-            std::make_unique<MQTTAbstractionImpl>(mqtt_settings.broker_host, std::to_string(mqtt_settings.broker_port),
-                                                  mqtt_settings.everest_prefix, mqtt_settings.external_prefix);
+        return std::make_unique<MQTTAbstractionImpl>(mqtt_settings.broker_host,
+                                                     std::to_string(mqtt_settings.broker_port),
+                                                     mqtt_settings.everest_prefix, mqtt_settings.external_prefix);
     }
+}
+
+MQTTAbstraction::MQTTAbstraction(const MQTTSettings& mqtt_settings) :
+    everest_prefix(mqtt_settings.everest_prefix),
+    external_prefix(mqtt_settings.external_prefix),
+    mqtt_abstraction(create_mqtt_client(mqtt_settings)) {
 }
 
 MQTTAbstraction::~MQTTAbstraction() = default;
