@@ -196,7 +196,7 @@ private:
     /// \brief resolves inheritance tree of json interface \p intf_name, throws an exception if variables or commands
     /// would be overwritten
     ///
-    /// \returns the resulting interface definiion
+    /// \returns the resulting interface definition
     json resolve_interface(const std::string& intf_name);
 
     ///
