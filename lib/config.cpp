@@ -232,18 +232,17 @@ static void setup_probe_module_manifest(const std::string& probe_module_id, cons
     }
 }
 
-ImplementationInfo extract_implementation_info(const json& config,
-                                               const std::unordered_map<std::string, std::string>& module_names,
+ImplementationInfo extract_implementation_info(const std::unordered_map<std::string, std::string>& module_names,
                                                const json& manifests, const std::string& module_id,
                                                const std::string& impl_id) {
     BOOST_LOG_FUNCTION();
 
-    if (not config.contains(module_id)) {
+    if (module_names.find(module_id) == module_names.end()) {
         EVTHROW(EverestApiError(fmt::format("Module id '{}' not found in config!", module_id)));
     }
     ImplementationInfo info;
     info.module_id = module_id;
-    info.module_name = module_names.at(module_id); // TODO: check if exists first
+    info.module_name = module_names.at(module_id);
     info.impl_id = impl_id;
 
     if (!impl_id.empty()) {
@@ -285,7 +284,7 @@ std::string ConfigBase::printable_identifier(const std::string& module_id) const
 std::string ConfigBase::printable_identifier(const std::string& module_id, const std::string& impl_id) const {
     BOOST_LOG_FUNCTION();
 
-    const auto info = extract_implementation_info(this->main, this->module_names, this->manifests, module_id, impl_id);
+    const auto info = extract_implementation_info(this->module_names, this->manifests, module_id, impl_id);
     return create_printable_identifier(info, module_id, impl_id);
 }
 
