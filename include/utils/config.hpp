@@ -173,7 +173,8 @@ private:
     /// \brief loads and validates the given file \p file_path with the schema \p schema
     ///
     /// \returns the loaded json and how long the validation took in ms
-    std::tuple<nlohmann::json, int64_t> load_and_validate_with_schema(const fs::path& file_path, const nlohmann::json& schema);
+    std::tuple<nlohmann::json, int64_t> load_and_validate_with_schema(const fs::path& file_path,
+                                                                      const nlohmann::json& schema);
 
     ///
     /// \brief resolves inheritance tree of json interface \p intf_name, throws an exception if variables or commands

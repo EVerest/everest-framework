@@ -57,9 +57,10 @@ public:
     Everest(Everest const&) = delete;
     void operator=(Everest const&) = delete;
 
-    nlohmann::json get_cmd_definition(const std::string& module_id, const std::string& impl_id, const std::string& cmd_name,
-                            bool is_call);
-    nlohmann::json get_cmd_definition(const std::string& module_id, const std::string& impl_id, const std::string& cmd_name);
+    nlohmann::json get_cmd_definition(const std::string& module_id, const std::string& impl_id,
+                                      const std::string& cmd_name, bool is_call);
+    nlohmann::json get_cmd_definition(const std::string& module_id, const std::string& impl_id,
+                                      const std::string& cmd_name);
 
     ///
     /// \brief Allows a module to indicate that it provides the given command \p cmd
