@@ -318,9 +318,18 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
             interface_definition.value(), QOS::QOS2, true);
     }
 
-    // TODO: maybe split this up into individual entries to keep message sizes as small as possible
-    const auto types = config.get_types();
-    mqtt_abstraction.publish(fmt::format("{}types", ms.mqtt_settings.everest_prefix), types, QOS::QOS2, true);
+    const auto type_definitions = config.get_types();
+    std::vector<std::string> type_names;
+    for (auto& type_definition : type_definitions.items()) {
+        type_names.push_back(type_definition.key());
+    }
+    mqtt_abstraction.publish(fmt::format("{}types", ms.mqtt_settings.everest_prefix), type_names, QOS::QOS2, true);
+    for (const auto& type_definition : type_definitions.items()) {
+        // type_definition keys already start with a / so omit it in the topic name
+        mqtt_abstraction.publish(
+            fmt::format("{}type_definitions{}", ms.mqtt_settings.everest_prefix, type_definition.key()),
+            type_definition.value(), QOS::QOS2, true);
+    }
 
     const auto module_provides = config.get_interfaces();
     mqtt_abstraction.publish(fmt::format("{}module_provides", ms.mqtt_settings.everest_prefix), module_provides,
