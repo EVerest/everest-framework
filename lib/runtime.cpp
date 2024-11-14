@@ -414,7 +414,7 @@ int ModuleLoader::initialize() {
     }
     Logging::init(this->logging_config_file.string(), this->module_id);
 
-    auto start_time = std::chrono::system_clock::now();
+    const auto start_time = std::chrono::system_clock::now();
 
     this->mqtt = std::make_shared<MQTTAbstraction>(this->mqtt_settings);
     this->mqtt->connect();
@@ -433,8 +433,8 @@ int ModuleLoader::initialize() {
 
     const auto& rs = this->runtime_settings;
     try {
-        Config config = Config(this->mqtt_settings, result);
-        auto config_instantiation_time = std::chrono::system_clock::now();
+        const auto config = Config(this->mqtt_settings, result);
+        const auto config_instantiation_time = std::chrono::system_clock::now();
         EVLOG_debug
             << "Module " << fmt::format(TERMINAL_STYLE_OK, "{}", module_id) << " after Config() instantiation ["
             << std::chrono::duration_cast<std::chrono::milliseconds>(config_instantiation_time - start_time).count()
@@ -446,7 +446,7 @@ int ModuleLoader::initialize() {
         }
 
         const std::string module_identifier = config.printable_identifier(this->module_id);
-        auto module_name = config.get_module_name(this->module_id);
+        const auto module_name = config.get_module_name(this->module_id);
         if ((this->application_name != module_name) and (this->application_name != module_identifier)) {
             EVLOG_error << fmt::format(
                 "Module id '{}': Expected a '{}' module, but it looks like you started a '{}' module.", this->module_id,
@@ -540,7 +540,7 @@ int ModuleLoader::initialize() {
         const std::vector<cmd> cmds =
             this->callbacks.everest_register(config.get_requirement_initialization(this->module_id));
 
-        for (auto const& command : cmds) {
+        for (const auto& command : cmds) {
             everest.provide_cmd(command);
         }
 
