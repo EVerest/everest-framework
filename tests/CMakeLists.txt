@@ -45,3 +45,20 @@ include(test_directory_setups/empty_yaml_object.cmake)
 include(test_directory_setups/empty_yaml.cmake)
 include(test_directory_setups/null_yaml.cmake)
 include(test_directory_setups/string_yaml.cmake)
+
+set(GCOVR_ADDITIONAL_ARGS "--gcov-ignore-errors=all")
+setup_target_for_coverage_gcovr_html(
+    NAME ${PROJECT_NAME}_gcovr_coverage
+    EXECUTABLE ctest --output-on-failure
+    BASE_DIRECTORY "${PROJECT_SOURCE_DIR}"
+    DEPENDENCIES ${PROJECT_NAME}_tests everest::framework
+    EXCLUDE "${CMAKE_BINARY_DIR}/*" "${CPM_SOURCE_CACHE}"
+)
+
+setup_target_for_coverage_gcovr_xml(
+    NAME ${PROJECT_NAME}_gcovr_coverage_xml
+    EXECUTABLE ctest --output-on-failure
+    BASE_DIRECTORY "${PROJECT_SOURCE_DIR}"
+    DEPENDENCIES ${PROJECT_NAME}_tests everest::framework
+    EXCLUDE "${CMAKE_BINARY_DIR}/*" "${CPM_SOURCE_CACHE}"
+)

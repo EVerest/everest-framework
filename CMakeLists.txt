@@ -181,23 +181,6 @@ if(EVEREST_FRAMEWORK_BUILD_TESTING)
     set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type" FORCE)
 
     add_subdirectory(tests)
-
-    set(GCOVR_ADDITIONAL_ARGS "${PROJECT_SOURCE_DIR}" "--gcov-ignore-errors=all")
-    setup_target_for_coverage_gcovr_html(
-        NAME ${PROJECT_NAME}_gcovr_coverage
-        EXECUTABLE ctest --output-on-failure
-        BASE_DIRECTORY "${PROJECT_SOURCE_DIR}"
-        DEPENDENCIES ${PROJECT_NAME}_tests everest::framework
-        EXCLUDE "${CMAKE_BINARY_DIR}/*" "${CPM_SOURCE_CACHE}"
-    )
-
-    setup_target_for_coverage_lcov(
-        NAME ${PROJECT_NAME}_lcov_coverage
-        EXECUTABLE ctest --output-on-failure
-        DEPENDENCIES ${PROJECT_NAME}_tests everest::framework
-        EXCLUDE "${CMAKE_BINARY_DIR}/*" "${CPM_SOURCE_CACHE}"
-        LCOV_ARGS "--no-external" "--ignore-errors=inconsistent,source,gcov"
-    )
 else()
     message(STATUS "Not running unit tests")
 endif()
