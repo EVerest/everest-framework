@@ -103,7 +103,7 @@ static void setup_environment(const ModuleStartInfo& module_info, const RuntimeS
     setenv(EV_LOG_CONF_FILE, rs.logging_config_file.c_str(), 0);
     setenv(EV_MQTT_EVEREST_PREFIX, mqtt_settings.everest_prefix.c_str(), 0);
     setenv(EV_MQTT_EXTERNAL_PREFIX, mqtt_settings.external_prefix.c_str(), 0);
-    if (mqtt_settings.socket) {
+    if (mqtt_settings.uses_socket()) {
         setenv(EV_MQTT_BROKER_SOCKET_PATH, mqtt_settings.broker_socket_path.c_str(), 0);
     } else {
         setenv(EV_MQTT_BROKER_HOST, mqtt_settings.broker_host.c_str(), 0);
@@ -141,7 +141,7 @@ static void exec_cpp_module(system::SubProcess& proc_handle, const ModuleStartIn
         "--mqtt_external_prefix",
         mqtt_settings.external_prefix}; // TODO: check if this is empty and do not append if needed?
 
-    if (mqtt_settings.socket) {
+    if (mqtt_settings.uses_socket()) {
         arguments.insert(arguments.end(), {"--mqtt_broker_socket_path", mqtt_settings.broker_socket_path});
     } else {
         arguments.insert(arguments.end(), {"--mqtt_broker_host", mqtt_settings.broker_host, "--mqtt_broker_port",

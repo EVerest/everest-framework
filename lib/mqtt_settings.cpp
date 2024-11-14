@@ -4,6 +4,13 @@
 
 namespace Everest {
 
+bool MQTTSettings::uses_socket() const {
+    if (not broker_socket_path.empty()) {
+        return true;
+    }
+    return false;
+}
+
 MQTTSettings create_mqtt_settings(const std::string& mqtt_broker_socket_path, const std::string& mqtt_everest_prefix,
                                   const std::string& mqtt_external_prefix) {
     MQTTSettings mqtt_settings;
@@ -24,7 +31,6 @@ void populate_mqtt_settings(MQTTSettings& mqtt_settings, const std::string& mqtt
     mqtt_settings.broker_socket_path = mqtt_broker_socket_path;
     mqtt_settings.everest_prefix = mqtt_everest_prefix;
     mqtt_settings.external_prefix = mqtt_external_prefix;
-    mqtt_settings.socket = true;
 }
 
 void populate_mqtt_settings(MQTTSettings& mqtt_settings, const std::string& mqtt_broker_host, int mqtt_broker_port,
@@ -33,7 +39,6 @@ void populate_mqtt_settings(MQTTSettings& mqtt_settings, const std::string& mqtt
     mqtt_settings.broker_port = mqtt_broker_port;
     mqtt_settings.everest_prefix = mqtt_everest_prefix;
     mqtt_settings.external_prefix = mqtt_external_prefix;
-    mqtt_settings.socket = false;
 }
 
 } // namespace Everest

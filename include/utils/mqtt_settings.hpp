@@ -16,7 +16,10 @@ struct MQTTSettings {
     int broker_port = 0;            ///< The port the MQTT broker listens on
     std::string everest_prefix;     ///< MQTT topic prefix for the "everest" topic
     std::string external_prefix;    ///< MQTT topic prefix for external topics
-    bool socket = false;            ///< Indicates if a Unix Domain Socket is used for connection to the MQTT broker
+
+    /// \brief Indicates if a Unix Domain Socket is used for connection to the MQTT broker
+    /// \returns true is a UDS is used, false if a connection via host and port is used
+    bool uses_socket() const;
 };
 
 /// \brief Creates MQTTSettings with a Unix Domain Socket with the provided \p mqtt_broker_socket_path
