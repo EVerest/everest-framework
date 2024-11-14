@@ -10,11 +10,9 @@
 #include <utils/types.hpp>
 
 namespace Everest {
-using json = nlohmann::json;
-
 struct ConfigCache {
     std::set<std::string> provides_impl;
-    std::unordered_map<std::string, json> cmds;
+    std::unordered_map<std::string, nlohmann::json> cmds;
 };
 
 } // namespace Everest

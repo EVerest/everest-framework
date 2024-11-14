@@ -18,6 +18,9 @@
 #include <utils/yaml_loader.hpp>
 
 namespace Everest {
+using json = nlohmann::json;
+using json_uri = nlohmann::json_uri;
+using json_validator = nlohmann::json_schema::json_validator;
 
 class ConfigParseException : public std::exception {
 public:

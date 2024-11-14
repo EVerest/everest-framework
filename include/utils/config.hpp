@@ -22,9 +22,6 @@
 #include <utils/types.hpp>
 
 namespace Everest {
-using json = nlohmann::json;
-using json_uri = nlohmann::json_uri;
-using json_validator = nlohmann::json_schema::json_validator;
 namespace fs = std::filesystem;
 
 struct ManagerSettings;
@@ -34,11 +31,11 @@ struct RuntimeSettings;
 /// \brief A structure that contains all available schemas
 ///
 struct schemas {
-    json config;                 ///< The config schema
-    json manifest;               ///< The manifest scheme
-    json interface;              ///< The interface schema
-    json type;                   ///< The type schema
-    json error_declaration_list; ///< The error-declaration-list schema
+    nlohmann::json config;                 ///< The config schema
+    nlohmann::json manifest;               ///< The manifest scheme
+    nlohmann::json interface;              ///< The interface schema
+    nlohmann::json type;                   ///< The type schema
+    nlohmann::json error_declaration_list; ///< The error-declaration-list schema
 };
 
 ///
@@ -58,13 +55,13 @@ struct ImplementationInfo {
 ///
 class ConfigBase {
 protected:
-    json main;
-    json settings;
+    nlohmann::json main;
+    nlohmann::json settings;
 
-    json manifests;
-    json interfaces;
-    json interface_definitions;
-    json types;
+    nlohmann::json manifests;
+    nlohmann::json interfaces;
+    nlohmann::json interface_definitions;
+    nlohmann::json types;
     schemas _schemas;
 
     std::unordered_map<std::string, ModuleTierMappings> tier_mappings;
@@ -109,7 +106,7 @@ public:
 
     ///
     /// \returns a json object that contains the main config
-    const json& get_main_config() const;
+    const nlohmann::json& get_main_config() const;
 
     ///
     /// \brief checks if the config contains the given \p module_id
@@ -117,31 +114,31 @@ public:
 
     ///
     /// \returns a json object that contains the manifests
-    const json& get_manifests() const;
+    const nlohmann::json& get_manifests() const;
 
     ///
     /// \returns a json object that contains the interface definitions
-    const json& get_interface_definitions() const;
+    const nlohmann::json& get_interface_definitions() const;
 
     ///
     /// \returns a json object that contains the available interfaces
-    const json& get_interfaces() const;
+    const nlohmann::json& get_interfaces() const;
 
     ///
     /// \returns a json object that contains the settings
-    const json& get_settings() const;
+    const nlohmann::json& get_settings() const;
 
     ///
     /// \returns a json object that contains the schemas
-    const json get_schemas() const;
+    const nlohmann::json get_schemas() const;
 
     ///
     /// \returns a json object that contains the schemas
-    json get_error_types_map();
+    nlohmann::json get_error_types_map();
 
     ///
     /// \returns a json object that contains the types
-    const json& get_types() const;
+    const nlohmann::json& get_types() const;
 
     ///
     /// \returns the module config cache
@@ -170,39 +167,39 @@ private:
 
     ///
     /// \brief loads and validates the manifest of the module \p module_id using the provided \p module config
-    void load_and_validate_manifest(const std::string& module_id, const json& module_config);
+    void load_and_validate_manifest(const std::string& module_id, const nlohmann::json& module_config);
 
     ///
     /// \brief loads and validates the given file \p file_path with the schema \p schema
     ///
     /// \returns the loaded json and how long the validation took in ms
-    std::tuple<json, int64_t> load_and_validate_with_schema(const fs::path& file_path, const json& schema);
+    std::tuple<nlohmann::json, int64_t> load_and_validate_with_schema(const fs::path& file_path, const nlohmann::json& schema);
 
     ///
     /// \brief resolves inheritance tree of json interface \p intf_name, throws an exception if variables or commands
     /// would be overwritten
     ///
     /// \returns the resulting interface definition
-    json resolve_interface(const std::string& intf_name);
+    nlohmann::json resolve_interface(const std::string& intf_name);
 
     ///
     /// \brief loads the contents of the interface file referenced by the give \p intf_name from disk and validates its
     /// contents
     ///
     /// \returns a json object containing the interface definition
-    json load_interface_file(const std::string& intf_name);
+    nlohmann::json load_interface_file(const std::string& intf_name);
 
     ///
     /// \brief loads the contents of an error or an error list referenced by the given \p reference.
     ///
     /// \returns a list of json objects containing the error definitions
-    std::list<json> resolve_error_ref(const std::string& reference);
+    std::list<nlohmann::json> resolve_error_ref(const std::string& reference);
 
     ///
     /// \brief replaces all error references in the given \p interface_json with the actual error definitions
     ///
     /// \returns the interface_json with replaced error references
-    json replace_error_refs(json& interface_json);
+    nlohmann::json replace_error_refs(nlohmann::json& interface_json);
 
     ///
     /// \brief resolves all requirements (connections) of the modules in the main config
@@ -210,7 +207,7 @@ private:
 
     ///
     /// \brief parses the provided \p config resolving types, errors, manifests, requirements and 3 tier module mappings
-    void parse(json config);
+    void parse(nlohmann::json config);
 
     ///
     /// \brief Parses the 3 tier model mappings in the config
@@ -237,7 +234,7 @@ public:
 
     ///
     /// \brief Serialize the config to json
-    json serialize();
+    nlohmann::json serialize();
 
     ///
     /// \returns a TelemetryConfig if this has been configured for the given \p module_id
@@ -255,7 +252,7 @@ private:
 public:
     ///
     /// \brief creates a new Config object form the given \p mqtt_settings and \p config
-    explicit Config(const MQTTSettings& mqtt_settings, json config);
+    explicit Config(const MQTTSettings& mqtt_settings, nlohmann::json config);
 
     ///
     /// \returns the ErrorTypeMap
@@ -267,13 +264,13 @@ public:
 
     ///
     /// \returns the commands that the modules \p module_name implements from the given implementation \p impl_id
-    json get_module_cmds(const std::string& module_name, const std::string& impl_id);
+    nlohmann::json get_module_cmds(const std::string& module_name, const std::string& impl_id);
 
     ///
     /// \brief checks if the given \p module_id provides the requirement given in \p requirement_id
     ///
     /// \returns a json object that contains the requirement
-    json resolve_requirement(const std::string& module_id, const std::string& requirement_id) const;
+    nlohmann::json resolve_requirement(const std::string& module_id, const std::string& requirement_id) const;
 
     ///
     /// \brief resolves all Requirements of the given \p module_id to their Fulfillments
@@ -303,7 +300,7 @@ public:
 
     ///
     /// \returns a json object that contains the module config options
-    json get_module_json_config(const std::string& module_id);
+    nlohmann::json get_module_json_config(const std::string& module_id);
 
     ///
     /// \brief assemble basic information about the module (id, name,
@@ -318,13 +315,13 @@ public:
 
     ///
     /// \returns a json object that contains the interface definition
-    json get_interface_definition(const std::string& interface_name) const;
+    nlohmann::json get_interface_definition(const std::string& interface_name) const;
 
     ///
     /// \brief A json schema loader that can handle type refs and otherwise uses the builtin draft7 schema of
     /// the json schema validator when it encounters it. Throws an exception
     /// otherwise
-    void ref_loader(const json_uri& uri, json& schema);
+    void ref_loader(const nlohmann::json_uri& uri, nlohmann::json& schema);
 
     ///
     /// \brief loads the config.json and manifest.json in the schemes subfolder of
@@ -337,25 +334,25 @@ public:
     /// \brief loads and validates a json schema at the provided \p path
     ///
     /// \returns the loaded json schema as a json object
-    static json load_schema(const fs::path& path);
+    static nlohmann::json load_schema(const fs::path& path);
 
     ///
     /// \brief loads all module manifests relative to the \p main_dir
     ///
     /// \returns all module manifests as a json object
-    static json load_all_manifests(const std::string& modules_dir, const std::string& schemas_dir);
+    static nlohmann::json load_all_manifests(const std::string& modules_dir, const std::string& schemas_dir);
 
     ///
     /// \brief Extracts the keys of the provided json \p object
     ///
     /// \returns a set of object keys
-    static std::set<std::string> keys(const json& object);
+    static std::set<std::string> keys(const nlohmann::json& object);
 
     ///
     /// \brief A simple json schema loader that uses the builtin draft7 schema of
     /// the json schema validator when it encounters it, throws an exception
     /// otherwise
-    static void loader(const json_uri& uri, json& schema);
+    static void loader(const nlohmann::json_uri& uri, nlohmann::json& schema);
 
     ///
     /// \brief An extension to the default format checker of the json schema

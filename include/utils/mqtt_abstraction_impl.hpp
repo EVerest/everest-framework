@@ -23,8 +23,6 @@
 constexpr std::size_t MQTT_BUF_SIZE = 500 * 1024;
 
 namespace Everest {
-using json = nlohmann::json;
-
 /// \brief Contains a payload and the topic it was received on with additional QOS
 struct MessageWithQOS : Message {
     QOS qos; ///< The Quality of Service level
@@ -56,11 +54,11 @@ public:
 
     ///
     /// \brief publishes the given \p json on the given \p topic with QOS level 0
-    void publish(const std::string& topic, const json& json);
+    void publish(const std::string& topic, const nlohmann::json& json);
 
     ///
     /// \brief publishes the given \p json on the given \p topic with the given \p qos
-    void publish(const std::string& topic, const json& json, QOS qos, bool retain = false);
+    void publish(const std::string& topic, const nlohmann::json& json, QOS qos, bool retain = false);
 
     ///
     /// \brief publishes the given \p data on the given \p topic with QOS level 0
@@ -84,7 +82,7 @@ public:
 
     ///
     /// \brief subscribe and wait for value on the subscribed topic
-    json get(const std::string& topic, QOS qos);
+    nlohmann::json get(const std::string& topic, QOS qos);
 
     ///
     /// \brief Spawn a thread running the mqtt main loop

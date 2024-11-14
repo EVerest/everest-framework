@@ -18,8 +18,6 @@
 #include <utils/types.hpp>
 
 namespace Everest {
-using json = nlohmann::json;
-
 /// \brief Contains a payload and the topic it was received on
 struct Message {
     std::string topic;   ///< The MQTT topic where this message originated from
@@ -55,7 +53,7 @@ class MessageHandler {
 private:
     std::unordered_set<std::shared_ptr<TypedHandler>> handlers;
     std::thread handler_thread;
-    std::queue<std::shared_ptr<json>> message_queue;
+    std::queue<std::shared_ptr<nlohmann::json>> message_queue;
     std::mutex handler_ctrl_mutex;
     std::mutex handler_list_mutex;
     std::condition_variable cv;
@@ -69,7 +67,7 @@ public:
     ~MessageHandler();
 
     /// \brief Adds a \p message to the message queue which will be delivered to the registered handlers
-    void add(std::shared_ptr<json> message);
+    void add(std::shared_ptr<nlohmann::json> message);
 
     /// \brief Stops the message handler
     void stop();

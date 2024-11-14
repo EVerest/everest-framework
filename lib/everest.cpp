@@ -30,6 +30,10 @@
 #include <utils/formatter.hpp>
 
 namespace Everest {
+using json = nlohmann::json;
+using json_uri = nlohmann::json_uri;
+using json_validator = nlohmann::json_schema::json_validator;
+
 const auto remote_cmd_res_timeout_seconds = 300;
 const std::array<std::string, 3> TELEMETRY_RESERVED_KEYS = {{"connector_id"}};
 

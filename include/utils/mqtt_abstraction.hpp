@@ -11,8 +11,6 @@
 #include <utils/types.hpp>
 
 namespace Everest {
-using json = nlohmann::json;
-
 // forward declaration
 class MQTTAbstractionImpl;
 
@@ -39,12 +37,12 @@ public:
     void disconnect();
 
     ///
-    /// \copydoc MQTTAbstractionImpl::publish(const std::string&, const json&)
-    void publish(const std::string& topic, const json& json);
+    /// \copydoc MQTTAbstractionImpl::publish(const std::string&, const nlohmann::json&)
+    void publish(const std::string& topic, const nlohmann::json& json);
 
     ///
-    /// \copydoc MQTTAbstractionImpl::publish(const std::string&, const json&, QOS)
-    void publish(const std::string& topic, const json& json, QOS qos, bool retain = false);
+    /// \copydoc MQTTAbstractionImpl::publish(const std::string&, const nlohmann::json&, QOS)
+    void publish(const std::string& topic, const nlohmann::json& json, QOS qos, bool retain = false);
 
     ///
     /// \copydoc MQTTAbstractionImpl::publish(const std::string&, const std::string&)
@@ -68,7 +66,7 @@ public:
 
     ///
     /// \copydoc MQTTAbstractionImpl::get(const std::string&, QOS)
-    json get(const std::string& topic, QOS qos);
+    nlohmann::json get(const std::string& topic, QOS qos);
 
     ///
     /// \brief Get MQTT topic prefix for the "everest" topic
