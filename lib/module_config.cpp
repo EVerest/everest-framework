@@ -14,6 +14,8 @@
 namespace Everest {
 using json = nlohmann::json;
 
+inline constexpr int mqtt_get_config_timeout_ms = 5000;
+
 json get_module_config(std::shared_ptr<MQTTAbstraction> mqtt, const std::string& module_id) {
     const auto& everest_prefix = mqtt->get_everest_prefix();
 
@@ -38,7 +40,7 @@ json get_module_config(std::shared_ptr<MQTTAbstraction> mqtt, const std::string&
 
     // wait for result future
     const std::chrono::time_point<std::chrono::steady_clock> res_wait =
-        std::chrono::steady_clock::now() + std::chrono::seconds(10);
+        std::chrono::steady_clock::now() + std::chrono::milliseconds(mqtt_get_config_timeout_ms);
     std::future_status res_future_status;
     do {
         res_future_status = res_future.wait_until(res_wait);
