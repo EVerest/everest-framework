@@ -218,8 +218,6 @@ json MQTTAbstractionImpl::get(const std::string& topic, QOS qos) {
         std::make_shared<TypedHandler>(HandlerType::GetConfig, std::make_shared<Handler>(res_handler));
     this->register_handler(topic, res_token, QOS::QOS2);
 
-    const json config_publish_data = json::object({{"type", "full"}});
-
     // wait for result future
     const std::chrono::time_point<std::chrono::steady_clock> res_wait =
         std::chrono::steady_clock::now() + std::chrono::seconds(mqtt_get_timeout);
