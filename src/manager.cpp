@@ -616,7 +616,7 @@ int boot(const po::variables_map& vm) {
     EVLOG_info << ms.version_information;
     EVLOG_info << "";
 
-    if (ms.mqtt_settings.broker_socket_path.empty()) {
+    if (ms.mqtt_settings.uses_socket()) {
         EVLOG_info << "Using MQTT broker " << ms.mqtt_settings.broker_host << ":" << ms.mqtt_settings.broker_port;
     } else {
         EVLOG_info << "Using MQTT broker unix domain sockets:" << ms.mqtt_settings.broker_socket_path;
