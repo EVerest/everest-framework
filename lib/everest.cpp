@@ -735,7 +735,7 @@ UnsubscribeToken Everest::provide_external_mqtt_handler(const std::string& topic
 
     const std::string external_topic = fmt::format("{}{}", this->mqtt_external_prefix, topic);
 
-    const Handler external_handler = [this, handler, external_topic](json const& data) {
+    const Handler external_handler = [handler, external_topic](json const& data) {
         EVLOG_verbose << fmt::format("Incoming external mqtt data for topic '{}'...", external_topic);
         if (!data.is_string()) {
             EVLOG_AND_THROW(EverestInternalError("External mqtt result is not a string (that should never happen)"));
