@@ -54,9 +54,18 @@ static Everest::MQTTSettings get_mqtt_settings_from_env() {
 }
 
 /// This is just kept for compatibility
-RuntimeSession::RuntimeSession(const std::string& prefix, const std::string& config_file) : RuntimeSession() {
-    EVLOG_warning << "everestpy: Usage of the old RuntimeSession ctor detected, config is now loaded via MQTT not via "
-                     "the provided config_file.";
+RuntimeSession::RuntimeSession(const std::string& prefix, const std::string& config_file) {
+    EVLOG_warning
+        << "everestpy: Usage of the old RuntimeSession ctor detected, config should be loaded via MQTT not via "
+           "the provided config_file. For this please set the appropriate environment variables and call "
+           "RuntimeSession()";
+
+    // We extract the settings from the config file so everest-testing doesn't break
+    const auto ms = Everest::ManagerSettings(prefix, config_file);
+
+    Everest::Logging::init(ms.runtime_settings->logging_config_file.string());
+
+    this->mqtt_settings = ms.mqtt_settings;
 }
 
 RuntimeSession::RuntimeSession() {
