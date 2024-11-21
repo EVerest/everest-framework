@@ -134,7 +134,7 @@ public:
 
     ///
     /// \returns a json object that contains the schemas
-    nlohmann::json get_error_types_map();
+    nlohmann::json get_error_types();
 
     ///
     /// \returns a json object that contains the types

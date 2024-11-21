@@ -342,9 +342,9 @@ const json ConfigBase::get_schemas() const {
     return this->_schemas;
 }
 
-json ConfigBase::get_error_types_map() {
+json ConfigBase::get_error_types() {
     BOOST_LOG_FUNCTION();
-    return this->error_map.get_error_types_map();
+    return this->error_map.get_error_types();
 }
 
 const json& ConfigBase::get_types() const {

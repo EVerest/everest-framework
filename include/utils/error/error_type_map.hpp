@@ -60,7 +60,7 @@ public:
     /// \brief Returns the contained ErrorType map
     /// \return The error types map
     ///
-    std::map<ErrorType, std::string> get_error_types_map();
+    std::map<ErrorType, std::string> get_error_types();
 
 private:
     std::map<ErrorType, std::string> error_types;
