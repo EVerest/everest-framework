@@ -293,6 +293,7 @@ void MQTTAbstractionImpl::on_mqtt_message(const Message& message) {
 
         std::unique_lock<std::mutex> lock(handlers_mutex);
         std::vector<Handler> local_handlers;
+        std::shared_ptr<ParsedMessage> parsed_message{nullptr};
         for (auto& [handler_topic, handler] : this->message_handlers) {
             bool topic_matches = false;
             if (is_everest_topic) {
@@ -306,7 +307,10 @@ void MQTTAbstractionImpl::on_mqtt_message(const Message& message) {
 
             if (topic_matches) {
                 found = true;
-                handler.add(std::unique_ptr<ParsedMessage>(new ParsedMessage{topic, std::move(data)}));
+                if (not parsed_message) {
+                    parsed_message.reset(new ParsedMessage{topic, std::move(data)});
+                }
+                handler.add(parsed_message);
             }
         }
         lock.unlock();

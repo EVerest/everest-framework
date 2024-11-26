@@ -113,7 +113,7 @@ MessageHandler::MessageHandler() : running(true) {
     });
 }
 
-void MessageHandler::add(std::unique_ptr<ParsedMessage> message) {
+void MessageHandler::add(std::shared_ptr<ParsedMessage> message) {
     {
         std::lock_guard<std::mutex> lock(this->handler_ctrl_mutex);
         this->message_queue.push(std::move(message));

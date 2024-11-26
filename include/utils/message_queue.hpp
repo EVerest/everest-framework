@@ -60,7 +60,7 @@ class MessageHandler {
 private:
     std::unordered_set<std::shared_ptr<TypedHandler>> handlers;
     std::thread handler_thread;
-    std::queue<std::unique_ptr<ParsedMessage>> message_queue;
+    std::queue<std::shared_ptr<ParsedMessage>> message_queue;
     std::mutex handler_ctrl_mutex;
     std::mutex handler_list_mutex;
     std::condition_variable cv;
@@ -74,7 +74,7 @@ public:
     ~MessageHandler();
 
     /// \brief Adds a \p message to the message queue which will be delivered to the registered handlers
-    void add(std::unique_ptr<ParsedMessage>);
+    void add(std::shared_ptr<ParsedMessage>);
 
     /// \brief Stops the message handler
     void stop();
