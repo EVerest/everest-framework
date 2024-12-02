@@ -29,6 +29,7 @@ SCENARIO("Check ManagerSettings Constructor", "[!throws]") {
         }
     }
     GIVEN("A broken yaml file") {
+        // FIXME (aw): this also throws, if the folder doesn't even exists or some other things fail
         THEN("It should throw") {
             CHECK_THROWS(Everest::ManagerSettings(bin_dir + "broken_yaml/", bin_dir + "broken_yaml/config.yaml"));
         }

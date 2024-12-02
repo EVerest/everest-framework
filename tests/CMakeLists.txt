@@ -24,27 +24,39 @@ target_link_libraries(${TEST_TARGET_NAME}
 
 catch_discover_tests(${TEST_TARGET_NAME})
 
-include(test_directory_setups/empty_config.cmake)
-include(test_directory_setups/broken_yaml.cmake)
-include(test_directory_setups/missing_module.cmake)
-include(test_directory_setups/broken_manifest_1.cmake)
-include(test_directory_setups/broken_manifest_2.cmake)
-include(test_directory_setups/broken_manifest_3.cmake)
-include(test_directory_setups/broken_manifest_4.cmake)
-include(test_directory_setups/missing_interface.cmake)
-include(test_directory_setups/valid_config.cmake)
-include(test_directory_setups/valid_module_config.cmake)
-include(test_directory_setups/valid_module_config_userconfig.cmake)
-include(test_directory_setups/valid_module_config_validate.cmake)
-include(test_directory_setups/valid_module_config_json.cmake)
-include(test_directory_setups/unknown_impls.cmake)
-include(test_directory_setups/missing_config_entry.cmake)
-include(test_directory_setups/invalid_config_entry_type.cmake)
-include(test_directory_setups/missing_impl_config_entry.cmake)
-include(test_directory_setups/empty_yaml_object.cmake)
-include(test_directory_setups/empty_yaml.cmake)
-include(test_directory_setups/null_yaml.cmake)
-include(test_directory_setups/string_yaml.cmake)
+include(test_utilities.cmake)
+
+setup_test_directory(empty_config)
+setup_test_directory(valid_config)
+setup_test_directory(valid_module_config TESTValidManifest test_interface)
+setup_test_directory(valid_module_config_userconfig TESTValidManifest test_interface
+    CONFIG valid_module_config_config.yaml
+    USER_CONFIG valid_module_config_userconfig.yaml
+)
+setup_test_directory(valid_module_config_validate TESTValidManifestCmdVar test_interface_cmd_var
+    TYPE_FILES test_type.yaml) # FIXME (aw): type is missing
+setup_test_directory(valid_module_config_json TESTValidManifest test_interface
+    CONFIG valid_module_config_json_config.json
+)
+
+setup_test_directory(broken_yaml)
+setup_test_directory(empty_yaml_object USE_FILESYSTEM_HIERARCHY_STANDARD)
+setup_test_directory(empty_yaml USE_FILESYSTEM_HIERARCHY_STANDARD)
+setup_test_directory(null_yaml USE_FILESYSTEM_HIERARCHY_STANDARD)
+setup_test_directory(string_yaml USE_FILESYSTEM_HIERARCHY_STANDARD)
+
+setup_test_directory(missing_module)
+setup_test_directory(broken_manifest_1 TESTBrokenManifest1 test_interface)
+setup_test_directory(broken_manifest_2 TESTBrokenManifest2 test_interface)
+setup_test_directory(broken_manifest_3 TESTBrokenManifest3 test_interface)
+setup_test_directory(broken_manifest_4 TESTBrokenManifest4 test_interface)
+setup_test_directory(missing_interface TESTMissingInterface)
+
+setup_test_directory(unknown_impls TESTValidManifest test_interface)
+setup_test_directory(missing_config_entry TESTValidManifest test_interface)
+setup_test_directory(invalid_config_entry_type TESTValidManifest test_interface)
+setup_test_directory(missing_impl_config_entry TESTValidManifest test_interface)
+
 
 set(GCOVR_ADDITIONAL_ARGS "--gcov-ignore-errors=all")
 setup_target_for_coverage_gcovr_html(
