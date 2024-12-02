@@ -47,7 +47,6 @@ RuntimeSettings::RuntimeSettings(const fs::path& prefix, const fs::path& etc_dir
     validate_schema(validate_schema) {
 }
 
-// FIXME use a from_json method here... that is already defined, just needs a change in the assignment here
 RuntimeSettings::RuntimeSettings(const nlohmann::json& json) {
     this->prefix = json.at("prefix").get<std::string>();
     this->etc_dir = json.at("etc_dir").get<std::string>();
@@ -617,9 +616,6 @@ bool ModuleLoader::parse_command_line(int argc, char* argv[]) {
                   << std::endl;
         return false;
     }
-
-    // TODO: the following is almost identical to what's done in the ManagerSettings initialization
-    // move this to some common function(s), especially the environment variable overwrite stuff
 
     std::string mqtt_broker_socket_path;
     if (vm.count("mqtt_broker_socket_path") != 0) {
