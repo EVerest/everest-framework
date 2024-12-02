@@ -78,7 +78,7 @@ Module::Module(const std::string& module_id, const std::string& prefix, const Ev
 
     const auto result = Everest::get_module_config(this->mqtt_abstraction_, this->module_id_);
 
-    this->rs_ = std::make_shared<Everest::RuntimeSettings>(result.at("settings"));
+    this->rs_ = std::make_unique<Everest::RuntimeSettings>(result.at("settings"));
 
     config_ = std::make_shared<Everest::Config>(this->mqtt_settings_, result);
 
