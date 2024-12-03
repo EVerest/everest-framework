@@ -212,7 +212,9 @@ json MQTTAbstractionImpl::get(const std::string& topic, QOS qos) {
     std::promise<json> res_promise;
     std::future<json> res_future = res_promise.get_future();
 
-    const auto res_handler = [this, &res_promise](const std::string& topic, json data) { res_promise.set_value(std::move(data)); };
+    const auto res_handler = [this, &res_promise](const std::string& topic, json data) {
+        res_promise.set_value(std::move(data));
+    };
 
     const std::shared_ptr<TypedHandler> res_token =
         std::make_shared<TypedHandler>(HandlerType::GetConfig, std::make_shared<Handler>(res_handler));
