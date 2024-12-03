@@ -1,3 +1,8 @@
+if(NOT DISABLE_EDM)
+    list(APPEND CMAKE_MODULE_PATH ${CPM_PACKAGE_catch2_SOURCE_DIR}/extras)
+endif()
+set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type" FORCE)
+
 include(Catch)
 
 set(TEST_TARGET_NAME ${PROJECT_NAME}_tests)
@@ -58,7 +63,13 @@ setup_test_directory(invalid_config_entry_type TESTValidManifest test_interface)
 setup_test_directory(missing_impl_config_entry TESTValidManifest test_interface)
 
 
-set(GCOVR_ADDITIONAL_ARGS "--gcov-ignore-errors=all")
+evc_include(CodeCoverage)
+
+append_coverage_compiler_flags_to_target(framework)
+append_coverage_compiler_flags_to_target(manager)
+append_coverage_compiler_flags_to_target(controller)
+
+# set(GCOVR_ADDITIONAL_ARGS "--gcov-ignore-errors=all")
 setup_target_for_coverage_gcovr_html(
     NAME ${PROJECT_NAME}_gcovr_coverage
     EXECUTABLE ctest --output-on-failure

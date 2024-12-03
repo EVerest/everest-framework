@@ -30,9 +30,11 @@ ev_setup_python_executable(
 
 if((${CMAKE_PROJECT_NAME} STREQUAL ${PROJECT_NAME} OR ${PROJECT_NAME}_BUILD_TESTING) AND BUILD_TESTING)
     set(EVEREST_FRAMEWORK_BUILD_TESTING ON)
-    evc_include(CodeCoverage)
-
-    append_coverage_compiler_flags()
+    # this policy allows us to link gcov to targets defined in other directories
+    if(POLICY CMP0079)
+        cmake_policy(SET CMP0079 NEW)
+        set(CMAKE_POLICY_DEFAULT_CMP0079 NEW)
+    endif()
 endif()
 
 # make own cmake modules available
@@ -172,14 +174,8 @@ if (FRAMEWORK_INSTALL)
 endif ()
 
 # testing
-# FIXME (aw): move testing logic into tests/CMakeLists.txt
 if(EVEREST_FRAMEWORK_BUILD_TESTING)
-    if(NOT DISABLE_EDM)
-        list(APPEND CMAKE_MODULE_PATH ${CPM_PACKAGE_catch2_SOURCE_DIR}/extras)
-    endif()
     include(CTest)
-    set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type" FORCE)
-
     add_subdirectory(tests)
 else()
     message(STATUS "Not running unit tests")
