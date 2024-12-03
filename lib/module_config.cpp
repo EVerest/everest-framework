@@ -24,7 +24,7 @@ json get_module_config(std::shared_ptr<MQTTAbstraction> mqtt, const std::string&
     std::promise<json> res_promise;
     std::future<json> res_future = res_promise.get_future();
 
-    const Handler res_handler = [module_id, &res_promise](json data) {
+    const auto res_handler = [module_id, &res_promise](const std::string& topic, json data) {
         EVLOG_verbose << fmt::format("Incoming config for {}", module_id);
 
         res_promise.set_value(std::move(data));
