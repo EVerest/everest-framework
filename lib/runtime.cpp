@@ -341,8 +341,6 @@ ManagerSettings::ManagerSettings(const std::string& prefix_, const std::string& 
                                mqtt_external_prefix);
     }
 
-    config = config_;
-
     run_as_user = settings.value("run_as_user", "");
 
     auto version_information_path = data_dir / VERSION_INFORMATION_FILE;

@@ -974,7 +974,7 @@ ManagerConfig::ManagerConfig(const ManagerSettings& ms) : ConfigBase(ms.mqtt_set
 
     try {
         EVLOG_info << fmt::format("Loading config file at: {}", fs::canonical(config_path).string());
-        auto complete_config = load_yaml(config_path);
+        auto complete_config = this->ms.config;
         // try to load user config from a directory "user-config" that might be in the same parent directory as the
         // config_file. The config is supposed to have the same name as the parent config.
         // TODO(kai): introduce a parameter that can overwrite the location of the user config?
