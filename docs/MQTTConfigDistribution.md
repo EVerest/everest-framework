@@ -11,8 +11,8 @@ Afterwards they signal ready to the manager.
 The manager sends out the global ready signal
 once it has received all Module ready signals.
 
-
 The following sequence diagram illustrates this startup process
+
 ```mermaid
 sequenceDiagram
     create participant manager
@@ -118,4 +118,3 @@ class Config{
     +nlohmann::json get_interface_definition(const std::string& interface_name) const;
 }
 ```
-
