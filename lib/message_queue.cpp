@@ -32,7 +32,7 @@ MessageQueue::MessageQueue(MessageCallback message_callback_) :
 
 void MessageQueue::add(std::unique_ptr<Message> message) {
     {
-        std::lock_guard<std::mutex> lock(this->queue_ctrl_mutex);
+        const std::lock_guard<std::mutex> lock(this->queue_ctrl_mutex);
         this->message_queue.push(std::move(message));
     }
     this->cv.notify_all();
@@ -115,7 +115,7 @@ MessageHandler::MessageHandler() : running(true) {
 
 void MessageHandler::add(std::shared_ptr<ParsedMessage> message) {
     {
-        std::lock_guard<std::mutex> lock(this->handler_ctrl_mutex);
+        const std::lock_guard<std::mutex> lock(this->handler_ctrl_mutex);
         this->message_queue.push(std::move(message));
     }
     this->cv.notify_all();

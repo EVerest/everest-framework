@@ -396,7 +396,7 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
                                               mqtt_everest_prefix = ms.mqtt_settings.everest_prefix,
                                               &status_fifo](const std::string&, nlohmann::json json) {
             EVLOG_debug << fmt::format("received module ready signal for module: {}({})", module_name, json.dump());
-            std::unique_lock<std::mutex> lock(modules_ready_mutex);
+            const std::unique_lock<std::mutex> lock(modules_ready_mutex);
             // FIXME (aw): here are race conditions, if the ready handler gets called while modules are shut down!
             modules_ready.at(module_name).ready = json.get<bool>();
             std::size_t modules_spawned = 0;
