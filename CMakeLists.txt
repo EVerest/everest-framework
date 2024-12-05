@@ -32,7 +32,6 @@ if((${CMAKE_PROJECT_NAME} STREQUAL ${PROJECT_NAME} OR ${PROJECT_NAME}_BUILD_TEST
     set(EVEREST_FRAMEWORK_BUILD_TESTING ON)
     # this policy allows us to link gcov to targets defined in other directories
     if(POLICY CMP0079)
-        cmake_policy(SET CMP0079 NEW)
         set(CMAKE_POLICY_DEFAULT_CMP0079 NEW)
     endif()
 endif()
