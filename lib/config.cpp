@@ -357,6 +357,10 @@ std::unordered_map<std::string, ConfigCache> ConfigBase::get_module_config_cache
     return this->module_config_cache;
 }
 
+std::unordered_map<std::string, std::string> ConfigBase::get_module_names() {
+    return this->module_names;
+}
+
 json ConfigBase::resolve_requirement(const std::string& module_id, const std::string& requirement_id) const {
     BOOST_LOG_FUNCTION();
 

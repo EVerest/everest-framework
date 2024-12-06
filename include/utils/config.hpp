@@ -145,6 +145,10 @@ public:
     std::unordered_map<std::string, ConfigCache> get_module_config_cache();
 
     ///
+    /// \return the cached mapping of module ids to module names
+    std::unordered_map<std::string, std::string> get_module_names();
+
+    ///
     /// \brief checks if the given \p module_id provides the requirement given in \p requirement_id
     ///
     /// \returns a json object that contains the requirement
