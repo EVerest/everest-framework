@@ -1,6 +1,8 @@
 Checks: >
     bugprone*,
     misc-const-correctness,
+    performance*,
+    -performance-avoid-endl,
     -llvmlibc*,
     -fuchsia-overloaded-operator,
     -fuchsia-statically-constructed-objects,
