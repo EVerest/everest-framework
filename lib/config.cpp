@@ -209,7 +209,7 @@ static auto get_requirements_for_probe_module(const std::string& probe_module_id
 
             if (module_config_it == config.end()) {
                 EVLOG_AND_THROW(
-                    EverestConfigError("ProbeModule refers to a non-existent module id '" + module_id + "'"));
+                    EverestConfigError(fmt::format("ProbeModule refers to a non-existent module id '{}'", module_id)));
             }
 
             const auto& module_manifest = manifests.at(module_config_it->at("module"));
@@ -217,14 +217,15 @@ static auto get_requirements_for_probe_module(const std::string& probe_module_id
             const auto& module_provides_it = module_manifest.find("provides");
 
             if (module_provides_it == module_manifest.end()) {
-                EVLOG_AND_THROW(EverestConfigError("ProbeModule requires something from module id' " + module_id +
-                                                   "', but it does not provide anything"));
+                EVLOG_AND_THROW(EverestConfigError(fmt::format(
+                    "ProbeModule requires something from module id '{}' but it does not provide anything", module_id)));
             }
 
             const auto& provide_it = module_provides_it->find(impl_id);
             if (provide_it == module_provides_it->end()) {
-                EVLOG_AND_THROW(EverestConfigError("ProbeModule requires something from module id '" + module_id +
-                                                   "', but it does not provide '" + impl_id + "'"));
+                EVLOG_AND_THROW(EverestConfigError(
+                    fmt::format("ProbeModule requires something from module id '{}', but it does not provide '{}'",
+                                module_id, impl_id)));
             }
 
             const std::string interface = provide_it->at("interface");
@@ -297,7 +298,7 @@ std::string create_printable_identifier(const ImplementationInfo& info, const st
     BOOST_LOG_FUNCTION();
 
     // no implementation id yet so only return this kind of string:
-    const auto module_string = fmt::format("{}:{}", info.module_id, info.module_name);
+    auto module_string = fmt::format("{}:{}", info.module_id, info.module_name);
     if (impl_id.empty()) {
         return module_string;
     }
@@ -910,7 +911,7 @@ void ManagerConfig::resolve_all_requirements() {
 }
 
 void ManagerConfig::parse(json config) {
-    this->main = config;
+    this->main = std::move(config);
     // load type files
     if (this->ms.runtime_settings->validate_schema) {
         int64_t total_time_validation_ms = 0, total_time_parsing_ms = 0;

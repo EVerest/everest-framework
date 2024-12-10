@@ -975,7 +975,7 @@ void Everest::provide_cmd(const cmd& cmd) {
         // call cmd handlers (handle async or normal handlers being both:
         // methods or functions)
         // FIXME (aw): this behaviour needs to be checked, i.e. how to distinguish in json between no value and null?
-        return handler(data).value_or(nullptr);
+        return handler(std::move(data)).value_or(nullptr);
     });
 }
 
