@@ -79,10 +79,10 @@ public:
     void stop();
 
     /// \brief Adds a \p handler that will receive messages from the queue.
-    void add_handler(std::shared_ptr<TypedHandler> handler);
+    void add_handler(const std::shared_ptr<TypedHandler>& handler);
 
     /// \brief Removes a specific \p handler
-    void remove_handler(std::shared_ptr<TypedHandler> handler);
+    void remove_handler(const std::shared_ptr<TypedHandler>& handler);
 
     /// \brief \returns the number of registered handlers
     std::size_t count_handlers();

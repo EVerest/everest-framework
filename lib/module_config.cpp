@@ -16,7 +16,7 @@ using json = nlohmann::json;
 
 inline constexpr int mqtt_get_config_timeout_ms = 5000;
 
-json get_module_config(std::shared_ptr<MQTTAbstraction> mqtt, const std::string& module_id) {
+json get_module_config(const std::shared_ptr<MQTTAbstraction>& mqtt, const std::string& module_id) {
     const auto& everest_prefix = mqtt->get_everest_prefix();
 
     const auto get_config_topic = fmt::format("{}modules/{}/get_config", everest_prefix, module_id);

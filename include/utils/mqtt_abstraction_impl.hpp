@@ -96,7 +96,7 @@ public:
     ///
     /// \brief subscribes to the given \p topic and registers a callback \p handler that is called when a message
     /// arrives on the topic. With \p qos a MQTT Quality of Service level can be set.
-    void register_handler(const std::string& topic, std::shared_ptr<TypedHandler> handler, QOS qos);
+    void register_handler(const std::string& topic, const std::shared_ptr<TypedHandler>& handler, QOS qos);
 
     ///
     /// \brief unsubscribes a handler identified by its \p token from the given \p topic

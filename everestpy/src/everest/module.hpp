@@ -22,11 +22,11 @@ public:
 
     ModuleSetup say_hello();
 
-    void init_done(std::function<void()> on_ready_handler) {
+    void init_done(const std::function<void()>& on_ready_handler) {
         this->handle->check_code();
 
         if (on_ready_handler) {
-            handle->register_on_ready_handler(std::move(on_ready_handler));
+            handle->register_on_ready_handler(on_ready_handler);
         }
 
         const auto end_time = std::chrono::system_clock::now();
@@ -101,7 +101,7 @@ private:
     static std::unique_ptr<Everest::Everest>
     create_everest_instance(const std::string& module_id, const Everest::Config& config,
                             const Everest::RuntimeSettings& rs,
-                            std::shared_ptr<Everest::MQTTAbstraction> mqtt_abstraction);
+                            const std::shared_ptr<Everest::MQTTAbstraction>& mqtt_abstraction);
 
     ModuleInfo module_info{};
     std::map<std::string, Interface> requirements;

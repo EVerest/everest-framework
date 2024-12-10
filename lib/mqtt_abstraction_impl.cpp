@@ -409,7 +409,8 @@ void MQTTAbstractionImpl::on_mqtt_disconnect() {
     EVLOG_AND_THROW(EverestInternalError("Lost connection to MQTT broker"));
 }
 
-void MQTTAbstractionImpl::register_handler(const std::string& topic, std::shared_ptr<TypedHandler> handler, QOS qos) {
+void MQTTAbstractionImpl::register_handler(const std::string& topic, const std::shared_ptr<TypedHandler>& handler,
+                                           QOS qos) {
     BOOST_LOG_FUNCTION();
 
     switch (handler->type) {

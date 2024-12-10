@@ -12,7 +12,7 @@
 std::unique_ptr<Everest::Everest>
 Module::create_everest_instance(const std::string& module_id, const Everest::Config& config,
                                 const Everest::RuntimeSettings& rs,
-                                std::shared_ptr<Everest::MQTTAbstraction> mqtt_abstraction) {
+                                const std::shared_ptr<Everest::MQTTAbstraction>& mqtt_abstraction) {
     return std::make_unique<Everest::Everest>(module_id, config, rs.validate_schema, mqtt_abstraction,
                                               rs.telemetry_prefix, rs.telemetry_enabled);
 }
