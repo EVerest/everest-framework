@@ -1087,10 +1087,6 @@ ManagerConfig::ManagerConfig(const ManagerSettings& ms) : ConfigBase(ms.mqtt_set
     }
 }
 
-json ManagerConfig::serialize() {
-    return json::object({{"main", this->main}, {"module_names", this->module_names}});
-}
-
 std::optional<TelemetryConfig> ManagerConfig::get_telemetry_config(const std::string& module_id) {
     BOOST_LOG_FUNCTION();
 
