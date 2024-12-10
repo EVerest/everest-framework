@@ -107,7 +107,7 @@ ModuleSetup create_setup_from_config(const std::string& module_id, Everest::Conf
             const auto& req_route = req_route_list[i];
             const auto fulfillment =
                 Fulfillment{req_route["module_id"], req_route["implementation_id"], {requirement_id, i}};
-            fulfillment_list.emplace_back(std::move(fulfillment));
+            fulfillment_list.emplace_back(fulfillment);
         }
     }
 
