@@ -78,6 +78,16 @@ static nlohmann::ordered_json ryml_to_nlohmann_json(const c4::yml::NodeRef& ryml
     }
 }
 
+static std::string load_file_content(const std::filesystem::path& path) {
+    std::ifstream ifs(path.string());
+    ifs.seekg(0, std::ios::end);
+    std::string content;
+    content.reserve(ifs.tellg());
+    ifs.seekg(0);
+    content.assign(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
+    return content;
+}
+
 static std::string load_yaml_content(std::filesystem::path path) {
     namespace fs = std::filesystem;
 
@@ -92,16 +102,14 @@ static std::string load_yaml_content(std::filesystem::path path) {
 
     // first check for yaml, if not found try fall back to json and evlog debug deprecated
     if (fs::exists(path)) {
-        std::ifstream ifs(path.string());
-        return std::string(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
+        return load_file_content(path);
     }
 
     path.replace_extension(".json");
 
     if (fs::exists(path)) {
         EVLOG_info << "Deprecated: loaded file in json format";
-        std::ifstream ifs(path.string());
-        return std::string(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
+        return load_file_content(path);
     }
 
     // failed to find yaml and json
