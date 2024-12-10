@@ -49,7 +49,7 @@ struct ErrorFactory;
 class Everest {
 public:
     Everest(std::string module_id, const Config& config, bool validate_data_with_schema,
-            std::shared_ptr<MQTTAbstraction> mqtt_abstraction, const std::string& telemetry_prefix,
+            const std::shared_ptr<MQTTAbstraction>& mqtt_abstraction, const std::string& telemetry_prefix,
             bool telemetry_enabled);
 
     // forbid copy assignment and copy construction
@@ -66,7 +66,7 @@ public:
     ///
     /// \brief Allows a module to indicate that it provides the given command \p cmd
     ///
-    void provide_cmd(const std::string impl_id, const std::string cmd_name, const JsonCommand handler);
+    void provide_cmd(const std::string& impl_id, const std::string cmd_name, const JsonCommand& handler);
     void provide_cmd(const cmd& cmd);
 
     ///
@@ -217,7 +217,7 @@ private:
     bool telemetry_enabled;
     std::optional<ModuleTierMappings> module_tier_mappings;
 
-    void handle_ready(nlohmann::json data);
+    void handle_ready(const nlohmann::json& data);
 
     void heartbeat();
 

@@ -78,8 +78,8 @@ static ParsedConfigMap parse_config_map(const json& config_map_schema, const jso
 
     // validate each config entry
     for (const auto& config_entry_el : config_map_schema.items()) {
-        const std::string config_entry_name = config_entry_el.key();
-        const json config_entry = config_entry_el.value();
+        const std::string& config_entry_name = config_entry_el.key();
+        const json& config_entry = config_entry_el.value();
 
         // only convenience exception, would be catched by schema validation below if not thrown here
         if (!config_entry.contains("default") and !config_map.contains(config_entry_name)) {
@@ -125,7 +125,7 @@ static auto get_provides_for_probe_module(const std::string& probe_module_id, co
         const auto& connections = module_config.value("connections", json::object());
 
         for (const auto& connection : connections.items()) {
-            const std::string req_id = connection.key();
+            const std::string& req_id = connection.key();
             const std::string module_name = module_config.at("module");
             const auto& module_manifest = manifests.at(module_name);
 
@@ -161,7 +161,7 @@ static auto get_provides_for_probe_module(const std::string& probe_module_id, co
 
 static auto get_requirements_for_probe_module(const std::string& probe_module_id, const json& config,
                                               const json& manifests) {
-    const auto probe_module_config = config.at(probe_module_id);
+    const auto& probe_module_config = config.at(probe_module_id);
 
     auto requirements = json::object();
 
@@ -579,7 +579,7 @@ void ManagerConfig::load_and_validate_manifest(const std::string& module_id, con
 
     // validate config for !module
     {
-        const json config_map = module_config.at("config_module");
+        const json& config_map = module_config.at("config_module");
         const json config_map_schema = this->manifests[module_config.at("module").get<std::string>()]["config"];
 
         try {
@@ -1167,7 +1167,7 @@ ModuleConfigs Config::get_module_configs(const std::string& module_id) const {
             for (const auto& entry : conf_map.value().items()) {
                 const json entry_type = config_schema.at(entry.key()).at("type");
                 ConfigEntry value;
-                const json data = entry.value();
+                const json& data = entry.value();
 
                 if (data.is_string()) {
                     value = data.get<std::string>();
@@ -1239,7 +1239,7 @@ void Config::ref_loader(const json_uri& uri, json& schema) {
         schema = nlohmann::json_schema::draft7_schema_builtin;
         return;
     } else {
-        const auto path = uri.path();
+        const auto& path = uri.path();
         if (this->types.contains(path)) {
             schema = this->types[path];
             EVLOG_verbose << fmt::format("ref path \"{}\" schema has been found.", path);

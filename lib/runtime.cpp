@@ -397,7 +397,7 @@ ModuleCallbacks::ModuleCallbacks(
 }
 
 ModuleLoader::ModuleLoader(int argc, char* argv[], ModuleCallbacks callbacks,
-                           const VersionInformation version_information) :
+                           const VersionInformation& version_information) :
     runtime_settings(nullptr), callbacks(callbacks), version_information(version_information) {
     if (!this->parse_command_line(argc, argv)) {
         this->should_exit = true;
