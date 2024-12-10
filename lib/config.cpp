@@ -1080,9 +1080,8 @@ ManagerConfig::ManagerConfig(const ManagerSettings& ms) : ConfigBase(ms.mqtt_set
             complete_config = complete_config.patch(patch);
         }
 
-        const auto config = complete_config.at("active_modules");
         this->settings = this->ms.get_runtime_settings();
-        this->parse(config);
+        this->parse(complete_config.at("active_modules"));
     } catch (const std::exception& e) {
         EVLOG_AND_THROW(EverestConfigError(fmt::format("Failed to load and parse config file: {}", e.what())));
     }
