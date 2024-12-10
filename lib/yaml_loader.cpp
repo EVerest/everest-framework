@@ -4,6 +4,7 @@
 
 #include <cstddef>
 #include <fstream>
+#include <limits>
 
 #include <fmt/core.h>
 #include <ryml.hpp>
@@ -11,13 +12,18 @@
 
 #include <everest/logging.hpp>
 
+static std::streamsize clamp(std::size_t len) {
+    return (len <= std::numeric_limits<std::streamsize>::max()) ? static_cast<std::streamsize>(len)
+                                                                : std::numeric_limits<std::streamsize>::max();
+}
+
 static void yaml_error_handler(const char* msg, std::size_t len, ryml::Location loc, void*) {
     std::stringstream error_msg;
     error_msg << "YAML parsing error: ";
 
     if (loc) {
         if (not loc.name.empty()) {
-            error_msg.write(loc.name.str, loc.name.len);
+            error_msg.write(loc.name.str, clamp(loc.name.len));
             error_msg << ":";
         }
         error_msg << loc.line << ":";
@@ -28,7 +34,7 @@ static void yaml_error_handler(const char* msg, std::size_t len, ryml::Location 
             error_msg << " (" << loc.offset << "B):";
         }
     }
-    error_msg.write(msg, len);
+    error_msg.write(msg, clamp(len));
 
     throw std::runtime_error(error_msg.str());
 }
