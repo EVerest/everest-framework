@@ -287,7 +287,7 @@ public:
 
     ///
     /// \returns the commands that the modules \p module_name implements from the given implementation \p impl_id
-    nlohmann::json get_module_cmds(const std::string& module_name, const std::string& impl_id);
+    const nlohmann::json& get_module_cmds(const std::string& module_name, const std::string& impl_id);
 
     ///
     /// \brief A RequirementInitialization contains everything needed to initialize a requirement in user code. This
@@ -301,7 +301,7 @@ public:
 
     ///
     /// \returns a json object that contains the module config options
-    nlohmann::json get_module_json_config(const std::string& module_id);
+    const nlohmann::json& get_module_json_config(const std::string& module_id);
 
     ///
     /// \brief assemble basic information about the module (id, name,

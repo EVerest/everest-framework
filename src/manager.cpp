@@ -344,7 +344,13 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
     mqtt_abstraction.publish(fmt::format("{}schemas", ms.mqtt_settings.everest_prefix), schemas, QOS::QOS2, true);
 
     const auto manifests = config.get_manifests();
-    mqtt_abstraction.publish(fmt::format("{}manifests", ms.mqtt_settings.everest_prefix), manifests, QOS::QOS2, true);
+
+    for (const auto& manifest : manifests.items()) {
+        auto manifest_copy = manifest.value();
+        manifest_copy.erase("config");
+        mqtt_abstraction.publish(fmt::format("{}manifests/{}", ms.mqtt_settings.everest_prefix, manifest.key()),
+                                 manifest_copy, QOS::QOS2, true);
+    }
 
     const auto error_types_map = config.get_error_types();
     mqtt_abstraction.publish(fmt::format("{}error_types_map", ms.mqtt_settings.everest_prefix), error_types_map,
