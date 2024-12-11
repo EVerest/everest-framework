@@ -290,6 +290,8 @@ void cleanup_retained_topics(ManagerConfig& config, MQTTAbstraction& mqtt_abstra
     mqtt_abstraction.publish(fmt::format("{}error_types_map", mqtt_everest_prefix), std::string(), QOS::QOS2, true);
 
     mqtt_abstraction.publish(fmt::format("{}module_config_cache", mqtt_everest_prefix), std::string(), QOS::QOS2, true);
+
+    mqtt_abstraction.publish(fmt::format("{}module_names", mqtt_everest_prefix), std::string(), QOS::QOS2, true);
 }
 
 static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbstraction& mqtt_abstraction,
@@ -352,10 +354,13 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
     mqtt_abstraction.publish(fmt::format("{}module_config_cache", ms.mqtt_settings.everest_prefix), module_config_cache,
                              QOS::QOS2, true);
 
+    mqtt_abstraction.publish(fmt::format("{}module_names", ms.mqtt_settings.everest_prefix), module_names, QOS::QOS2,
+                             true);
+
     for (const auto& module_name_entry : module_names) {
         const auto& module_name = module_name_entry.first;
         const auto& module_type = module_name_entry.second;
-        json serialized_mod_config = json::object({{"module_names", module_names}});
+        json serialized_mod_config = json::object();
         serialized_mod_config["module_config"] = json::object();
         serialized_mod_config["module_config"][module_name] = main_config.at(module_name);
         // add mappings of fulfillments

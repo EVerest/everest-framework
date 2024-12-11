@@ -104,6 +104,10 @@ json get_module_config(std::shared_ptr<MQTTAbstraction> mqtt, const std::string&
     const auto module_config_cache = mqtt->get(module_config_cache_topic, QOS::QOS2);
     result["module_config_cache"] = module_config_cache;
 
+    const auto module_names_topic = fmt::format("{}module_names", everest_prefix);
+    const auto module_names = mqtt->get(module_names_topic, QOS::QOS2);
+    result["module_names"] = module_names;
+
     return result;
 }
 
