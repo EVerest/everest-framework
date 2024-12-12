@@ -420,16 +420,18 @@ json Everest::call_cmd(const Requirement& req, const std::string& cmd_name, json
             return;
         }
 
-        EVLOG_verbose << fmt::format(
-            "Incoming res {} for {}->{}()", data_id,
-            this->config.printable_identifier(connection["module_id"], connection["implementation_id"]), cmd_name);
-
         if (data.contains("error")) {
             EVLOG_error << fmt::format(
-                "Received error {} for {}->{}()", data.at("error"),
-                this->config.printable_identifier(connection["module_id"], connection["implementation_id"]), cmd_name);
+                "{}:{} during command call: {}->{}()", data.at("error").at("type"), data.at("error").at("msg"),
+                this->config.printable_identifier(connection.at("module_id"), connection.at("implementation_id")),
+                cmd_name);
             res_promise.set_value(CmdResult{std::nullopt, data.at("error")});
         } else {
+            EVLOG_verbose << fmt::format(
+                "Incoming res {} for {}->{}()", data_id,
+                this->config.printable_identifier(connection.at("module_id"), connection.at("implementation_id")),
+                cmd_name);
+
             res_promise.set_value(CmdResult{std::move(data["retval"]), std::nullopt});
         }
     };
@@ -458,9 +460,11 @@ json Everest::call_cmd(const Requirement& req, const std::string& cmd_name, json
 
     CmdResult result;
     if (res_future_status == std::future_status::timeout) {
-        EVLOG_AND_THROW(EverestTimeoutError(fmt::format(
-            "Timeout while waiting for result of {}->{}()",
-            this->config.printable_identifier(connection["module_id"], connection["implementation_id"]), cmd_name)));
+        result.error = ErrorMessage{
+            ErrorType::Timeout,
+            fmt::format("Timeout while waiting for result of {}->{}()",
+                        this->config.printable_identifier(connection["module_id"], connection["implementation_id"]),
+                        cmd_name)};
     }
     if (res_future_status == std::future_status::ready) {
         result = res_future.get();
@@ -469,9 +473,14 @@ json Everest::call_cmd(const Requirement& req, const std::string& cmd_name, json
 
     if (result.error.has_value()) {
         auto& error = result.error.value();
-        throw EverestCmdError(fmt::format("{}: {}", conversions::error_type_to_string(error.type), error.msg));
+        if (error.type == ErrorType::HandlerException) {
+            throw HandlerException(fmt::format("{}", error.msg));
+        } else if (error.type == ErrorType::Timeout) {
+            throw CmdTimeout(fmt::format("{}", error.msg));
+        }
+        throw CmdError(fmt::format("{}: {}", conversions::error_type_to_string(error.type), error.msg));
     } else if (not result.result.has_value()) {
-        throw EverestCmdError("Command did not return result");
+        throw CmdError("Command did not return result");
     } else {
         return result.result.value();
     }

@@ -62,9 +62,19 @@ struct CmdResult {
     std::optional<ErrorMessage> error;
 };
 
-class EverestCmdError : public Everest::EverestBaseRuntimeError {
+class CmdError : public Everest::EverestBaseRuntimeError {
 public:
     using EverestBaseRuntimeError::EverestBaseRuntimeError;
+};
+
+class HandlerException : public CmdError {
+public:
+    using CmdError::CmdError;
+};
+
+class CmdTimeout : public CmdError {
+public:
+    using CmdError::CmdError;
 };
 
 namespace error {
