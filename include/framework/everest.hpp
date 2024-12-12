@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
-// Copyright 2020 - 2023 Pionix GmbH and Contributors to EVerest
+// Copyright Pionix GmbH and Contributors to EVerest
 #ifndef FRAMEWORK_EVEREST_HPP
 #define FRAMEWORK_EVEREST_HPP
 
 #include <chrono>
+#include <functional>
 #include <future>
 #include <map>
 #include <set>
@@ -48,9 +49,8 @@ struct ErrorFactory;
 class Everest {
 public:
     Everest(std::string module_id, const Config& config, bool validate_data_with_schema,
-            const std::string& mqtt_server_socket_path, const std::string& mqtt_server_address, int mqtt_server_port,
-            const std::string& mqtt_everest_prefix, const std::string& mqtt_external_prefix,
-            const std::string& telemetry_prefix, bool telemetry_enabled);
+            std::shared_ptr<MQTTAbstraction> mqtt_abstraction, const std::string& telemetry_prefix,
+            bool telemetry_enabled);
 
     // forbid copy assignment and copy construction
     // NOTE (aw): move assignment and construction are also not supported because we're creating explicit references to
@@ -58,9 +58,10 @@ public:
     Everest(Everest const&) = delete;
     void operator=(Everest const&) = delete;
 
-    json get_cmd_definition(const std::string& module_id, const std::string& impl_id, const std::string& cmd_name,
-                            bool is_call);
-    json get_cmd_definition(const std::string& module_id, const std::string& impl_id, const std::string& cmd_name);
+    nlohmann::json get_cmd_definition(const std::string& module_id, const std::string& impl_id,
+                                      const std::string& cmd_name, bool is_call);
+    nlohmann::json get_cmd_definition(const std::string& module_id, const std::string& impl_id,
+                                      const std::string& cmd_name);
 
     ///
     /// \brief Allows a module to indicate that it provides the given command \p cmd
@@ -72,12 +73,12 @@ public:
     /// \brief Provides functionality for calling commands of other modules. The module is identified by the given \p
     /// req, the command by the given command name \p cmd_name and the needed arguments by \p args
     ///
-    json call_cmd(const Requirement& req, const std::string& cmd_name, json args);
+    nlohmann::json call_cmd(const Requirement& req, const std::string& cmd_name, json args);
 
     ///
     /// \brief Publishes a variable of the given \p impl_id, names \p var_name with the given \p value
     ///
-    void publish_var(const std::string& impl_id, const std::string& var_name, json value);
+    void publish_var(const std::string& impl_id, const std::string& var_name, nlohmann::json value);
 
     ///
     /// \brief Subscribes to a variable of another module identified by the given \p req and variable name \p
@@ -126,6 +127,11 @@ public:
     /// \brief Allows a module to indicate that it provides a external mqtt \p handler at the given \p topic
     ///
     UnsubscribeToken provide_external_mqtt_handler(const std::string& topic, const StringHandler& handler);
+
+    ///
+    /// \brief Allows a module to indicate that it provides a external mqtt \p handler at the given \p topic
+    ///
+    UnsubscribeToken provide_external_mqtt_handler(const std::string& topic, const StringPairHandler& handler);
 
     ///
     /// \brief publishes the given telemetry \p data on the given \p topic
@@ -183,7 +189,7 @@ public:
     void register_on_ready_handler(const std::function<void()>& handler);
 
 private:
-    MQTTAbstraction mqtt_abstraction;
+    std::shared_ptr<MQTTAbstraction> mqtt_abstraction;
     Config config;
     std::string module_id;
     std::map<std::string, std::shared_ptr<error::ErrorManagerImpl>> impl_error_managers; // one per implementation
@@ -201,9 +207,9 @@ private:
     std::unique_ptr<std::function<void()>> on_ready;
     std::thread heartbeat_thread;
     std::string module_name;
-    std::future<void> main_loop_end{};
-    json module_manifest;
-    json module_classes;
+    std::shared_future<void> main_loop_end{};
+    nlohmann::json module_manifest;
+    nlohmann::json module_classes;
     std::string mqtt_everest_prefix;
     std::string mqtt_external_prefix;
     std::string telemetry_prefix;
@@ -211,14 +217,14 @@ private:
     bool telemetry_enabled;
     std::optional<ModuleTierMappings> module_tier_mappings;
 
-    void handle_ready(json data);
+    void handle_ready(nlohmann::json data);
 
     void heartbeat();
 
     void publish_metadata();
 
-    static std::string check_args(const Arguments& func_args, json manifest_args);
-    static bool check_arg(ArgumentType arg_types, json manifest_arg);
+    static std::string check_args(const Arguments& func_args, nlohmann::json manifest_args);
+    static bool check_arg(ArgumentType arg_types, nlohmann::json manifest_arg);
 
     ///
     /// \brief Publishes the given \p error as a cleared error
@@ -243,6 +249,24 @@ private:
     /// raised. The given \p clear_callback is called when an error is cleared
     ///
     void subscribe_global_all_errors(const error::ErrorCallback& callback, const error::ErrorCallback& clear_callback);
+
+    ///
+    /// \brief Check that external MQTT is configured - raises exception on error
+    ///
+    void check_external_mqtt();
+
+    ///
+    /// \brief Check that external MQTT is configured - raises exception on error
+    /// \returns the full external MQTT topic
+    ///
+    std::string check_external_mqtt(const std::string& topic);
+
+    ///
+    /// \brief Create external MQTT with an unsubscribe token
+    /// \returns the unsubscribe token
+    ///
+    UnsubscribeToken create_external_handler(const std::string& topic, const std::string& external_topic,
+                                             const StringPairHandler& handler);
 };
 
 ///
