@@ -81,6 +81,10 @@ public:
     void unsubscribe(const std::string& topic);
 
     ///
+    /// \brief subscribe topic to asynchronously get value on the subscribed topic
+    AsyncReturn get_async(const std::string& topic, QOS qos);
+
+    ///
     /// \brief subscribe and wait for value on the subscribed topic
     nlohmann::json get(const std::string& topic, QOS qos);
 

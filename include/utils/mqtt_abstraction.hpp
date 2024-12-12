@@ -65,6 +65,10 @@ public:
     void unsubscribe(const std::string& topic);
 
     ///
+    /// \copydoc MQTTAbstractionImpl::get_async(const std::string&, QOS)
+    AsyncReturn get_async(const std::string& topic, QOS qos);
+
+    ///
     /// \copydoc MQTTAbstractionImpl::get(const std::string&, QOS)
     nlohmann::json get(const std::string& topic, QOS qos);
 

@@ -207,6 +207,21 @@ void MQTTAbstractionImpl::unsubscribe(const std::string& topic) {
     notify_write_data();
 }
 
+AsyncReturn MQTTAbstractionImpl::get_async(const std::string& topic, QOS qos) {
+    auto res_promise = std::make_shared<std::promise<json>>();
+    std::future<json> res_future = res_promise->get_future();
+
+    auto res_handler = [this, res_promise](const std::string& topic, json data) mutable {
+        res_promise->set_value(std::move(data));
+    };
+
+    const auto res_token =
+        std::make_shared<TypedHandler>(HandlerType::GetConfig, std::make_shared<Handler>(res_handler));
+    this->register_handler(topic, res_token, QOS::QOS2);
+
+    return {std::move(res_future), res_token};
+}
+
 json MQTTAbstractionImpl::get(const std::string& topic, QOS qos) {
     BOOST_LOG_FUNCTION();
     std::promise<json> res_promise;
