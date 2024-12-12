@@ -60,10 +60,6 @@ void from_json(const nlohmann::json& j, ErrorMessage& e);
 struct CmdResult {
     std::optional<json> result;
     std::optional<ErrorMessage> error;
-
-    // CmdResult(std::optional<json> result = std::nullopt, std::optional<ErrorMessage> error = std::nullopt) :
-    //     result(result), error(error) {
-    // }
 };
 
 class EverestCmdError : public Everest::EverestBaseRuntimeError {

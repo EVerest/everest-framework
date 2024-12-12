@@ -1152,7 +1152,6 @@ bool Everest::check_arg(ArgumentType arg_types, json manifest_arg) {
     return true;
 }
 
-// TODO fix these conversions
 void to_json(nlohmann::json& j, const ErrorMessage& e) {
     j = {{"type", conversions::error_type_to_string(e.type)}, {"msg", e.msg}};
 }
