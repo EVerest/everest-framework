@@ -32,19 +32,19 @@ void populate_future_cbs_arr(std::vector<FutureCallback>& future_cbs, const std:
                              const std::string& inner_topic_part, json& array_out, json& out) {
     future_cbs.push_back(std::make_tuple<AsyncReturn, std::function<std::string(json)>>(
         mqtt->get_async(topic, QOS::QOS2),
-        [topic, everest_prefix, &mqtt, &inner_topic_part, &array_out, &out](json result_array) {
+        [&topic, &everest_prefix, &mqtt, &inner_topic_part, &array_out, &out](json result_array) {
             array_out = result_array;
             std::vector<FutureCallback> array_future_cbs;
             for (const auto& key : result_array) {
-                auto key_topic = fmt::format("{}{}{}", everest_prefix, inner_topic_part, key.get<std::string>());
+                const auto key_topic = fmt::format("{}{}{}", everest_prefix, inner_topic_part, key.get<std::string>());
                 array_future_cbs.push_back(std::make_tuple<AsyncReturn, std::function<std::string(json)>>(
-                    mqtt->get_async(key_topic, QOS::QOS2), [key, key_topic, &out](json key_response) {
+                    mqtt->get_async(key_topic, QOS::QOS2), [&key, &key_topic, &out](json key_response) {
                         out[key] = key_response;
                         return key_topic;
                     }));
             }
             for (auto&& [retval, callback] : array_future_cbs) {
-                auto inner_topic = callback(retval.future.get());
+                const auto inner_topic = callback(retval.future.get());
                 mqtt->unregister_handler(inner_topic, retval.token);
             }
             return topic;
