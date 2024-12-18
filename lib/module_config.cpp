@@ -2,6 +2,7 @@
 // Copyright Pionix GmbH and Contributors to EVerest
 
 #include <future>
+#include <set>
 
 #include <fmt/core.h>
 
@@ -15,40 +16,71 @@ namespace Everest {
 using json = nlohmann::json;
 
 inline constexpr int mqtt_get_config_timeout_ms = 5000;
-using FutureCallback = std::tuple<AsyncReturn, std::function<std::string(json)>>;
+using FutureCallback = std::tuple<AsyncReturn, std::function<std::string(json)>, std::string>;
 
 void populate_future_cbs(std::vector<FutureCallback>& future_cbs, const std::shared_ptr<MQTTAbstraction>& mqtt,
                          const std::string& everest_prefix, const std::string& topic, json& out) {
     future_cbs.push_back(std::make_tuple<AsyncReturn, std::function<std::string(json)>>(
-        mqtt->get_async(topic, QOS::QOS2), [&topic, &everest_prefix, &out](json result) {
+        mqtt->get_async(topic, QOS::QOS2),
+        [topic, &everest_prefix, &out](json result) {
             out = result;
 
             return topic;
-        }));
+        },
+        topic));
+}
+
+json get_with_timeout(std::future<json> future, const std::shared_ptr<MQTTAbstraction>& mqtt, const std::string& topic,
+                      const Token& token) {
+    // wait for result future
+    const std::chrono::time_point<std::chrono::steady_clock> wait =
+        std::chrono::steady_clock::now() + std::chrono::milliseconds(mqtt_get_config_timeout_ms);
+    std::future_status future_status;
+    do {
+        future_status = future.wait_until(wait);
+    } while (future_status == std::future_status::deferred);
+
+    json result;
+    if (future_status == std::future_status::timeout) {
+        mqtt->unregister_handler(topic, token);
+        EVLOG_AND_THROW(EverestTimeoutError(fmt::format("Timeout while waiting for result of get({})", topic)));
+    }
+    if (future_status == std::future_status::ready) {
+        return future.get();
+    }
+
+    return result;
 }
 
 void populate_future_cbs_arr(std::vector<FutureCallback>& future_cbs, const std::shared_ptr<MQTTAbstraction>& mqtt,
                              const std::string& everest_prefix, const std::string& topic,
                              const std::string& inner_topic_part, json& array_out, json& out) {
-    future_cbs.push_back(std::make_tuple<AsyncReturn, std::function<std::string(json)>>(
+    future_cbs.push_back(std::make_tuple<AsyncReturn, std::function<std::string(json)>, std::string>(
         mqtt->get_async(topic, QOS::QOS2),
-        [&topic, &everest_prefix, &mqtt, &inner_topic_part, &array_out, &out](json result_array) {
+        [topic, &everest_prefix, &mqtt, &inner_topic_part, &array_out, &out](json result_array) {
             array_out = result_array;
             std::vector<FutureCallback> array_future_cbs;
-            for (const auto& key : result_array) {
-                const auto key_topic = fmt::format("{}{}{}", everest_prefix, inner_topic_part, key.get<std::string>());
-                array_future_cbs.push_back(std::make_tuple<AsyncReturn, std::function<std::string(json)>>(
-                    mqtt->get_async(key_topic, QOS::QOS2), [&key, &key_topic, &out](json key_response) {
+            std::set<std::string> keys;
+            for (const auto& element : result_array) {
+                keys.insert(element.get<std::string>());
+            }
+            for (const auto& key : keys) {
+                const auto key_topic = fmt::format("{}{}{}", everest_prefix, inner_topic_part, key);
+                array_future_cbs.push_back(std::make_tuple<AsyncReturn, std::function<std::string(json)>, std::string>(
+                    mqtt->get_async(key_topic, QOS::QOS2),
+                    [&key, key_topic, &out](json key_response) {
                         out[key] = key_response;
                         return key_topic;
-                    }));
+                    },
+                    fmt::format("{}{}{}", everest_prefix, inner_topic_part, key)));
             }
-            for (auto&& [retval, callback] : array_future_cbs) {
-                const auto inner_topic = callback(retval.future.get());
+            for (auto&& [retval, callback, tpc] : array_future_cbs) {
+                const auto inner_topic = callback(get_with_timeout(std::move(retval.future), mqtt, tpc, retval.token));
                 mqtt->unregister_handler(inner_topic, retval.token);
             }
             return topic;
-        }));
+        },
+        fmt::format("{}", topic)));
 }
 
 json get_module_config(const std::shared_ptr<MQTTAbstraction>& mqtt, const std::string& module_id) {
@@ -120,8 +152,8 @@ json get_module_config(const std::shared_ptr<MQTTAbstraction>& mqtt, const std::
     const auto module_config_cache_topic = fmt::format("{}module_config_cache", everest_prefix);
     populate_future_cbs(future_cbs, mqtt, everest_prefix, module_config_cache_topic, module_config_cache);
 
-    for (auto&& [retval, callback] : future_cbs) {
-        auto topic = callback(retval.future.get());
+    for (auto&& [retval, callback, tpc] : future_cbs) {
+        auto topic = callback(get_with_timeout(std::move(retval.future), mqtt, tpc, retval.token));
         mqtt->unregister_handler(topic, retval.token);
     }
 
@@ -139,8 +171,8 @@ json get_module_config(const std::shared_ptr<MQTTAbstraction>& mqtt, const std::
 
     const auto end_time = std::chrono::system_clock::now();
 
-    EVLOG_info << "get_module_config(): "
-               << std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count() << "ms";
+    EVLOG_info << "get_module_config(" << module_id
+               << "): " << std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count() << "ms";
 
     return result;
 }
