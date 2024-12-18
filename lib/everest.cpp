@@ -667,7 +667,7 @@ void Everest::subscribe_global_all_errors(const error::ErrorCallback& callback,
         const json provides = this->config.get_manifests().at(module_name).at("provides");
         for (const auto& impl : provides.items()) {
             const std::string& impl_id = impl.key();
-            const std::string interface = impl.value().at("interface");
+            const std::string& interface = impl.value().at("interface");
             const json errors = this->config.get_interface_definition(interface).at("errors");
             for (const auto& error_namespace_it : errors.items()) {
                 const std::string& error_type_namespace = error_namespace_it.key();
@@ -983,8 +983,8 @@ json Everest::get_cmd_definition(const std::string& module_id, const std::string
                                  bool is_call) {
     BOOST_LOG_FUNCTION();
 
-    const std::string module_name = this->config.get_module_name(module_id);
-    const auto cmds = this->config.get_module_cmds(module_name, impl_id);
+    const auto& module_name = this->config.get_module_name(module_id);
+    const auto& cmds = this->config.get_module_cmds(module_name, impl_id);
 
     if (!this->config.module_provides(module_name, impl_id)) {
         if (!is_call) {
