@@ -45,7 +45,7 @@ void ErrorManagerImpl::raise_error(const Error& error) {
         }
     }
     if (!can_be_raised(error.type, error.sub_type)) {
-        EVLOG_warning << "Error can't be raised, because type " << error.type << ", sub_type " << error.sub_type
+        EVLOG_debug << "Error can't be raised, because type " << error.type << ", sub_type " << error.sub_type
                       << " is already active.";
         return;
     }
@@ -61,7 +61,7 @@ std::list<ErrorPtr> ErrorManagerImpl::clear_error(const ErrorType& type, const b
         return clear_error(type, sub_type);
     }
     if (!can_be_cleared(type)) {
-        EVLOG_warning << "Errors can't be cleared, because type " << type << " is not active.";
+        EVLOG_debug << "Errors can't be cleared, because type " << type << " is not active.";
         return {};
     }
     std::list<ErrorFilter> filters = {ErrorFilter(TypeFilter(type))};
@@ -78,7 +78,7 @@ std::list<ErrorPtr> ErrorManagerImpl::clear_error(const ErrorType& type, const b
 
 std::list<ErrorPtr> ErrorManagerImpl::clear_error(const ErrorType& type, const ErrorSubType& sub_type) {
     if (!can_be_cleared(type, sub_type)) {
-        EVLOG_warning << "Error can't be cleared, because type " << type << ", sub_type " << sub_type
+        EVLOG_debug << "Error can't be cleared, because type " << type << ", sub_type " << sub_type
                       << " is not active.";
         return {};
     }
