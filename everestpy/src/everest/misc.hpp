@@ -22,8 +22,13 @@ public:
         return mqtt_settings;
     }
 
+    const std::filesystem::path& get_logging_config_file() const {
+        return logging_config_file;
+    }
+
 private:
     Everest::MQTTSettings mqtt_settings;
+    std::filesystem::path logging_config_file;
 };
 
 struct Interface {
