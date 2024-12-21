@@ -71,6 +71,11 @@ void MQTTAbstraction::unsubscribe(const std::string& topic) {
     mqtt_abstraction->unsubscribe(topic);
 }
 
+void MQTTAbstraction::clear_retained_topics() {
+    BOOST_LOG_FUNCTION();
+    mqtt_abstraction->clear_retained_topics();
+}
+
 AsyncReturn MQTTAbstraction::get_async(const std::string& topic, QOS qos) {
     BOOST_LOG_FUNCTION();
     return mqtt_abstraction->get_async(topic, qos);

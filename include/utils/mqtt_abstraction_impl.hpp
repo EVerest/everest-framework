@@ -81,6 +81,10 @@ public:
     void unsubscribe(const std::string& topic);
 
     ///
+    /// \brief clears any previously published topics that had the retain flag set
+    void clear_retained_topics();
+
+    ///
     /// \brief subscribe topic to asynchronously get value on the subscribed topic
     AsyncReturn get_async(const std::string& topic, QOS qos);
 
@@ -125,6 +129,8 @@ private:
     MessageQueue message_queue;
     std::vector<std::shared_ptr<MessageWithQOS>> messages_before_connected;
     std::mutex messages_before_connected_mutex;
+    std::mutex retained_topics_mutex;
+    std::vector<std::string> retained_topics;
 
     Thread mqtt_mainloop_thread;
     std::shared_future<void> main_loop_future;

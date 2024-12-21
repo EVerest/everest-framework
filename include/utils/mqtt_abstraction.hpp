@@ -65,6 +65,10 @@ public:
     void unsubscribe(const std::string& topic);
 
     ///
+    /// \copydoc MQTTAbstractionImpl::clear_retained_topics()
+    void clear_retained_topics();
+
+    ///
     /// \copydoc MQTTAbstractionImpl::get_async(const std::string&, QOS)
     AsyncReturn get_async(const std::string& topic, QOS qos);
 
