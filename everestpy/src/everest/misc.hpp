@@ -14,6 +14,8 @@ const std::string get_variable_from_env(const std::string& variable, const std::
 
 class RuntimeSession {
 public:
+    RuntimeSession(const Everest::MQTTSettings& mqtt_settings, const std::string& logging_config);
+
     RuntimeSession(const std::string& prefix, const std::string& config_file);
 
     RuntimeSession();
