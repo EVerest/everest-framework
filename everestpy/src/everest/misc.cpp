@@ -53,6 +53,17 @@ static Everest::MQTTSettings get_mqtt_settings_from_env() {
     }
 }
 
+RuntimeSession::RuntimeSession(const Everest::MQTTSettings& mqtt_settings, const std::string& logging_config) {
+    this->mqtt_settings = mqtt_settings;
+    if (logging_config.empty()) {
+        this->logging_config_file = Everest::assert_dir(Everest::defaults::PREFIX, "Default prefix") /
+                                    std::filesystem::path(Everest::defaults::SYSCONF_DIR) /
+                                    Everest::defaults::NAMESPACE / Everest::defaults::LOGGING_CONFIG_NAME;
+    } else {
+        this->logging_config_file = Everest::assert_file(logging_config, "Default logging config");
+    }
+}
+
 /// This is just kept for compatibility
 RuntimeSession::RuntimeSession(const std::string& prefix, const std::string& config_file) {
     EVLOG_warning
