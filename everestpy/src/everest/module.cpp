@@ -12,7 +12,7 @@
 std::unique_ptr<Everest::Everest>
 Module::create_everest_instance(const std::string& module_id, const Everest::Config& config,
                                 const Everest::RuntimeSettings& rs,
-                                std::shared_ptr<Everest::MQTTAbstraction> mqtt_abstraction) {
+                                const std::shared_ptr<Everest::MQTTAbstraction>& mqtt_abstraction) {
     return std::make_unique<Everest::Everest>(module_id, config, rs.validate_schema, mqtt_abstraction,
                                               rs.telemetry_prefix, rs.telemetry_enabled);
 }
@@ -21,7 +21,9 @@ Module::Module(const RuntimeSession& session) : Module(get_variable_from_env("EV
 }
 
 Module::Module(const std::string& module_id_, const RuntimeSession& session_) :
-    module_id(module_id_), session(session_) {
+    module_id(module_id_), session(session_), start_time(std::chrono::system_clock::now()) {
+
+    Everest::Logging::init(session.get_logging_config_file().string(), module_id);
 
     this->mqtt_abstraction = std::make_shared<Everest::MQTTAbstraction>(session.get_mqtt_settings());
     this->mqtt_abstraction->connect();

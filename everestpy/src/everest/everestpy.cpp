@@ -22,10 +22,20 @@ namespace py = pybind11;
 
 PYBIND11_MODULE(everestpy, m) {
 
+    py::class_<Everest::MQTTSettings>(m, "MQTTSettings")
+        .def(py::init<>())
+        .def_readwrite("broker_socket_path", &Everest::MQTTSettings::broker_socket_path)
+        .def_readwrite("broker_host", &Everest::MQTTSettings::broker_host)
+        .def_readwrite("broker_port", &Everest::MQTTSettings::broker_port)
+        .def_readwrite("everest_prefix", &Everest::MQTTSettings::everest_prefix)
+        .def_readwrite("external_prefix", &Everest::MQTTSettings::external_prefix)
+        .def("uses_socket", &Everest::MQTTSettings::uses_socket);
+
     // FIXME (aw): add m.doc?
     py::class_<RuntimeSession>(m, "RuntimeSession")
         .def(py::init<>())
-        .def(py::init<const std::string&, const std::string&>());
+        .def(py::init<const std::string&, const std::string&>())
+        .def(py::init<const Everest::MQTTSettings&, const std::string&>());
 
     py::class_<ModuleInfo::Paths>(m, "ModuleInfoPaths")
         .def_readonly("etc", &ModuleInfo::Paths::etc)
@@ -130,7 +140,7 @@ PYBIND11_MODULE(everestpy, m) {
         .def(py::init<const std::string&, const RuntimeSession&>())
         .def("say_hello", &Module::say_hello)
         .def("init_done", py::overload_cast<>(&Module::init_done))
-        .def("init_done", py::overload_cast<std::function<void()>>(&Module::init_done))
+        .def("init_done", py::overload_cast<const std::function<void()>&>(&Module::init_done))
         .def("call_command", &Module::call_command)
         .def("publish_variable", &Module::publish_variable)
         .def("implement_command", &Module::implement_command)

@@ -71,6 +71,16 @@ void MQTTAbstraction::unsubscribe(const std::string& topic) {
     mqtt_abstraction->unsubscribe(topic);
 }
 
+void MQTTAbstraction::clear_retained_topics() {
+    BOOST_LOG_FUNCTION();
+    mqtt_abstraction->clear_retained_topics();
+}
+
+AsyncReturn MQTTAbstraction::get_async(const std::string& topic, QOS qos) {
+    BOOST_LOG_FUNCTION();
+    return mqtt_abstraction->get_async(topic, qos);
+}
+
 json MQTTAbstraction::get(const std::string& topic, QOS qos) {
     BOOST_LOG_FUNCTION();
     return mqtt_abstraction->get(topic, qos);
@@ -96,7 +106,8 @@ std::shared_future<void> MQTTAbstraction::get_main_loop_future() {
     return mqtt_abstraction->get_main_loop_future();
 }
 
-void MQTTAbstraction::register_handler(const std::string& topic, std::shared_ptr<TypedHandler> handler, QOS qos) {
+void MQTTAbstraction::register_handler(const std::string& topic, const std::shared_ptr<TypedHandler>& handler,
+                                       QOS qos) {
     BOOST_LOG_FUNCTION();
     mqtt_abstraction->register_handler(topic, handler, qos);
 }

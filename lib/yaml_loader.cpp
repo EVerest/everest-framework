@@ -4,6 +4,7 @@
 
 #include <cstddef>
 #include <fstream>
+#include <limits>
 
 #include <fmt/core.h>
 #include <ryml.hpp>
@@ -11,13 +12,18 @@
 
 #include <everest/logging.hpp>
 
+static std::streamsize clamp(std::size_t len) {
+    return (len <= std::numeric_limits<std::streamsize>::max()) ? static_cast<std::streamsize>(len)
+                                                                : std::numeric_limits<std::streamsize>::max();
+}
+
 static void yaml_error_handler(const char* msg, std::size_t len, ryml::Location loc, void*) {
     std::stringstream error_msg;
     error_msg << "YAML parsing error: ";
 
     if (loc) {
         if (not loc.name.empty()) {
-            error_msg.write(loc.name.str, loc.name.len);
+            error_msg.write(loc.name.str, clamp(loc.name.len));
             error_msg << ":";
         }
         error_msg << loc.line << ":";
@@ -28,7 +34,7 @@ static void yaml_error_handler(const char* msg, std::size_t len, ryml::Location 
             error_msg << " (" << loc.offset << "B):";
         }
     }
-    error_msg.write(msg, len);
+    error_msg.write(msg, clamp(len));
 
     throw std::runtime_error(error_msg.str());
 }
@@ -78,6 +84,16 @@ static nlohmann::ordered_json ryml_to_nlohmann_json(const c4::yml::NodeRef& ryml
     }
 }
 
+static std::string load_file_content(const std::filesystem::path& path) {
+    std::ifstream ifs(path.string());
+    ifs.seekg(0, std::ios::end);
+    std::string content;
+    content.reserve(ifs.tellg());
+    ifs.seekg(0);
+    content.assign(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
+    return content;
+}
+
 static std::string load_yaml_content(std::filesystem::path path) {
     namespace fs = std::filesystem;
 
@@ -92,16 +108,14 @@ static std::string load_yaml_content(std::filesystem::path path) {
 
     // first check for yaml, if not found try fall back to json and evlog debug deprecated
     if (fs::exists(path)) {
-        std::ifstream ifs(path.string());
-        return std::string(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
+        return load_file_content(path);
     }
 
     path.replace_extension(".json");
 
     if (fs::exists(path)) {
         EVLOG_info << "Deprecated: loaded file in json format";
-        std::ifstream ifs(path.string());
-        return std::string(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
+        return load_file_content(path);
     }
 
     // failed to find yaml and json

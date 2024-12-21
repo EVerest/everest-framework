@@ -53,6 +53,17 @@ static Everest::MQTTSettings get_mqtt_settings_from_env() {
     }
 }
 
+RuntimeSession::RuntimeSession(const Everest::MQTTSettings& mqtt_settings, const std::string& logging_config) {
+    this->mqtt_settings = mqtt_settings;
+    if (logging_config.empty()) {
+        this->logging_config_file = Everest::assert_dir(Everest::defaults::PREFIX, "Default prefix") /
+                                    std::filesystem::path(Everest::defaults::SYSCONF_DIR) /
+                                    Everest::defaults::NAMESPACE / Everest::defaults::LOGGING_CONFIG_NAME;
+    } else {
+        this->logging_config_file = Everest::assert_file(logging_config, "Default logging config");
+    }
+}
+
 /// This is just kept for compatibility
 RuntimeSession::RuntimeSession(const std::string& prefix, const std::string& config_file) {
     EVLOG_warning
@@ -63,18 +74,14 @@ RuntimeSession::RuntimeSession(const std::string& prefix, const std::string& con
     // We extract the settings from the config file so everest-testing doesn't break
     const auto ms = Everest::ManagerSettings(prefix, config_file);
 
-    Everest::Logging::init(ms.runtime_settings->logging_config_file.string());
+    this->logging_config_file = ms.runtime_settings->logging_config_file;
 
     this->mqtt_settings = ms.mqtt_settings;
 }
 
 RuntimeSession::RuntimeSession() {
-    const auto module_id = get_variable_from_env("EV_MODULE");
-
-    namespace fs = std::filesystem;
-    const fs::path logging_config_file =
+    this->logging_config_file =
         Everest::assert_file(get_variable_from_env("EV_LOG_CONF_FILE"), "Default logging config");
-    Everest::Logging::init(logging_config_file.string(), module_id);
 
     this->mqtt_settings = get_mqtt_settings_from_env();
 }
@@ -82,8 +89,8 @@ RuntimeSession::RuntimeSession() {
 ModuleSetup create_setup_from_config(const std::string& module_id, Everest::Config& config) {
     ModuleSetup setup;
 
-    const std::string& module_name = config.get_main_config().at(module_id).at("module");
-    const auto module_manifest = config.get_manifests().at(module_name);
+    const std::string& module_name = config.get_module_name(module_id);
+    const auto& module_manifest = config.get_manifests().at(module_name);
 
     // setup connections
     for (const auto& requirement : module_manifest.at("requires").items()) {
@@ -107,7 +114,7 @@ ModuleSetup create_setup_from_config(const std::string& module_id, Everest::Conf
             const auto& req_route = req_route_list[i];
             const auto fulfillment =
                 Fulfillment{req_route["module_id"], req_route["implementation_id"], {requirement_id, i}};
-            fulfillment_list.emplace_back(std::move(fulfillment));
+            fulfillment_list.emplace_back(fulfillment);
         }
     }
 

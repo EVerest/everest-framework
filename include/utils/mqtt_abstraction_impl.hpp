@@ -20,7 +20,7 @@
 
 #include <utils/thread.hpp>
 
-constexpr std::size_t MQTT_BUF_SIZE = 500 * 1024;
+constexpr std::size_t MQTT_BUF_SIZE = std::size_t{500} * std::size_t{1024};
 
 namespace Everest {
 /// \brief Contains a payload and the topic it was received on with additional QOS
@@ -81,6 +81,14 @@ public:
     void unsubscribe(const std::string& topic);
 
     ///
+    /// \brief clears any previously published topics that had the retain flag set
+    void clear_retained_topics();
+
+    ///
+    /// \brief subscribe topic to asynchronously get value on the subscribed topic
+    AsyncReturn get_async(const std::string& topic, QOS qos);
+
+    ///
     /// \brief subscribe and wait for value on the subscribed topic
     nlohmann::json get(const std::string& topic, QOS qos);
 
@@ -96,7 +104,7 @@ public:
     ///
     /// \brief subscribes to the given \p topic and registers a callback \p handler that is called when a message
     /// arrives on the topic. With \p qos a MQTT Quality of Service level can be set.
-    void register_handler(const std::string& topic, std::shared_ptr<TypedHandler> handler, QOS qos);
+    void register_handler(const std::string& topic, const std::shared_ptr<TypedHandler>& handler, QOS qos);
 
     ///
     /// \brief unsubscribes a handler identified by its \p token from the given \p topic
@@ -121,6 +129,8 @@ private:
     MessageQueue message_queue;
     std::vector<std::shared_ptr<MessageWithQOS>> messages_before_connected;
     std::mutex messages_before_connected_mutex;
+    std::mutex retained_topics_mutex;
+    std::vector<std::string> retained_topics;
 
     Thread mqtt_mainloop_thread;
     std::shared_future<void> main_loop_future;

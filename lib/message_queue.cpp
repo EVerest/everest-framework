@@ -70,7 +70,7 @@ MessageHandler::MessageHandler() : running(true) {
             std::vector<std::shared_ptr<TypedHandler>> local_handlers;
             {
                 const std::lock_guard<std::mutex> handlers_lock(handler_list_mutex);
-                for (auto handler : this->handlers) {
+                for (const auto& handler : this->handlers) {
                     local_handlers.push_back(handler);
                 }
             }
@@ -129,14 +129,14 @@ void MessageHandler::stop() {
     this->cv.notify_all();
 }
 
-void MessageHandler::add_handler(std::shared_ptr<TypedHandler> handler) {
+void MessageHandler::add_handler(const std::shared_ptr<TypedHandler>& handler) {
     {
         const std::lock_guard<std::mutex> lock(this->handler_list_mutex);
         this->handlers.insert(handler);
     }
 }
 
-void MessageHandler::remove_handler(std::shared_ptr<TypedHandler> handler) {
+void MessageHandler::remove_handler(const std::shared_ptr<TypedHandler>& handler) {
     {
         const std::lock_guard<std::mutex> lock(this->handler_list_mutex);
         auto it = std::find(this->handlers.begin(), this->handlers.end(), handler);

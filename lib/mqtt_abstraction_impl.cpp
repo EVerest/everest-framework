@@ -155,6 +155,13 @@ void MQTTAbstractionImpl::publish(const std::string& topic, const std::string& d
 
     if (retain) {
         publish_flags |= MQTT_PUBLISH_RETAIN;
+        if (not(data.empty() and qos == QOS::QOS0)) {
+            // topic should be retained, so save the topic in retained_topics
+            // do not save the topic when the payload is empty and QOS is set to 0 which means a retained topic is to be
+            // cleared
+            const std::lock_guard<std::mutex> lock(retained_topics_mutex);
+            this->retained_topics.push_back(topic);
+        }
     }
 
     if (!this->mqtt_is_connected) {
@@ -207,6 +214,33 @@ void MQTTAbstractionImpl::unsubscribe(const std::string& topic) {
     notify_write_data();
 }
 
+void MQTTAbstractionImpl::clear_retained_topics() {
+    BOOST_LOG_FUNCTION();
+    const std::lock_guard<std::mutex> lock(retained_topics_mutex);
+
+    for (const auto& retained_topic : retained_topics) {
+        this->publish(retained_topic, std::string(), QOS::QOS0, true);
+        EVLOG_verbose << "Cleared retained topic: " << retained_topic;
+    }
+
+    retained_topics.clear();
+}
+
+AsyncReturn MQTTAbstractionImpl::get_async(const std::string& topic, QOS qos) {
+    auto res_promise = std::make_shared<std::promise<json>>();
+    std::future<json> res_future = res_promise->get_future();
+
+    auto res_handler = [this, res_promise](const std::string& topic, json data) mutable {
+        res_promise->set_value(std::move(data));
+    };
+
+    const auto res_token =
+        std::make_shared<TypedHandler>(HandlerType::GetConfig, std::make_shared<Handler>(res_handler));
+    this->register_handler(topic, res_token, QOS::QOS2);
+
+    return {std::move(res_future), res_token};
+}
+
 json MQTTAbstractionImpl::get(const std::string& topic, QOS qos) {
     BOOST_LOG_FUNCTION();
     std::promise<json> res_promise;
@@ -231,7 +265,7 @@ json MQTTAbstractionImpl::get(const std::string& topic, QOS qos) {
     json result;
     if (res_future_status == std::future_status::timeout) {
         this->unregister_handler(topic, res_token);
-        EVLOG_AND_THROW(EverestTimeoutError(fmt::format("Timeout while waiting for result of get()")));
+        EVLOG_AND_THROW(EverestTimeoutError(fmt::format("Timeout while waiting for result of get({})", topic)));
     }
     if (res_future_status == std::future_status::ready) {
         result = res_future.get();
@@ -409,7 +443,8 @@ void MQTTAbstractionImpl::on_mqtt_disconnect() {
     EVLOG_AND_THROW(EverestInternalError("Lost connection to MQTT broker"));
 }
 
-void MQTTAbstractionImpl::register_handler(const std::string& topic, std::shared_ptr<TypedHandler> handler, QOS qos) {
+void MQTTAbstractionImpl::register_handler(const std::string& topic, const std::shared_ptr<TypedHandler>& handler,
+                                           QOS qos) {
     BOOST_LOG_FUNCTION();
 
     switch (handler->type) {
