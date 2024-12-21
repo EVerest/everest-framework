@@ -265,35 +265,6 @@ struct ModuleReadyInfo {
 std::map<std::string, ModuleReadyInfo> modules_ready;
 std::mutex modules_ready_mutex;
 
-void cleanup_retained_topics(ManagerConfig& config, MQTTAbstraction& mqtt_abstraction,
-                             const std::string& mqtt_everest_prefix) {
-    const auto& interface_definitions = config.get_interface_definitions();
-
-    mqtt_abstraction.publish(fmt::format("{}interfaces", mqtt_everest_prefix), std::string(), QOS::QOS2, true);
-
-    for (const auto& interface_definition : interface_definitions.items()) {
-        mqtt_abstraction.publish(
-            fmt::format("{}interface_definitions/{}", mqtt_everest_prefix, interface_definition.key()), std::string(),
-            QOS::QOS2, true);
-    }
-
-    mqtt_abstraction.publish(fmt::format("{}types", mqtt_everest_prefix), std::string(), QOS::QOS2, true);
-
-    mqtt_abstraction.publish(fmt::format("{}module_provides", mqtt_everest_prefix), std::string(), QOS::QOS2, true);
-
-    mqtt_abstraction.publish(fmt::format("{}settings", mqtt_everest_prefix), std::string(), QOS::QOS2, true);
-
-    mqtt_abstraction.publish(fmt::format("{}schemas", mqtt_everest_prefix), std::string(), QOS::QOS2, true);
-
-    mqtt_abstraction.publish(fmt::format("{}manifests", mqtt_everest_prefix), std::string(), QOS::QOS2, true);
-
-    mqtt_abstraction.publish(fmt::format("{}error_types_map", mqtt_everest_prefix), std::string(), QOS::QOS2, true);
-
-    mqtt_abstraction.publish(fmt::format("{}module_config_cache", mqtt_everest_prefix), std::string(), QOS::QOS2, true);
-
-    mqtt_abstraction.publish(fmt::format("{}module_names", mqtt_everest_prefix), std::string(), QOS::QOS2, true);
-}
-
 static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbstraction& mqtt_abstraction,
                                                   const std::vector<std::string>& ignored_modules,
                                                   const std::vector<std::string>& standalone_modules,
@@ -460,7 +431,6 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
                     TERMINAL_STYLE_OK, "🚙🚙🚙 All modules are initialized. EVerest up and running [{}ms] 🚙🚙🚙",
                     std::chrono::duration_cast<std::chrono::milliseconds>(complete_end_time - complete_start_time)
                         .count());
-                // cleanup_retained_topics(config, mqtt_abstraction, mqtt_everest_prefix);
                 mqtt_abstraction.publish(fmt::format("{}ready", mqtt_everest_prefix), nlohmann::json(true));
             } else if (!standalone_modules.empty()) {
                 if (modules_spawned == modules_ready.size() - standalone_modules.size()) {
