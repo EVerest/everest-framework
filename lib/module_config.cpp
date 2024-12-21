@@ -3,6 +3,7 @@
 
 #include <future>
 #include <set>
+#include <utility>
 
 #include <fmt/core.h>
 
@@ -23,7 +24,7 @@ void populate_future_cbs(std::vector<FutureCallback>& future_cbs, const std::sha
     future_cbs.push_back(std::make_tuple<AsyncReturn, std::function<std::string(json)>>(
         mqtt->get_async(topic, QOS::QOS2),
         [topic, &everest_prefix, &out](json result) {
-            out = result;
+            out = std::move(result);
 
             return topic;
         },
@@ -57,7 +58,7 @@ void populate_future_cbs_arr(std::vector<FutureCallback>& future_cbs, const std:
                              const std::string& inner_topic_part, json& array_out, json& out) {
     future_cbs.push_back(std::make_tuple<AsyncReturn, std::function<std::string(json)>, std::string>(
         mqtt->get_async(topic, QOS::QOS2),
-        [topic, &everest_prefix, &mqtt, &inner_topic_part, &array_out, &out](json result_array) {
+        [topic, &everest_prefix, &mqtt, &inner_topic_part, &array_out, &out](const json& result_array) {
             array_out = result_array;
             std::vector<FutureCallback> array_future_cbs;
             std::set<std::string> keys;
@@ -65,10 +66,10 @@ void populate_future_cbs_arr(std::vector<FutureCallback>& future_cbs, const std:
                 keys.insert(element.get<std::string>());
             }
             for (const auto& key : keys) {
-                const auto key_topic = fmt::format("{}{}{}", everest_prefix, inner_topic_part, key);
+                auto key_topic = fmt::format("{}{}{}", everest_prefix, inner_topic_part, key);
                 array_future_cbs.push_back(std::make_tuple<AsyncReturn, std::function<std::string(json)>, std::string>(
                     mqtt->get_async(key_topic, QOS::QOS2),
-                    [&key, key_topic, &out](json key_response) {
+                    [&key, key_topic, &out](const json& key_response) {
                         out[key] = key_response;
                         return key_topic;
                     },

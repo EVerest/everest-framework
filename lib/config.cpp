@@ -1184,7 +1184,7 @@ ModuleConfigs Config::get_module_configs(const std::string& module_id) const {
             ConfigMap processed_conf_map;
             for (const auto& entry : conf_map.value().items()) {
                 const auto& entry_value = entry.value();
-                const json entry_type = entry_value.at("type");
+                const json& entry_type = entry_value.at("type");
                 ConfigEntry value;
                 const json& data = entry_value.at("value");
 
