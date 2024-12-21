@@ -398,6 +398,17 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
         // FIXME (aw): implicitely adding ModuleReadyInfo and setting its ready member
         auto module_it = modules_ready.emplace(module_name, ModuleReadyInfo{false, nullptr, nullptr}).first;
 
+        const std::string config_topic = fmt::format("{}/config", config.mqtt_module_prefix(module_name));
+        const Handler module_get_config_handler = [module_name, config_topic, serialized_mod_config,
+                                                   &mqtt_abstraction](const std::string&, const nlohmann::json& json) {
+            mqtt_abstraction.publish(config_topic, serialized_mod_config.dump(), QOS::QOS2);
+        };
+
+        const std::string get_config_topic = fmt::format("{}/get_config", config.mqtt_module_prefix(module_name));
+        module_it->second.get_config_token = std::make_shared<TypedHandler>(
+            HandlerType::ExternalMQTT, std::make_shared<Handler>(module_get_config_handler));
+        mqtt_abstraction.register_handler(get_config_topic, module_it->second.get_config_token, QOS::QOS2);
+
         const auto capabilities = [&module_config = main_config.at(module_name)]() {
             const auto cap_it = module_config.find("capabilities");
             if (cap_it == module_config.end()) {
@@ -455,17 +466,6 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
         module_it->second.ready_token =
             std::make_shared<TypedHandler>(HandlerType::ExternalMQTT, std::make_shared<Handler>(module_ready_handler));
         mqtt_abstraction.register_handler(ready_topic, module_it->second.ready_token, QOS::QOS2);
-
-        const std::string config_topic = fmt::format("{}/config", config.mqtt_module_prefix(module_name));
-        const Handler module_get_config_handler = [module_name, config_topic, serialized_mod_config,
-                                                   &mqtt_abstraction](const std::string&, const nlohmann::json& json) {
-            mqtt_abstraction.publish(config_topic, serialized_mod_config.dump());
-        };
-
-        const std::string get_config_topic = fmt::format("{}/get_config", config.mqtt_module_prefix(module_name));
-        module_it->second.get_config_token = std::make_shared<TypedHandler>(
-            HandlerType::ExternalMQTT, std::make_shared<Handler>(module_get_config_handler));
-        mqtt_abstraction.register_handler(get_config_topic, module_it->second.get_config_token, QOS::QOS2);
 
         if (std::any_of(standalone_modules.begin(), standalone_modules.end(),
                         [module_name](const auto& element) { return element == module_name; })) {
