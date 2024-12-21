@@ -18,8 +18,8 @@ public:
     RuntimeSession(const Everest::MQTTSettings& mqtt_settings, const std::string& logging_config);
 
     [[deprecated("Consider switching to the newer RuntimeSession() or RuntimeSession(mqtt_settings, logging_config) "
-                 "ctors that receive module configuration via MQTT")]]
-    RuntimeSession(const std::string& prefix, const std::string& config_file);
+                 "ctors that receive module configuration via MQTT")]] RuntimeSession(const std::string& prefix,
+                                                                                      const std::string& config_file);
 
     /// \brief Get settings and configuration via MQTT based on certain environment variables
     RuntimeSession();
