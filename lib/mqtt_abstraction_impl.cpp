@@ -364,9 +364,11 @@ void MQTTAbstractionImpl::on_mqtt_message(const Message& message) {
         }
         lock.unlock();
 
+        // TODO(kai): this should maybe not even be a warning since it can happen that we unsubscribe from a topic and
+        // have removed the message handler but the MQTT unsubscribe didn't complete yet and we still receive messages
+        // on this topic that we can just ignore
         if (!found) {
-            EVLOG_AND_THROW(
-                EverestInternalError(fmt::format("Internal error: topic '{}' should have a matching handler!", topic)));
+            EVLOG_warning << fmt::format("Internal error: topic '{}' should have a matching handler!", topic);
         }
     } catch (boost::exception& e) {
         EVLOG_critical << fmt::format("Caught MQTT on_message boost::exception:\n{}",
@@ -484,6 +486,7 @@ void MQTTAbstractionImpl::unregister_handler(const std::string& topic, const Tok
             EVLOG_verbose << fmt::format("Unsubscribing from {}", topic);
             this->unsubscribe(topic);
         }
+        this->message_handlers.erase(topic);
     }
 
     const std::string handler_count = (number_of_handlers == 0) ? "None" : std::to_string(number_of_handlers);
