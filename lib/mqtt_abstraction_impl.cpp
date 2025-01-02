@@ -488,15 +488,15 @@ void MQTTAbstractionImpl::register_handler(const std::string& topic, const std::
     if (this->message_handlers.count(topic) == 0) {
         this->message_handlers.emplace(std::piecewise_construct, std::forward_as_tuple(topic), std::forward_as_tuple());
     }
-    this->message_handlers[topic].add_handler(handler);
+    this->message_handlers.at(topic).add_handler(handler);
 
     // only subscribe for this topic if we aren't already and the mqtt client is connected
     // if we are not connected the on_mqtt_connect() callback will subscribe to the topic
-    if (this->mqtt_is_connected && this->message_handlers[topic].count_handlers() == 1) {
+    if (this->mqtt_is_connected && this->message_handlers.at(topic).count_handlers() == 1) {
         EVLOG_verbose << fmt::format("Subscribing to {}", topic);
         this->subscribe(topic, qos);
     }
-    EVLOG_verbose << fmt::format("#handler[{}] = {}", topic, this->message_handlers[topic].count_handlers());
+    EVLOG_verbose << fmt::format("#handler[{}] = {}", topic, this->message_handlers.at(topic).count_handlers());
 }
 
 void MQTTAbstractionImpl::unregister_handler(const std::string& topic, const Token& token) {
