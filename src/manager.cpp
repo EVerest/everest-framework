@@ -277,6 +277,10 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
     const auto& main_config = config.get_main_config();
     const auto& module_names = config.get_module_names();
     const auto number_of_modules = main_config.size();
+    if (number_of_modules == 0) {
+        EVLOG_info << "No modules to start";
+        return {};
+    }
     EVLOG_info << "Starting " << number_of_modules << " modules";
     modules_to_spawn.reserve(main_config.size());
 
@@ -749,6 +753,9 @@ int boot(const po::variables_map& vm) {
 
     auto module_handles =
         start_modules(*config, mqtt_abstraction, ignored_modules, standalone_modules, ms, status_fifo, retain_topics);
+    if (module_handles.empty()) {
+        return EXIT_FAILURE;
+    }
     bool modules_started = true;
     bool restart_modules = false;
 
