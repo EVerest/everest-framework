@@ -172,8 +172,9 @@ json get_module_config(const std::shared_ptr<MQTTAbstraction>& mqtt, const std::
 
     const auto end_time = std::chrono::system_clock::now();
 
-    EVLOG_info << "get_module_config(" << module_id
-               << "): " << std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count() << "ms";
+    EVLOG_debug << "get_module_config(" << module_id
+                << "): " << std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count()
+                << "ms";
 
     return result;
 }
