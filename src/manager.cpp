@@ -353,7 +353,7 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
                              QOS::QOS2, true);
 
     for (const auto& module : serialized_config.at("module_names").items()) {
-        const std::string module_name = module.key();
+        const std::string& module_name = module.key();
         json serialized_mod_config = serialized_config;
         serialized_mod_config["module_config"] = json::object();
         // add mappings of fulfillments
