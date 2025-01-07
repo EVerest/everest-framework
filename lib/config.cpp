@@ -512,7 +512,7 @@ void ManagerConfig::load_and_validate_manifest(const std::string& module_id, con
             this->manifests[module_name] = load_yaml(manifest_path);
         }
 
-        const auto patch = this->validators.manifest->validate(this->manifests[module_name]);
+        const auto patch = this->validators.manifest.validate(this->manifests[module_name]);
         if (!patch.is_null()) {
             // extend manifest with default values
             this->manifests[module_name] = this->manifests[module_name].patch(patch);
@@ -674,7 +674,7 @@ json ManagerConfig::load_interface_file(const std::string& intf_name) {
         // this subschema can not use allOf with the draft-07 schema because that will cause our validator to
         // add all draft-07 default values which never validate (the {"not": true} default contradicts everything)
         // --> validating against draft-07 will be done in an extra step below
-        auto patch = this->validators.interface->validate(interface_json);
+        auto patch = this->validators.interface.validate(interface_json);
         if (!patch.is_null()) {
             // extend config entry with default values
             interface_json = interface_json.patch(patch);
@@ -1099,7 +1099,7 @@ ManagerConfig::ManagerConfig(const ManagerSettings& ms) : ConfigBase(ms.mqtt_set
             EVLOG_verbose << "No user-config provided.";
         }
 
-        const auto patch = this->validators.config->validate(complete_config);
+        const auto patch = this->validators.config.validate(complete_config);
         if (!patch.is_null()) {
             // extend config with default values
             complete_config = complete_config.patch(patch);
@@ -1304,7 +1304,7 @@ SchemaValidation Config::load_schemas(const fs::path& schemas_dir) {
     return schema_validation;
 }
 
-std::tuple<nlohmann::json, std::unique_ptr<nlohmann::json_schema::json_validator>>
+std::tuple<nlohmann::json, nlohmann::json_schema::json_validator>
 Config::load_schema(const fs::path& path) {
     BOOST_LOG_FUNCTION();
 
@@ -1317,16 +1317,16 @@ Config::load_schema(const fs::path& path) {
 
     json schema = load_yaml(path);
 
-    auto validator = std::make_unique<json_validator>(loader, format_checker);
+    auto validator = nlohmann::json_schema::json_validator(loader, format_checker);
 
     try {
-        validator->set_root_schema(schema);
+        validator.set_root_schema(schema);
     } catch (const std::exception& e) {
         EVLOG_AND_THROW(EverestInternalError(
             fmt::format("Validation of schema '{}' failed, here is why: {}", path.string(), e.what())));
     }
 
-    return std::make_tuple<nlohmann::json, std::unique_ptr<nlohmann::json_schema::json_validator>>(
+    return std::make_tuple<nlohmann::json, nlohmann::json_schema::json_validator>(
         std::move(schema), std::move(validator));
 }
 
@@ -1351,7 +1351,7 @@ json Config::load_all_manifests(const std::string& modules_dir, const std::strin
         try {
             manifests[module_name] = load_yaml(manifest_path);
 
-            schema_validation.validators.manifest->validate(manifests.at(module_name));
+            schema_validation.validators.manifest.validate(manifests.at(module_name));
         } catch (const std::exception& e) {
             EVLOG_AND_THROW(EverestConfigError(
                 fmt::format("Failed to load and parse module manifest file of module {}: {}", module_name, e.what())));

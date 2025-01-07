@@ -39,11 +39,11 @@ struct Schemas {
 };
 
 struct Validators {
-    std::unique_ptr<nlohmann::json_schema::json_validator> config;
-    std::unique_ptr<nlohmann::json_schema::json_validator> manifest;
-    std::unique_ptr<nlohmann::json_schema::json_validator> type;
-    std::unique_ptr<nlohmann::json_schema::json_validator> interface;
-    std::unique_ptr<nlohmann::json_schema::json_validator> error_declaration_list;
+    nlohmann::json_schema::json_validator config;
+    nlohmann::json_schema::json_validator manifest;
+    nlohmann::json_schema::json_validator type;
+    nlohmann::json_schema::json_validator interface;
+    nlohmann::json_schema::json_validator error_declaration_list;
 };
 
 struct SchemaValidation {
@@ -365,8 +365,7 @@ public:
     /// \brief loads and validates a json schema at the provided \p path
     ///
     /// \returns the loaded json schema as a json object as well as a related schema validator
-    static std::tuple<nlohmann::json, std::unique_ptr<nlohmann::json_schema::json_validator>>
-    load_schema(const fs::path& path);
+    static std::tuple<nlohmann::json, nlohmann::json_schema::json_validator> load_schema(const fs::path& path);
 
     ///
     /// \brief loads all module manifests relative to the \p main_dir
