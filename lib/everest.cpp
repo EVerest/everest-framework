@@ -819,7 +819,7 @@ void Everest::handle_ready(const json& data) {
     // this->heartbeat_thread = std::thread(&Everest::heartbeat, this);
 }
 
-void Everest::provide_cmd(const std::string& impl_id, const std::string cmd_name, const JsonCommand& handler) {
+void Everest::provide_cmd(const std::string& impl_id, const std::string& cmd_name, const JsonCommand& handler) {
     BOOST_LOG_FUNCTION();
 
     // extract manifest definition of this command

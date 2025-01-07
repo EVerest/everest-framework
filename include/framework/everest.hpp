@@ -66,7 +66,7 @@ public:
     ///
     /// \brief Allows a module to indicate that it provides the given command \p cmd
     ///
-    void provide_cmd(const std::string& impl_id, const std::string cmd_name, const JsonCommand& handler);
+    void provide_cmd(const std::string& impl_id, const std::string& cmd_name, const JsonCommand& handler);
     void provide_cmd(const cmd& cmd);
 
     ///
