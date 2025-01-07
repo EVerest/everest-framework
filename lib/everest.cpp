@@ -71,8 +71,7 @@ Everest::Everest(std::string module_id_, const Config& config_, bool validate_da
     // setup error_manager_req_global if enabled + error_database + error_state_monitor
     if (this->module_manifest.contains("enable_global_errors") &&
         this->module_manifest.at("enable_global_errors").get<bool>()) {
-        const std::shared_ptr<error::ErrorDatabaseMap>& global_error_database =
-            std::make_shared<error::ErrorDatabaseMap>();
+        auto global_error_database = std::make_shared<error::ErrorDatabaseMap>();
         const error::ErrorManagerReqGlobal::SubscribeGlobalAllErrorsFunc subscribe_global_all_errors_func =
             [this](const error::ErrorCallback& callback, const error::ErrorCallback& clear_callback) {
                 this->subscribe_global_all_errors(callback, clear_callback);
@@ -91,7 +90,7 @@ Everest::Everest(std::string module_id_, const Config& config_, bool validate_da
     // setup error_managers, error_state_monitors, error_factories and error_databases for all implementations
     for (const std::string& impl : Config::keys(this->module_manifest.at("provides"))) {
         // setup shared database
-        const std::shared_ptr<error::ErrorDatabaseMap> error_database = std::make_shared<error::ErrorDatabaseMap>();
+        auto error_database = std::make_shared<error::ErrorDatabaseMap>();
 
         // setup error manager
         const std::string interface_name = this->module_manifest.at("provides").at(impl).at("interface");
