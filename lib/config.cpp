@@ -76,8 +76,7 @@ void format_checker(const std::string& format, const std::string& value) {
     }
 }
 
-std::tuple<nlohmann::json, nlohmann::json_schema::json_validator>
-load_schema(const fs::path& path) {
+std::tuple<nlohmann::json, nlohmann::json_schema::json_validator> load_schema(const fs::path& path) {
     BOOST_LOG_FUNCTION();
 
     if (!fs::exists(path)) {
@@ -98,8 +97,8 @@ load_schema(const fs::path& path) {
             fmt::format("Validation of schema '{}' failed, here is why: {}", path.string(), e.what())));
     }
 
-    return std::make_tuple<nlohmann::json, nlohmann::json_schema::json_validator>(
-        std::move(schema), std::move(validator));
+    return std::make_tuple<nlohmann::json, nlohmann::json_schema::json_validator>(std::move(schema),
+                                                                                  std::move(validator));
 }
 
 SchemaValidation load_schemas(const fs::path& schemas_dir) {
