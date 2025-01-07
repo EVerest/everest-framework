@@ -76,6 +76,57 @@ void format_checker(const std::string& format, const std::string& value) {
     }
 }
 
+std::tuple<nlohmann::json, nlohmann::json_schema::json_validator>
+load_schema(const fs::path& path) {
+    BOOST_LOG_FUNCTION();
+
+    if (!fs::exists(path)) {
+        EVLOG_AND_THROW(
+            EverestInternalError(fmt::format("Schema file does not exist at: {}", fs::absolute(path).string())));
+    }
+
+    EVLOG_debug << fmt::format("Loading schema file at: {}", fs::canonical(path).string());
+
+    json schema = load_yaml(path);
+
+    auto validator = nlohmann::json_schema::json_validator(loader, format_checker);
+
+    try {
+        validator.set_root_schema(schema);
+    } catch (const std::exception& e) {
+        EVLOG_AND_THROW(EverestInternalError(
+            fmt::format("Validation of schema '{}' failed, here is why: {}", path.string(), e.what())));
+    }
+
+    return std::make_tuple<nlohmann::json, nlohmann::json_schema::json_validator>(
+        std::move(schema), std::move(validator));
+}
+
+SchemaValidation load_schemas(const fs::path& schemas_dir) {
+    BOOST_LOG_FUNCTION();
+    SchemaValidation schema_validation;
+
+    EVLOG_debug << fmt::format("Loading base schema files for config and manifests... from: {}", schemas_dir.string());
+    auto [config_schema, config_val] = load_schema(schemas_dir / "config.yaml");
+    schema_validation.schemas.config = config_schema;
+    schema_validation.validators.config = std::move(config_val);
+    auto [manifest_schema, manifest_val] = load_schema(schemas_dir / "manifest.yaml");
+    schema_validation.schemas.manifest = manifest_schema;
+    schema_validation.validators.manifest = std::move(manifest_val);
+    auto [interface_schema, interface_val] = load_schema(schemas_dir / "interface.yaml");
+    schema_validation.schemas.interface = interface_schema;
+    schema_validation.validators.interface = std::move(interface_val);
+    auto [type_schema, type_val] = load_schema(schemas_dir / "type.yaml");
+    schema_validation.schemas.type = type_schema;
+    schema_validation.validators.type = std::move(type_val);
+    auto [error_declaration_list_schema, error_declaration_list_val] =
+        load_schema(schemas_dir / "error-declaration-list.yaml");
+    schema_validation.schemas.error_declaration_list = error_declaration_list_schema;
+    schema_validation.validators.error_declaration_list = std::move(error_declaration_list_val);
+
+    return schema_validation;
+}
+
 static void validate_config_schema(const json& config_map_schema) {
     // iterate over every config entry
     json_validator validator(loader, format_checker);
@@ -1073,7 +1124,7 @@ ManagerConfig::ManagerConfig(const ManagerSettings& ms) : ConfigBase(ms.mqtt_set
     this->interfaces = json({});
     this->interface_definitions = json({});
     this->types = json({});
-    auto schema_validation = Config::load_schemas(this->ms.schemas_dir);
+    auto schema_validation = load_schemas(this->ms.schemas_dir);
     this->schemas = schema_validation.schemas;
     this->validators = std::move(schema_validation.validators);
     this->error_map = error::ErrorTypeMap(this->ms.errors_dir);
@@ -1273,63 +1324,12 @@ void Config::ref_loader(const json_uri& uri, json& schema) {
     EVTHROW(EverestInternalError(fmt::format("{} is not supported for schema loading at the moment\n", uri.url())));
 }
 
-SchemaValidation Config::load_schemas(const fs::path& schemas_dir) {
-    BOOST_LOG_FUNCTION();
-    SchemaValidation schema_validation;
-
-    EVLOG_debug << fmt::format("Loading base schema files for config and manifests... from: {}", schemas_dir.string());
-    auto [config_schema, config_val] = Config::load_schema(schemas_dir / "config.yaml");
-    schema_validation.schemas.config = config_schema;
-    schema_validation.validators.config = std::move(config_val);
-    auto [manifest_schema, manifest_val] = Config::load_schema(schemas_dir / "manifest.yaml");
-    schema_validation.schemas.manifest = manifest_schema;
-    schema_validation.validators.manifest = std::move(manifest_val);
-    auto [interface_schema, interface_val] = Config::load_schema(schemas_dir / "interface.yaml");
-    schema_validation.schemas.interface = interface_schema;
-    schema_validation.validators.interface = std::move(interface_val);
-    auto [type_schema, type_val] = Config::load_schema(schemas_dir / "type.yaml");
-    schema_validation.schemas.type = type_schema;
-    schema_validation.validators.type = std::move(type_val);
-    auto [error_declaration_list_schema, error_declaration_list_val] =
-        Config::load_schema(schemas_dir / "error-declaration-list.yaml");
-    schema_validation.schemas.error_declaration_list = error_declaration_list_schema;
-    schema_validation.validators.error_declaration_list = std::move(error_declaration_list_val);
-
-    return schema_validation;
-}
-
-std::tuple<nlohmann::json, nlohmann::json_schema::json_validator>
-Config::load_schema(const fs::path& path) {
-    BOOST_LOG_FUNCTION();
-
-    if (!fs::exists(path)) {
-        EVLOG_AND_THROW(
-            EverestInternalError(fmt::format("Schema file does not exist at: {}", fs::absolute(path).string())));
-    }
-
-    EVLOG_debug << fmt::format("Loading schema file at: {}", fs::canonical(path).string());
-
-    json schema = load_yaml(path);
-
-    auto validator = nlohmann::json_schema::json_validator(loader, format_checker);
-
-    try {
-        validator.set_root_schema(schema);
-    } catch (const std::exception& e) {
-        EVLOG_AND_THROW(EverestInternalError(
-            fmt::format("Validation of schema '{}' failed, here is why: {}", path.string(), e.what())));
-    }
-
-    return std::make_tuple<nlohmann::json, nlohmann::json_schema::json_validator>(
-        std::move(schema), std::move(validator));
-}
-
 json Config::load_all_manifests(const std::string& modules_dir, const std::string& schemas_dir) {
     BOOST_LOG_FUNCTION();
 
     json manifests = json({});
 
-    auto schema_validation = Config::load_schemas(schemas_dir);
+    auto schema_validation = load_schemas(schemas_dir);
 
     const fs::path modules_path = fs::path(modules_dir);
 
