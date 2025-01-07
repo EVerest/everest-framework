@@ -75,6 +75,19 @@ void loader(const nlohmann::json_uri& uri, nlohmann::json& schema);
 void format_checker(const std::string& format, const std::string& value);
 
 ///
+/// \brief loads and validates a json schema at the provided \p path
+///
+/// \returns the loaded json schema as a json object as well as a related schema validator
+std::tuple<nlohmann::json, nlohmann::json_schema::json_validator> load_schema(const fs::path& path);
+
+///
+/// \brief loads the config.json and manifest.json in the schemes subfolder of
+/// the provided \p schemas_dir
+///
+/// \returns the loaded configs and related validators
+SchemaValidation load_schemas(const fs::path& schemas_dir);
+
+///
 /// \brief Base class for configs
 ///
 class ConfigBase {
@@ -353,19 +366,6 @@ public:
     /// the json schema validator when it encounters it. Throws an exception
     /// otherwise
     void ref_loader(const nlohmann::json_uri& uri, nlohmann::json& schema);
-
-    ///
-    /// \brief loads the config.json and manifest.json in the schemes subfolder of
-    /// the provided \p schemas_dir
-    ///
-    /// \returns the loaded configs and related validators
-    static SchemaValidation load_schemas(const fs::path& schemas_dir);
-
-    ///
-    /// \brief loads and validates a json schema at the provided \p path
-    ///
-    /// \returns the loaded json schema as a json object as well as a related schema validator
-    static std::tuple<nlohmann::json, nlohmann::json_schema::json_validator> load_schema(const fs::path& path);
 
     ///
     /// \brief loads all module manifests relative to the \p main_dir
