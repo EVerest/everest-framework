@@ -194,8 +194,7 @@ public:
     explicit ModuleLoader(int argc, char* argv[], ModuleCallbacks callbacks) :
         ModuleLoader(argc, argv, std::move(callbacks),
                      {"undefined project", "undefined version", "undefined git version"}){};
-    explicit ModuleLoader(int argc, char* argv[], ModuleCallbacks callbacks,
-                          const VersionInformation& version_information);
+    explicit ModuleLoader(int argc, char* argv[], ModuleCallbacks callbacks, VersionInformation version_information);
 
     int initialize();
 };
