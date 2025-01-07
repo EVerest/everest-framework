@@ -96,8 +96,7 @@ std::shared_future<void> MQTTAbstraction::get_main_loop_future() {
     return mqtt_abstraction->get_main_loop_future();
 }
 
-void MQTTAbstraction::register_handler(const std::string& topic, std::shared_ptr<TypedHandler> handler,
-                                       QOS qos) {
+void MQTTAbstraction::register_handler(const std::string& topic, std::shared_ptr<TypedHandler> handler, QOS qos) {
     BOOST_LOG_FUNCTION();
     mqtt_abstraction->register_handler(topic, handler, qos);
 }

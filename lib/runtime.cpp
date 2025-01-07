@@ -396,8 +396,7 @@ ModuleCallbacks::ModuleCallbacks(
     register_module_adapter(register_module_adapter), everest_register(everest_register), init(init), ready(ready) {
 }
 
-ModuleLoader::ModuleLoader(int argc, char* argv[], ModuleCallbacks callbacks,
-                           VersionInformation version_information) :
+ModuleLoader::ModuleLoader(int argc, char* argv[], ModuleCallbacks callbacks, VersionInformation version_information) :
     runtime_settings(nullptr), callbacks(std::move(callbacks)), version_information(std::move(version_information)) {
     if (!this->parse_command_line(argc, argv)) {
         this->should_exit = true;
