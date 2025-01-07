@@ -364,11 +364,10 @@ void MQTTAbstractionImpl::on_mqtt_message(const Message& message) {
         }
         lock.unlock();
 
-        // TODO(kai): this should maybe not even be a warning since it can happen that we unsubscribe from a topic and
-        // have removed the message handler but the MQTT unsubscribe didn't complete yet and we still receive messages
-        // on this topic that we can just ignore
+        // It can happen that we unsubscribe from a topic and have removed the message handler but the MQTT unsubscribe
+        // didn't complete yet and we still receive messages on this topic that we can just ignore
         if (!found) {
-            EVLOG_warning << fmt::format("Internal error: topic '{}' should have a matching handler!", topic);
+            EVLOG_verbose << fmt::format("Topic '{}' should have a matching handler!", topic);
         }
     } catch (boost::exception& e) {
         EVLOG_critical << fmt::format("Caught MQTT on_message boost::exception:\n{}",
