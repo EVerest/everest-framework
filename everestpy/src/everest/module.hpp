@@ -94,7 +94,7 @@ private:
     static std::unique_ptr<Everest::Everest>
     create_everest_instance(const std::string& module_id, const Everest::Config& config,
                             const Everest::RuntimeSettings& rs,
-                            const std::shared_ptr<Everest::MQTTAbstraction>& mqtt_abstraction);
+                            std::shared_ptr<Everest::MQTTAbstraction> mqtt_abstraction);
 
     ModuleInfo module_info{};
     std::map<std::string, Interface> requirements;

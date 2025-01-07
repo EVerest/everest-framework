@@ -85,8 +85,8 @@ public:
     std::shared_future<void> get_main_loop_future();
 
     ///
-    /// \copydoc MQTTAbstractionImpl::register_handler(const std::string&, const std::shared_ptr<TypedHandler>&, QOS)
-    void register_handler(const std::string& topic, const std::shared_ptr<TypedHandler>& handler, QOS qos);
+    /// \copydoc MQTTAbstractionImpl::register_handler(const std::string&, std::shared_ptr<TypedHandler>, QOS)
+    void register_handler(const std::string& topic, std::shared_ptr<TypedHandler> handler, QOS qos);
 
     ///
     /// \copydoc MQTTAbstractionImpl::unregister_handler(const std::string&, const Token&)
