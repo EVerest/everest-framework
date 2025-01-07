@@ -61,11 +61,6 @@ struct TypedHandler {
 
 using Token = std::shared_ptr<TypedHandler>;
 
-struct AsyncReturn {
-    std::future<json> future;
-    Token token;
-};
-
 /// \brief MQTT Quality of service
 enum class QOS {
     QOS0, ///< At most once delivery

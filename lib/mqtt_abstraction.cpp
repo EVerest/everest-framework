@@ -76,16 +76,6 @@ void MQTTAbstraction::clear_retained_topics() {
     mqtt_abstraction->clear_retained_topics();
 }
 
-AsyncReturn MQTTAbstraction::get_async(const std::string& topic, QOS qos) {
-    BOOST_LOG_FUNCTION();
-    return mqtt_abstraction->get_async(topic, qos);
-}
-
-json MQTTAbstraction::get(const std::string& topic, QOS qos) {
-    BOOST_LOG_FUNCTION();
-    return mqtt_abstraction->get(topic, qos);
-}
-
 const std::string& MQTTAbstraction::get_everest_prefix() const {
     BOOST_LOG_FUNCTION();
     return everest_prefix;

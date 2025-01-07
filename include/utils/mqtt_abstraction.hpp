@@ -69,14 +69,6 @@ public:
     void clear_retained_topics();
 
     ///
-    /// \copydoc MQTTAbstractionImpl::get_async(const std::string&, QOS)
-    AsyncReturn get_async(const std::string& topic, QOS qos);
-
-    ///
-    /// \copydoc MQTTAbstractionImpl::get(const std::string&, QOS)
-    nlohmann::json get(const std::string& topic, QOS qos);
-
-    ///
     /// \brief Get MQTT topic prefix for the "everest" topic
     const std::string& get_everest_prefix() const;
 

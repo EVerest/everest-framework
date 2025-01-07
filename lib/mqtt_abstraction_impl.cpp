@@ -226,55 +226,6 @@ void MQTTAbstractionImpl::clear_retained_topics() {
     retained_topics.clear();
 }
 
-AsyncReturn MQTTAbstractionImpl::get_async(const std::string& topic, QOS qos) {
-    auto res_promise = std::make_shared<std::promise<json>>();
-    std::future<json> res_future = res_promise->get_future();
-
-    auto res_handler = [this, res_promise](const std::string& topic, json data) mutable {
-        res_promise->set_value(std::move(data));
-    };
-
-    const auto res_token =
-        std::make_shared<TypedHandler>(HandlerType::GetConfig, std::make_shared<Handler>(res_handler));
-    this->register_handler(topic, res_token, QOS::QOS2);
-
-    return {std::move(res_future), res_token};
-}
-
-json MQTTAbstractionImpl::get(const std::string& topic, QOS qos) {
-    BOOST_LOG_FUNCTION();
-    std::promise<json> res_promise;
-    std::future<json> res_future = res_promise.get_future();
-
-    const auto res_handler = [this, &res_promise](const std::string& topic, json data) {
-        res_promise.set_value(std::move(data));
-    };
-
-    const std::shared_ptr<TypedHandler> res_token =
-        std::make_shared<TypedHandler>(HandlerType::GetConfig, std::make_shared<Handler>(res_handler));
-    this->register_handler(topic, res_token, QOS::QOS2);
-
-    // wait for result future
-    const std::chrono::time_point<std::chrono::steady_clock> res_wait =
-        std::chrono::steady_clock::now() + std::chrono::milliseconds(mqtt_get_timeout_ms);
-    std::future_status res_future_status;
-    do {
-        res_future_status = res_future.wait_until(res_wait);
-    } while (res_future_status == std::future_status::deferred);
-
-    json result;
-    if (res_future_status == std::future_status::timeout) {
-        this->unregister_handler(topic, res_token);
-        EVLOG_AND_THROW(EverestTimeoutError(fmt::format("Timeout while waiting for result of get({})", topic)));
-    }
-    if (res_future_status == std::future_status::ready) {
-        result = res_future.get();
-    }
-    this->unregister_handler(topic, res_token);
-
-    return result;
-}
-
 void MQTTAbstractionImpl::notify_write_data() {
     // FIXME (aw): error handling
     eventfd_write(this->event_fd, 1);

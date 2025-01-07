@@ -14,15 +14,69 @@
 #include <utils/types.hpp>
 
 namespace Everest {
+struct AsyncReturn {
+    std::future<json> future;
+    Token token;
+};
+
 using json = nlohmann::json;
 
 inline constexpr int mqtt_get_config_timeout_ms = 5000;
 using FutureCallback = std::tuple<AsyncReturn, std::function<std::string(json)>, std::string>;
 
+AsyncReturn get_async(const std::shared_ptr<MQTTAbstraction>& mqtt, const std::string& topic, QOS qos) {
+    auto res_promise = std::make_shared<std::promise<json>>();
+    std::future<json> res_future = res_promise->get_future();
+
+    auto res_handler = [res_promise](const std::string& topic, json data) mutable {
+        res_promise->set_value(std::move(data));
+    };
+
+    const auto res_token =
+        std::make_shared<TypedHandler>(HandlerType::GetConfig, std::make_shared<Handler>(res_handler));
+    mqtt->register_handler(topic, res_token, QOS::QOS2);
+
+    return {std::move(res_future), res_token};
+}
+
+json get(const std::shared_ptr<MQTTAbstraction>& mqtt, const std::string& topic, QOS qos) {
+    BOOST_LOG_FUNCTION();
+    std::promise<json> res_promise;
+    std::future<json> res_future = res_promise.get_future();
+
+    const auto res_handler = [&res_promise](const std::string& topic, json data) {
+        res_promise.set_value(std::move(data));
+    };
+
+    const std::shared_ptr<TypedHandler> res_token =
+        std::make_shared<TypedHandler>(HandlerType::GetConfig, std::make_shared<Handler>(res_handler));
+    mqtt->register_handler(topic, res_token, QOS::QOS2);
+
+    // wait for result future
+    const std::chrono::time_point<std::chrono::steady_clock> res_wait =
+        std::chrono::steady_clock::now() + std::chrono::milliseconds(mqtt_get_config_timeout_ms);
+    std::future_status res_future_status;
+    do {
+        res_future_status = res_future.wait_until(res_wait);
+    } while (res_future_status == std::future_status::deferred);
+
+    json result;
+    if (res_future_status == std::future_status::timeout) {
+        mqtt->unregister_handler(topic, res_token);
+        EVLOG_AND_THROW(EverestTimeoutError(fmt::format("Timeout while waiting for result of get({})", topic)));
+    }
+    if (res_future_status == std::future_status::ready) {
+        result = res_future.get();
+    }
+    mqtt->unregister_handler(topic, res_token);
+
+    return result;
+}
+
 void populate_future_cbs(std::vector<FutureCallback>& future_cbs, const std::shared_ptr<MQTTAbstraction>& mqtt,
                          const std::string& everest_prefix, const std::string& topic, json& out) {
     future_cbs.push_back(std::make_tuple<AsyncReturn, std::function<std::string(json)>>(
-        mqtt->get_async(topic, QOS::QOS2),
+        get_async(mqtt, topic, QOS::QOS2),
         [topic, &everest_prefix, &out](json result) {
             out = std::move(result);
 
@@ -57,7 +111,7 @@ void populate_future_cbs_arr(std::vector<FutureCallback>& future_cbs, const std:
                              const std::string& everest_prefix, const std::string& topic,
                              const std::string& inner_topic_part, json& array_out, json& out) {
     future_cbs.push_back(std::make_tuple<AsyncReturn, std::function<std::string(json)>, std::string>(
-        mqtt->get_async(topic, QOS::QOS2),
+        get_async(mqtt, topic, QOS::QOS2),
         [topic, &everest_prefix, &mqtt, &inner_topic_part, &array_out, &out](const json& result_array) {
             array_out = result_array;
             std::vector<FutureCallback> array_future_cbs;
@@ -68,7 +122,7 @@ void populate_future_cbs_arr(std::vector<FutureCallback>& future_cbs, const std:
             for (const auto& key : keys) {
                 auto key_topic = fmt::format("{}{}{}", everest_prefix, inner_topic_part, key);
                 array_future_cbs.push_back(std::make_tuple<AsyncReturn, std::function<std::string(json)>, std::string>(
-                    mqtt->get_async(key_topic, QOS::QOS2),
+                    get_async(mqtt, key_topic, QOS::QOS2),
                     [&key, key_topic, &out](const json& key_response) {
                         out[key] = key_response;
                         return key_topic;
