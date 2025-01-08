@@ -453,7 +453,8 @@ void MQTTAbstractionImpl::register_handler(const std::string& topic, std::shared
         this->message_handlers.emplace(std::piecewise_construct, std::forward_as_tuple(topic), std::forward_as_tuple());
     }
 
-    const auto subscription_necessary = (this->mqtt_is_connected && this->message_handlers.at(topic).count_handlers() == 0);
+    const auto subscription_necessary =
+        (this->mqtt_is_connected && this->message_handlers.at(topic).count_handlers() == 0);
 
     this->message_handlers.at(topic).add_handler(handler);
 
