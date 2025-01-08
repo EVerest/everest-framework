@@ -260,10 +260,6 @@ public:
     explicit ManagerConfig(const ManagerSettings& ms);
 
     ///
-    /// \brief Serialize the config to json
-    nlohmann::json serialize();
-
-    ///
     /// \returns a TelemetryConfig if this has been configured for the given \p module_id
     std::optional<TelemetryConfig> get_telemetry_config(const std::string& module_id);
 };

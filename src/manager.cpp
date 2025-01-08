@@ -300,10 +300,10 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
 
     std::vector<ModuleStartInfo> modules_to_spawn;
 
-    const auto main_config = config.get_main_config();
+    const auto& main_config = config.get_main_config();
+    const auto& module_names = config.get_module_names();
     modules_to_spawn.reserve(main_config.size());
 
-    const auto serialized_config = config.serialize();
     const auto interface_definitions = config.get_interface_definitions();
     std::vector<std::string> interface_names;
     for (auto& interface_definition : interface_definitions.items()) {
@@ -352,12 +352,13 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
     mqtt_abstraction.publish(fmt::format("{}module_config_cache", ms.mqtt_settings.everest_prefix), module_config_cache,
                              QOS::QOS2, true);
 
-    for (const auto& module : serialized_config.at("module_names").items()) {
-        const std::string& module_name = module.key();
-        json serialized_mod_config = serialized_config;
+    for (const auto& module_name_entry : module_names) {
+        const auto& module_name = module_name_entry.first;
+        const auto& module_type = module_name_entry.second;
+        json serialized_mod_config = json::object({{"module_names", module_names}});
         serialized_mod_config["module_config"] = json::object();
+        serialized_mod_config["module_config"][module_name] = main_config.at(module_name);
         // add mappings of fulfillments
-        serialized_mod_config["module_config"][module_name] = serialized_config.at("main").at(module_name);
         const auto fulfillments = config.get_fulfillments(module_name);
         serialized_mod_config["mappings"] = json::object();
         for (const auto& fulfillment_list : fulfillments) {
@@ -373,7 +374,6 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
         if (mappings.has_value()) {
             serialized_mod_config["mappings"][module_name] = mappings.value();
         }
-        serialized_mod_config.erase("main"); // FIXME: do not put this "main" config in there in the first place
         const auto telemetry_config = config.get_telemetry_config(module_name);
         if (telemetry_config.has_value()) {
             serialized_mod_config["telemetry_config"] = telemetry_config.value();
@@ -384,8 +384,6 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
             continue;
         }
 
-        // FIXME (aw): shall create a ref to main_confit.at(module_name)!
-        const std::string module_type = main_config.at(module_name).at("module");
         // FIXME (aw): implicitely adding ModuleReadyInfo and setting its ready member
         auto module_it = modules_ready.emplace(module_name, ModuleReadyInfo{false, nullptr, nullptr}).first;
 
