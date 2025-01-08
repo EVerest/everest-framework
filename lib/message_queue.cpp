@@ -70,7 +70,7 @@ MessageHandler::MessageHandler() : running(true) {
             std::vector<std::shared_ptr<TypedHandler>> local_handlers;
             {
                 const std::lock_guard<std::mutex> handlers_lock(handler_list_mutex);
-                local_handlers = {std::begin(this->handlers), std::end(this->handlers)};;
+                local_handlers = {std::begin(this->handlers), std::end(this->handlers)};
             }
 
             // distribute this message to the registered handlers
