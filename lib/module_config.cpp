@@ -114,7 +114,6 @@ json get_module_config(std::shared_ptr<MQTTAbstraction> mqtt, const std::string&
     const auto module_config_cache = mqtt->get(module_config_cache_topic, QOS::QOS2);
     result["module_config_cache"] = module_config_cache;
 
-
     return result;
 }
 

@@ -104,7 +104,8 @@ static ParsedConfigMap parse_config_map(const json& config_map_schema, const jso
             throw ConfigParseException(ConfigParseException::SCHEMA, config_entry_name, err.what());
         }
 
-        parsed_config_map[config_entry_name] = json::object({{"value", config_entry_value}, {"type", config_entry.at("type")}});
+        parsed_config_map[config_entry_name] =
+            json::object({{"value", config_entry_value}, {"type", config_entry.at("type")}});
     }
 
     return {parsed_config_map, unknown_config_entries};
