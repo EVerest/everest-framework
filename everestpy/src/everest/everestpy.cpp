@@ -49,9 +49,10 @@ PYBIND11_MODULE(everestpy, m) {
         .export_values();
 
     py::class_<ImplementationIdentifier>(error_submodule, "ImplementationIdentifier")
-        .def(py::init<const std::string&, const std::string&>())
+        .def(py::init<const std::string&, const std::string&, std::optional<Mapping>>())
         .def_readwrite("module_id", &ImplementationIdentifier::module_id)
-        .def_readwrite("implementation_id", &ImplementationIdentifier::implementation_id);
+        .def_readwrite("implementation_id", &ImplementationIdentifier::implementation_id)
+        .def_readwrite("mapping", &ImplementationIdentifier::mapping);
 
     py::class_<Everest::error::UUID>(error_submodule, "UUID")
         .def(py::init<>())
@@ -129,7 +130,7 @@ PYBIND11_MODULE(everestpy, m) {
         .def(py::init<const std::string&, const RuntimeSession&>())
         .def("say_hello", &Module::say_hello)
         .def("init_done", py::overload_cast<>(&Module::init_done))
-        .def("init_done", py::overload_cast<std::function<void()>>(&Module::init_done))
+        .def("init_done", py::overload_cast<const std::function<void()>&>(&Module::init_done))
         .def("call_command", &Module::call_command)
         .def("publish_variable", &Module::publish_variable)
         .def("implement_command", &Module::implement_command)

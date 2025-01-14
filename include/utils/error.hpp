@@ -13,11 +13,12 @@
 #define UTILS_ERROR_DEFAULTS_DESCRIPTION "no description provided"
 #define UTILS_ERROR_DEFAULTS_MESSAGE     "no message provided"
 #define UTILS_ERROR_DEFAULTS_SEVERITY    Everest::error::Severity::Low
-#define UTILS_ERROR_DEFAULTS_ORIGIN      ImplementationIdentifier("no-module-id-provided", "no-implementation-id-provided")
-#define UTILS_ERROR_DEFAULTS_TIMESTAMP   date::utc_clock::now()
-#define UTILS_ERROR_DEFAULTS_UUID        UUID()
-#define UTILS_ERROR_DEFAULTS_STATE       Everest::error::State::Active
-#define UTILS_ERROR_DEFAULTS_VENDOR_ID   "everest"
+#define UTILS_ERROR_DEFAULTS_ORIGIN                                                                                    \
+    ImplementationIdentifier("no-module-id-provided", "no-implementation-id-provided", std::nullopt)
+#define UTILS_ERROR_DEFAULTS_TIMESTAMP date::utc_clock::now()
+#define UTILS_ERROR_DEFAULTS_UUID      UUID()
+#define UTILS_ERROR_DEFAULTS_STATE     Everest::error::State::Active
+#define UTILS_ERROR_DEFAULTS_VENDOR_ID "everest"
 
 namespace Everest {
 namespace error {
@@ -70,14 +71,14 @@ struct Error {
     Error();
     ErrorType type;
     ErrorSubType sub_type;
-    std::string description;
     std::string message;
-    Severity severity;
+    std::string description;
     ImplementationIdentifier origin;
+    std::string vendor_id;
+    Severity severity;
     time_point timestamp;
     UUID uuid;
     State state;
-    std::string vendor_id;
 };
 
 using ErrorHandle = UUID;

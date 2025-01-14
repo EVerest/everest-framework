@@ -8,13 +8,20 @@ use std::convert::TryFrom;
 use std::path::PathBuf;
 use std::pin::Pin;
 use std::sync::Arc;
+use std::sync::Once;
 use std::sync::RwLock;
 use std::sync::Weak;
 use thiserror::Error;
 
+/// Prevent calling the init of loggers more than once.
+static INIT_LOGGER_ONCE: Once = Once::new();
+
 // Reexport everything so the clients can use it.
 pub use serde;
 pub use serde_json;
+// TODO(ddo) Drop this again - its only there as a MVP for the enum support
+// of errors.
+pub use serde_yaml;
 
 #[derive(Error, Debug)]
 pub enum Error {
@@ -45,6 +52,14 @@ mod ffi {
             name: &str,
             json: JsonBlob,
         );
+        fn handle_on_error(
+            self: &Runtime,
+            implementation_id: &str,
+            index: usize,
+            error: ErrorType,
+            raised: bool,
+        );
+
         fn on_ready(&self);
     }
 
@@ -108,11 +123,39 @@ mod ffi {
         slots: usize,
     }
 
+    #[derive(Debug)]
+    pub enum ErrorSeverity {
+        Low,
+        Medium,
+        High,
+    }
+
+    /// Rust's version of the `<utils/error.hpp>`'s Error.
+    #[derive(Debug)]
+    pub struct ErrorType {
+        /// The type of the error. We generate that in the codegen. The
+        /// full error type looks like "evse_manager/PowermeterTransactionStartFailed"
+        /// and may have a namespace sprinkled into it (?).
+        pub error_type: String,
+
+        /// The description.
+        pub description: String,
+
+        /// The message - no idea what the difference to the description
+        /// actually is.
+        pub message: String,
+
+        /// The severity of the error.
+        pub severity: ErrorSeverity,
+    }
+
     unsafe extern "C++" {
         include!("everestrs/src/everestrs_sys.hpp");
 
         type Module;
-        fn create_module(module_id: &str, prefix: &str, conf: &str) -> UniquePtr<Module>;
+        fn create_module(module_id: &str, prefix: &str, mqtt_broker_socket_path: &str, mqtt_broker_host: &str,
+             mqtt_broker_port: &str,  mqtt_everest_prefix: &str,
+             mqtt_external_prefix: &str) -> SharedPtr<Module>;
 
         /// Connects to the message broker and launches the main everest thread to push work
         /// forward. Returns the module manifest.
@@ -155,22 +198,28 @@ mod ffi {
             name: String,
         );
 
-        /// Publishes the given `blob` under the `implementation_id` and `name`.
-        fn publish_variable(self: &Module, implementation_id: &str, name: &str, blob: JsonBlob);
-
-        /// Returns the severity for the cxx logger.
-        fn get_log_level(self: &Module) -> i32;
-
-        /// Returns the module config from cpp.
-        fn get_module_configs(module_id: &str, prefix: &str, conf: &str) -> Vec<RsModuleConfig>;
+        /// Subscribes to all errors of the required modules.
+        fn subscribe_all_errors(self: &Module, rt: Pin<&Runtime>);
 
         /// Returns the `connections` block defined in the `config.yaml` for
         /// the current module.
-        fn get_module_connections(
-            module_id: &str,
-            prefix: &str,
-            conf: &str,
-        ) -> Vec<RsModuleConnections>;
+        fn get_module_connections(self: &Module) -> Vec<RsModuleConnections>;
+
+        /// Publishes the given `blob` under the `implementation_id` and `name`.
+        fn publish_variable(self: &Module, implementation_id: &str, name: &str, blob: JsonBlob);
+
+        /// Raises an error
+        fn raise_error(self: &Module, implementation_id: &str, error: ErrorType);
+
+        /// Clears an error
+        /// If the error_type is empty, we will clear all errors from the module.
+        fn clear_error(self: &Module, implementation_id: &str, error_type: &str, clear_all: bool);
+
+        /// Returns the module config from cpp.
+        fn get_module_configs(module_id: &str) -> Vec<RsModuleConfig>;
+
+        /// Call this once.
+        fn init_logging(module_id: &str, prefix: &str, conf: &str) -> i32;
 
         /// Logging sink for the EVerest module.
         fn log2cxx(level: i32, line: i32, file: &str, message: &str);
@@ -184,7 +233,10 @@ impl ffi::JsonBlob {
 
     fn deserialize<T: DeserializeOwned>(self) -> T {
         // TODO(hrapp): Error handling
-        serde_json::from_slice(self.as_bytes()).unwrap()
+        serde_json::from_slice(self.as_bytes()).expect(&format!(
+            "Failed to deserialize {:?}",
+            String::from_utf8_lossy(self.as_bytes())
+        ))
     }
 
     fn from_vec(data: Vec<u8>) -> Self {
@@ -195,6 +247,7 @@ impl ffi::JsonBlob {
 /// Very simple logger to use by the Rust modules.
 mod logger {
     use super::ffi;
+    use crate::INIT_LOGGER_ONCE;
 
     pub(crate) struct Logger {
         level: log::Level,
@@ -237,19 +290,21 @@ mod logger {
         /// Init the logger for everest.
         ///
         /// Don't do this on your own as we must also control some cxx code.
-        pub(crate) fn init_logger(module: &ffi::Module) {
-            let level = match module.get_log_level() {
-                0 => log::Level::Trace,
-                1 => log::Level::Debug,
-                2 => log::Level::Info,
-                3 => log::Level::Warn,
-                4 => log::Level::Error,
-                _ => log::Level::Info,
-            };
+        pub(crate) fn init_logger(module_name: &str, prefix: &str, conf: &str) {
+            INIT_LOGGER_ONCE.call_once(|| {
+                let level = match ffi::init_logging(module_name, prefix, conf) {
+                    0 => log::Level::Trace,
+                    1 => log::Level::Debug,
+                    2 => log::Level::Info,
+                    3 => log::Level::Warn,
+                    4 => log::Level::Error,
+                    _ => log::Level::Info,
+                };
 
-            let logger = Self { level };
-            log::set_boxed_logger(Box::new(logger)).unwrap();
-            log::set_max_level(level.to_level_filter());
+                let logger = Self { level };
+                log::set_boxed_logger(Box::new(logger)).unwrap();
+                log::set_max_level(level.to_level_filter());
+            });
         }
     }
 }
@@ -260,22 +315,47 @@ mod logger {
 unsafe impl Sync for ffi::Module {}
 unsafe impl Send for ffi::Module {}
 
+pub use ffi::{ErrorSeverity, ErrorType};
+
 /// Arguments for an EVerest node.
 #[derive(FromArgs, Debug)]
 struct Args {
+    /// TODO: add version param
+
     /// prefix of installation.
     #[argh(option)]
     #[allow(unused)]
     pub prefix: PathBuf,
 
-    /// configuration yml that we are running.
+    /// logging configuration yml that we are using.
     #[argh(option)]
     #[allow(unused)]
-    pub conf: PathBuf,
+    pub log_config: PathBuf,
 
     /// module name for us.
     #[argh(option)]
     pub module: String,
+
+    /// MQTT broker socket path
+    #[argh(option)]
+    #[allow(unused)]
+    pub mqtt_broker_socket_path: PathBuf,
+
+    /// MQTT broker hostname
+    #[argh(option)]
+    pub mqtt_broker_host: String,
+
+    /// MQTT broker port
+    #[argh(option)]
+    pub mqtt_broker_port: String, // TODO: int?
+
+    /// MQTT EVerest prefix
+    #[argh(option)]
+    pub mqtt_everest_prefix: String,
+
+    /// MQTT external prefix
+    #[argh(option)]
+    pub mqtt_external_prefix: String,
 }
 
 /// Implements the handling of commands & variables, but has no specific information about the
@@ -301,6 +381,16 @@ pub trait Subscriber: Sync + Send {
         value: serde_json::Value,
     ) -> Result<()>;
 
+    /// Handler for the error raised/cleared callback
+    /// The `raised` flag indicates if the error is raised or cleared.
+    fn handle_on_error(
+        &self,
+        implementation_id: &str,
+        index: usize,
+        error: ffi::ErrorType,
+        raised: bool,
+    );
+
     fn on_ready(&self) {}
 }
 
@@ -312,7 +402,7 @@ pub trait Subscriber: Sync + Send {
 /// code the `Subscriber` might take ownership of the [Runtime] - the weak
 /// ownership hence is necessary to break possible ownership cycles.
 pub struct Runtime {
-    cpp_module: cxx::UniquePtr<ffi::Module>,
+    cpp_module: cxx::SharedPtr<ffi::Module>,
     sub_impl: RwLock<Option<Weak<dyn Subscriber>>>,
 }
 
@@ -360,6 +450,20 @@ impl Runtime {
             .unwrap();
     }
 
+    fn handle_on_error(&self, impl_id: &str, index: usize, error: ffi::ErrorType, raised: bool) {
+        debug!("handle_error_raised: {impl_id}, {index}");
+
+        // We want to split the error type into the group and the remainder.
+        self.sub_impl
+            .read()
+            .unwrap()
+            .as_ref()
+            .unwrap()
+            .upgrade()
+            .unwrap()
+            .handle_on_error(impl_id, index, error, raised);
+    }
+
     pub fn publish_variable<T: serde::Serialize>(
         &self,
         impl_id: &str,
@@ -392,16 +496,65 @@ impl Runtime {
         serde_json::from_slice(&return_value.data).unwrap()
     }
 
+    /// Called from the generated code.
+    /// The type T should be an error.
+    pub fn raise_error<T: serde::Serialize + core::fmt::Debug>(&self, impl_id: &str, error: T) {
+        let error_string = serde_yaml::to_string(&error).unwrap_or_default();
+        // Remove the new line -> this should be gone once we stop using yaml
+        // since we don't really want yaml.
+        let error_string = error_string.strip_suffix("\n").unwrap_or(&error_string);
+
+        // TODO(ddo) for now we don't support calling passing the `description`,
+        // `message` and `severity` from the user code.
+        let error_type = ErrorType {
+            error_type: error_string.to_string(),
+            description: String::new(),
+            message: String::new(),
+            severity: ErrorSeverity::High,
+        };
+        debug!("Raising error {error_type:?} from {error:?}");
+        self.cpp_module
+            .as_ref()
+            .unwrap()
+            .raise_error(impl_id, error_type);
+    }
+
+    /// Called from the generated code.
+    /// The type T should be an error.
+    pub fn clear_error<T: serde::Serialize + core::fmt::Debug>(
+        &self,
+        impl_id: &str,
+        error: T,
+        clear_all: bool,
+    ) {
+        let error_string = serde_yaml::to_string(&error).unwrap_or_default();
+        let error_string = error_string.strip_suffix("\n").unwrap_or(&error_string);
+
+        debug!("Clearing the {error_string} from {error:?}");
+        self.cpp_module
+            .as_ref()
+            .unwrap()
+            .clear_error(impl_id, &error_string, clear_all);
+    }
+
     // TODO(hrapp): This function could use some error handling.
     pub fn new() -> Pin<Arc<Self>> {
         let args: Args = argh::from_env();
+        logger::Logger::init_logger(
+            &args.module,
+            &args.prefix.to_string_lossy(),
+            &args.log_config.to_string_lossy(),
+        );
+
         let cpp_module = ffi::create_module(
             &args.module,
             &args.prefix.to_string_lossy(),
-            &args.conf.to_string_lossy(),
+            &args.mqtt_broker_socket_path.to_string_lossy(),
+            &args.mqtt_broker_host,
+            &args.mqtt_broker_port,
+            &args.mqtt_everest_prefix,
+            &args.mqtt_external_prefix,
         );
-
-        logger::Logger::init_logger(&cpp_module);
 
         Arc::pin(Self {
             cpp_module,
@@ -418,7 +571,7 @@ impl Runtime {
         // Subscriber.
         for (implementation_id, provides) in manifest.provides {
             let interface_s = self.cpp_module.get_interface(&provides.interface);
-            let interface: schema::Interface = interface_s.deserialize();
+            let interface: schema::InterfaceFromEverest = interface_s.deserialize();
             for (name, _) in interface.cmds {
                 self.cpp_module.as_ref().unwrap().provide_command(
                     self,
@@ -428,12 +581,12 @@ impl Runtime {
             }
         }
 
-        let connections = get_module_connections();
+        let connections = self.get_module_connections();
 
         // Subscribe to all variables that might be of interest.
         for (implementation_id, requires) in manifest.requires {
             let interface_s = self.cpp_module.get_interface(&requires.interface);
-            let interface: schema::Interface = interface_s.deserialize();
+            let interface: schema::InterfaceFromEverest = interface_s.deserialize();
 
             for i in 0usize..connections.get(&implementation_id).cloned().unwrap_or(0) {
                 for (name, _) in interface.vars.iter() {
@@ -447,10 +600,21 @@ impl Runtime {
             }
         }
 
+        self.cpp_module.as_ref().unwrap().subscribe_all_errors(self);
+
         // Since users can choose to overwrite `on_ready`, we can call signal_ready right away.
         // TODO(hrapp): There were some doubts if this strategy is too inflexible, discuss design
         // again.
         (self.cpp_module).as_ref().unwrap().signal_ready(self);
+    }
+
+    /// The interface for fetching the module connections though the C++ runtime.
+    pub fn get_module_connections(&self) -> HashMap<String, usize> {
+        let raw_connections = self.cpp_module.as_ref().unwrap().get_module_connections();
+        raw_connections
+            .into_iter()
+            .map(|connection| (connection.implementation_id, connection.slots))
+            .collect()
     }
 }
 
@@ -505,12 +669,18 @@ impl TryFrom<&Config> for i64 {
 }
 
 /// Interface for fetching the configurations through the C++ runtime.
+///
+/// This is separetated from the module since the user might need the config
+/// to create the [Runtime].
 pub fn get_module_configs() -> HashMap<String, HashMap<String, Config>> {
     let args: Args = argh::from_env();
+    // logger::Logger::init_logger(
+    //     &args.module,
+    //     &args.prefix.to_string_lossy(),
+    //     &args.conf.to_string_lossy(),
+    // );
     let raw_config = ffi::get_module_configs(
-        &args.module,
-        &args.prefix.to_string_lossy(),
-        &args.conf.to_string_lossy(),
+        &args.module
     );
 
     // Convert the nested Vec's into nested HashMaps.
@@ -540,19 +710,4 @@ pub fn get_module_configs() -> HashMap<String, HashMap<String, Config>> {
     }
 
     out
-}
-
-/// The interface for fetching the module connections though the C++ runtime.
-pub fn get_module_connections() -> HashMap<String, usize> {
-    let args: Args = argh::from_env();
-    let raw_connections = ffi::get_module_connections(
-        &args.module,
-        &args.prefix.to_string_lossy(),
-        &args.conf.to_string_lossy(),
-    );
-
-    raw_connections
-        .into_iter()
-        .map(|connection| (connection.implementation_id, connection.slots))
-        .collect()
 }

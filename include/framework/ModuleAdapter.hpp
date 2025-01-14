@@ -101,8 +101,10 @@ struct ModuleAdapter {
     using GetErrorStateMonitorReqFunc = std::function<std::shared_ptr<error::ErrorStateMonitor>(const Requirement&)>;
     using ExtMqttPublishFunc = std::function<void(const std::string&, const std::string&)>;
     using ExtMqttSubscribeFunc = std::function<UnsubscribeToken(const std::string&, StringHandler)>;
+    using ExtMqttSubscribePairFunc = std::function<UnsubscribeToken(const std::string&, StringPairHandler)>;
     using TelemetryPublishFunc =
         std::function<void(const std::string&, const std::string&, const std::string&, const TelemetryMap&)>;
+    using GetMappingFunc = std::function<std::optional<ModuleTierMappings>()>;
 
     CallFunc call;
     PublishFunc publish;
@@ -116,8 +118,10 @@ struct ModuleAdapter {
     GetGlobalErrorStateMonitorFunc get_global_error_state_monitor;
     ExtMqttPublishFunc ext_mqtt_publish;
     ExtMqttSubscribeFunc ext_mqtt_subscribe;
+    ExtMqttSubscribePairFunc ext_mqtt_subscribe_pair;
     std::vector<cmd> registered_commands;
     TelemetryPublishFunc telemetry_publish;
+    GetMappingFunc get_mapping;
 
     void check_complete() {
         // FIXME (aw): I should throw if some of my handlers are not set
@@ -165,6 +169,10 @@ public:
 
     UnsubscribeToken subscribe(const std::string& topic, StringHandler handler) const {
         return ev.ext_mqtt_subscribe(topic, std::move(handler));
+    }
+
+    UnsubscribeToken subscribe(const std::string& topic, StringPairHandler handler) const {
+        return ev.ext_mqtt_subscribe_pair(topic, std::move(handler));
     }
 
 private:

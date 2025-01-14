@@ -11,6 +11,7 @@
 #include <sys/prctl.h>
 
 #include <chrono>
+#include <cstddef>
 #include <future>
 #include <iostream>
 #include <map>
@@ -26,6 +27,9 @@
 #include <utils/error/error_manager_impl.hpp>
 #include <utils/error/error_manager_req.hpp>
 #include <utils/error/error_state_monitor.hpp>
+#include <utils/filesystem.hpp>
+#include <utils/module_config.hpp>
+#include <utils/mqtt_settings.hpp>
 
 namespace EverestJs {
 
@@ -558,6 +562,8 @@ static Napi::Value is_condition_satisfied_req(const Requirement& req, const Napi
 static Napi::Value boot_module(const Napi::CallbackInfo& info) {
     BOOST_LOG_FUNCTION();
 
+    const auto start_time = std::chrono::system_clock::now();
+
     auto env = info.Env();
 
     auto available_handlers_prop = Napi::Object::New(env);
@@ -570,24 +576,54 @@ static Napi::Value boot_module(const Napi::CallbackInfo& info) {
 
         const auto& module_id = settings.Get("module").ToString().Utf8Value();
         const auto& prefix = settings.Get("prefix").ToString().Utf8Value();
-        const auto& config_file = settings.Get("config_file").ToString().Utf8Value();
+        const auto& mqtt_everest_prefix = settings.Get("mqtt_everest_prefix").ToString().Utf8Value();
+        const auto& mqtt_external_prefix = settings.Get("mqtt_external_prefix").ToString().Utf8Value();
+        const auto& mqtt_broker_socket_path = settings.Get("mqtt_broker_socket_path").ToString().Utf8Value();
+        const auto& mqtt_server_address = settings.Get("mqtt_server_address").ToString().Utf8Value();
+        const auto& mqtt_server_port = settings.Get("mqtt_server_port").ToString().Utf8Value();
         const bool validate_schema = settings.Get("validate_schema").ToBoolean().Value();
 
-        auto rs = std::make_shared<Everest::RuntimeSettings>(prefix, config_file);
-
+        namespace fs = std::filesystem;
+        fs::path logging_config_file =
+            Everest::assert_file(settings.Get("logging_config_file").ToString().Utf8Value(), "Default logging config");
         // initialize logging as early as possible
-        Everest::Logging::init(rs->logging_config_file, module_id);
+        Everest::Logging::init(logging_config_file.string(), module_id);
+        std::shared_ptr<Everest::MQTTAbstraction> mqtt;
+        Everest::MQTTSettings mqtt_settings{};
+        if (mqtt_broker_socket_path.empty()) {
+            auto mqtt_broker_port = Everest::defaults::MQTT_BROKER_PORT;
+            try {
+                mqtt_broker_port = std::stoi(mqtt_server_port);
+            } catch (...) {
+                EVLOG_warning << "Could not parse MQTT broker port, using default: " << mqtt_broker_port;
+            }
 
-        auto config = std::make_unique<Everest::Config>(rs);
+            Everest::populate_mqtt_settings(mqtt_settings, mqtt_server_address, mqtt_broker_port, mqtt_everest_prefix,
+                                            mqtt_external_prefix);
+        } else {
+            Everest::populate_mqtt_settings(mqtt_settings, mqtt_broker_socket_path, mqtt_everest_prefix,
+                                            mqtt_external_prefix);
+        }
+
+        mqtt = std::make_shared<Everest::MQTTAbstraction>(mqtt_settings);
+        mqtt->connect();
+        mqtt->spawn_main_loop_thread();
+
+        const auto result = Everest::get_module_config(mqtt, module_id);
+
+        auto rs = std::make_unique<Everest::RuntimeSettings>(result.at("settings"));
+
+        auto config = std::make_unique<Everest::Config>(mqtt_settings, result);
+
         if (!config->contains(module_id)) {
             EVTHROW(EVEXCEPTION(Everest::EverestConfigError,
                                 "Module with identifier '" << module_id << "' not found in config!"));
         }
 
-        const std::string& module_name = config->get_main_config()[module_id]["module"].get<std::string>();
-        auto module_manifest = config->get_manifests()[module_name];
+        const std::string& module_name = config->get_module_name(module_id);
+        const auto& module_manifest = config->get_manifests().at(module_name);
         // FIXME (aw): get_classes should be called get_units and should contain the type of class for each unit
-        auto module_impls = config->get_interfaces()[module_name];
+        const auto& module_impls = config->get_interfaces().at(module_name);
 
         // initialize everest framework
         const auto& module_identifier = config->printable_identifier(module_id);
@@ -606,9 +642,11 @@ static Napi::Value boot_module(const Napi::CallbackInfo& info) {
         // provides property: iterate over every implementation that this modules provides
         auto provided_impls_prop = Napi::Object::New(env);
         auto provided_cmds_prop = Napi::Object::New(env);
+        const auto& interface_definitions = config->get_interface_definitions();
         for (const auto& impl_definition : module_impls.items()) {
             const auto& impl_id = impl_definition.key();
-            const auto& impl_intf = module_impls[impl_id];
+            const auto& interface_name = module_impls.at(impl_id).get<std::string>();
+            const auto& impl_intf = interface_definitions.at(interface_name);
 
             auto impl_prop = Napi::Object::New(env);
 
@@ -703,9 +741,9 @@ static Napi::Value boot_module(const Napi::CallbackInfo& info) {
         auto uses_list_reqs_prop = Napi::Object::New(env);
         auto uses_cmds_prop = Napi::Object::New(env);
         auto uses_list_cmds_prop = Napi::Object::New(env);
-        for (auto& requirement : module_manifest["requires"].items()) {
+        for (const auto& requirement : module_manifest.at("requires").items()) {
             auto req_prop = Napi::Object::New(env);
-            auto const& requirement_id = requirement.key();
+            const auto& requirement_id = requirement.key();
             json req_route_list = config->resolve_requirement(module_id, requirement_id);
             // if this was a requirement with min_connections == 1 and max_connections == 1,
             // this will be simply a single connection, but an array of connections otherwise
@@ -716,14 +754,14 @@ static Napi::Value boot_module(const Napi::CallbackInfo& info) {
             }
             auto req_array_prop = Napi::Array::New(env);
             auto req_mod_cmds_array = Napi::Array::New(env);
-            for (size_t i = 0; i < req_route_list.size(); i++) {
-                auto req_route = req_route_list[i];
+            for (std::size_t i = 0; i < req_route_list.size(); i++) {
+                const auto& req_route = req_route_list[i];
                 const std::string& requirement_module_id = req_route["module_id"];
                 const std::string& requirement_impl_id = req_route["implementation_id"];
                 // FIXME (aw): why is const auto& not possible for the following line?
                 // we only want cmds/vars from the required interface to be usable, not from it's child interfaces
-                std::string interface_name = req_route["required_interface"].get<std::string>();
-                auto requirement_impl_intf = config->get_interface_definition(interface_name);
+                const std::string& interface_name = req_route["required_interface"].get<std::string>();
+                const auto& requirement_impl_intf = config->get_interface_definition(interface_name);
                 auto requirement_vars = Everest::Config::keys(requirement_impl_intf["vars"]);
                 auto requirement_cmds = Everest::Config::keys(requirement_impl_intf["cmds"]);
 
@@ -850,7 +888,7 @@ static Napi::Value boot_module(const Napi::CallbackInfo& info) {
         json module_config = config->get_module_json_config(module_id);
 
         auto module_info = config->get_module_info(module_id);
-        populate_module_info_path_from_runtime_settings(module_info, rs);
+        populate_module_info_path_from_runtime_settings(module_info, *rs);
 
         auto module_config_prop = Napi::Object::New(env);
         auto module_config_impl_prop = Napi::Object::New(env);
@@ -903,10 +941,8 @@ static Napi::Value boot_module(const Napi::CallbackInfo& info) {
         module_this.DefineProperty(Napi::PropertyDescriptor::Value("info", module_info_prop, napi_enumerable));
 
         // connect to mqtt server and start mqtt mainloop thread
-        auto everest_handle =
-            std::make_unique<Everest::Everest>(module_id, *config, validate_schema, rs->mqtt_broker_socket_path,
-                                               rs->mqtt_broker_host, rs->mqtt_broker_port, rs->mqtt_everest_prefix,
-                                               rs->mqtt_external_prefix, rs->telemetry_prefix, rs->telemetry_enabled);
+        auto everest_handle = std::make_unique<Everest::Everest>(module_id, *config, validate_schema, mqtt,
+                                                                 rs->telemetry_prefix, rs->telemetry_enabled);
 
         ctx = new EvModCtx(std::move(everest_handle), module_manifest, env);
 
@@ -918,6 +954,10 @@ static Napi::Value boot_module(const Napi::CallbackInfo& info) {
         ctx->js_cb = std::make_unique<JsExecCtx>(env, callback_wrapper);
         ctx->everest->register_on_ready_handler(framework_ready_handler);
         ctx->everest->register_on_shutdown_handler(framework_shutdown_handler);
+
+        const auto end_time = std::chrono::system_clock::now();
+        EVLOG_info << "Module " << fmt::format(Everest::TERMINAL_STYLE_BLUE, "{}", module_id) << " initialized ["
+                   << std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count() << "ms]";
 
         ctx->everest->spawn_main_loop_thread();
 

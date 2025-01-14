@@ -33,11 +33,12 @@ execute_process(
     OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
-message(STATUS "Adding node-addon-api")
+set(NODE_ADDON_API_INSTALL_VERSION "8.1")
+message(STATUS "Adding node-addon-api@${NODE_ADDON_API_INSTALL_VERSION}")
 if (NOT NODE_ADDON_API_PACKAGE_DIR)
     execute_process(
         COMMAND
-            ${NPM} install node-addon-api
+            ${NPM} install node-addon-api@${NODE_ADDON_API_INSTALL_VERSION}
         WORKING_DIRECTORY
             ${CMAKE_CURRENT_BINARY_DIR}
         OUTPUT_QUIET
@@ -46,7 +47,7 @@ if (NOT NODE_ADDON_API_PACKAGE_DIR)
     )
 
     if (NPM_INSTALL_NODE_ADDON_API_FAILED)
-        message(FATAL "Installation of node-addon-api failed")
+        message(FATAL_ERROR "Installation of node-addon-api failed")
     endif ()
 endif ()
 
