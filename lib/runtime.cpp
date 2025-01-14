@@ -392,7 +392,7 @@ ModuleCallbacks::ModuleCallbacks(
     const std::function<void(ModuleAdapter module_adapter)>& register_module_adapter,
     const std::function<std::vector<cmd>(const RequirementInitialization& requirement_init)>& everest_register,
     const std::function<void(ModuleConfigs module_configs, const ModuleInfo& info)>& init,
-    const std::function<void()>& ready, const std::function<void()>& shutdow) :
+    const std::function<void()>& ready, const std::function<void()>& shutdown) :
     register_module_adapter(register_module_adapter), everest_register(everest_register), init(init), ready(ready), shutdown(shutdown) {
 }
 
