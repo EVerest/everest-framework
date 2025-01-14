@@ -38,6 +38,54 @@ using json_validator = nlohmann::json_schema::json_validator;
 const auto remote_cmd_res_timeout_seconds = 300;
 const std::array<std::string, 3> TELEMETRY_RESERVED_KEYS = {{"connector_id"}};
 
+namespace conversions {
+constexpr auto ERROR_TYPE_MESSAGE_PARSING = "MessageParsing";
+constexpr auto ERROR_TYPE_SCHEMA_VALIDATION = "SchemaValidation";
+constexpr auto ERROR_TYPE_HANDLER_EXCEPTION = "HandlerException";
+constexpr auto ERROR_TYPE_TIMEOUT = "Timeout";
+constexpr auto ERROR_TYPE_SHUTDOWN = "Shutdown";
+constexpr auto ERROR_TYPE_UNKNOWN = "Unknown";
+std::string error_type_to_string(ErrorType error_type) {
+    switch (error_type) {
+    case ErrorType::MessageParsing:
+        return ERROR_TYPE_MESSAGE_PARSING;
+        break;
+    case ErrorType::SchemaValidation:
+        return ERROR_TYPE_SCHEMA_VALIDATION;
+        break;
+    case ErrorType::HandlerException:
+        return ERROR_TYPE_HANDLER_EXCEPTION;
+        break;
+    case ErrorType::Timeout:
+        return ERROR_TYPE_TIMEOUT;
+        break;
+    case ErrorType::Shutdown:
+        return ERROR_TYPE_SHUTDOWN;
+        break;
+    case ErrorType::Unknown:
+        return ERROR_TYPE_UNKNOWN;
+        break;
+    }
+
+    return ERROR_TYPE_UNKNOWN;
+}
+ErrorType string_to_error_type(const std::string& error_type_string) {
+    if (error_type_string == ERROR_TYPE_MESSAGE_PARSING) {
+        return ErrorType::MessageParsing;
+    } else if (error_type_string == ERROR_TYPE_SCHEMA_VALIDATION) {
+        return ErrorType::SchemaValidation;
+    } else if (error_type_string == ERROR_TYPE_HANDLER_EXCEPTION) {
+        return ErrorType::HandlerException;
+    } else if (error_type_string == ERROR_TYPE_TIMEOUT) {
+        return ErrorType::Timeout;
+    } else if (error_type_string == ERROR_TYPE_SHUTDOWN) {
+        return ErrorType::Shutdown;
+    }
+
+    return ErrorType::Unknown;
+}
+} // namespace conversions
+
 Everest::Everest(std::string module_id_, const Config& config_, bool validate_data_with_schema,
                  std::shared_ptr<MQTTAbstraction> mqtt_abstraction, const std::string& telemetry_prefix,
                  bool telemetry_enabled) :
@@ -361,8 +409,8 @@ json Everest::call_cmd(const Requirement& req, const std::string& cmd_name, json
 
     const std::string call_id = boost::uuids::to_string(boost::uuids::random_generator()());
 
-    std::promise<json> res_promise;
-    std::future<json> res_future = res_promise.get_future();
+    std::promise<CmdResult> res_promise;
+    std::future<CmdResult> res_future = res_promise.get_future();
 
     const auto res_handler = [this, &res_promise, call_id, connection, cmd_name, return_type](const std::string&,
                                                                                               json data) {
@@ -372,11 +420,20 @@ json Everest::call_cmd(const Requirement& req, const std::string& cmd_name, json
             return;
         }
 
-        EVLOG_verbose << fmt::format(
-            "Incoming res {} for {}->{}()", data_id,
-            this->config.printable_identifier(connection["module_id"], connection["implementation_id"]), cmd_name);
+        if (data.contains("error")) {
+            EVLOG_error << fmt::format(
+                "{}:{} during command call: {}->{}()", data.at("error").at("type"), data.at("error").at("msg"),
+                this->config.printable_identifier(connection.at("module_id"), connection.at("implementation_id")),
+                cmd_name);
+            res_promise.set_value(CmdResult{std::nullopt, data.at("error")});
+        } else {
+            EVLOG_verbose << fmt::format(
+                "Incoming res {} for {}->{}()", data_id,
+                this->config.printable_identifier(connection.at("module_id"), connection.at("implementation_id")),
+                cmd_name);
 
-        res_promise.set_value(std::move(data["retval"]));
+            res_promise.set_value(CmdResult{std::move(data["retval"]), std::nullopt});
+        }
     };
 
     const auto cmd_topic =
@@ -401,18 +458,32 @@ json Everest::call_cmd(const Requirement& req, const std::string& cmd_name, json
         res_future_status = res_future.wait_until(res_wait);
     } while (res_future_status == std::future_status::deferred);
 
-    json result;
+    CmdResult result;
     if (res_future_status == std::future_status::timeout) {
-        EVLOG_AND_THROW(EverestTimeoutError(fmt::format(
-            "Timeout while waiting for result of {}->{}()",
-            this->config.printable_identifier(connection["module_id"], connection["implementation_id"]), cmd_name)));
+        result.error = ErrorMessage{
+            ErrorType::Timeout,
+            fmt::format("Timeout while waiting for result of {}->{}()",
+                        this->config.printable_identifier(connection["module_id"], connection["implementation_id"]),
+                        cmd_name)};
     }
     if (res_future_status == std::future_status::ready) {
         result = res_future.get();
     }
     this->mqtt_abstraction->unregister_handler(cmd_topic, res_token);
 
-    return result;
+    if (result.error.has_value()) {
+        auto& error = result.error.value();
+        if (error.type == ErrorType::HandlerException) {
+            throw HandlerException(fmt::format("{}", error.msg));
+        } else if (error.type == ErrorType::Timeout) {
+            throw CmdTimeout(fmt::format("{}", error.msg));
+        }
+        throw CmdError(fmt::format("{}: {}", conversions::error_type_to_string(error.type), error.msg));
+    } else if (not result.result.has_value()) {
+        throw CmdError("Command did not return result");
+    } else {
+        return result.result.value();
+    }
 }
 
 void Everest::publish_var(const std::string& impl_id, const std::string& var_name, json value) {
@@ -845,6 +916,11 @@ void Everest::provide_cmd(const std::string& impl_id, const std::string& cmd_nam
                                      this->config.printable_identifier(this->module_id, impl_id), cmd_name,
                                      fmt::join(arg_names, ","));
 
+        json res_data = json({});
+        // FIXME: this id lookup might fail -> return MessageParsing error
+        res_data["id"] = data["id"];
+        std::optional<ErrorMessage> error;
+
         // check data and ignore it if not matching (publishing it should have
         // been prohibited already)
         if (this->validate_data_with_schema) {
@@ -864,19 +940,26 @@ void Everest::provide_cmd(const std::string& impl_id, const std::string& cmd_nam
             } catch (const std::exception& e) {
                 EVLOG_warning << fmt::format("Ignoring incoming cmd '{}' because not matching manifest schema: {}",
                                              cmd_name, e.what());
-                return;
+                error = ErrorMessage{ErrorType::SchemaValidation, e.what()};
             }
         }
 
         // publish results
-        json res_data = json({});
-        res_data["id"] = data.at("id");
 
         // call real cmd handler
-        res_data["retval"] = handler(data.at("args"));
+        try {
+            if (not error.has_value()) {
+                res_data["retval"] = handler(data.at("args"));
+            }
+        } catch (const std::exception& e) {
+            EVLOG_verbose << fmt::format("Exception during handling of: {}->{}({}): {}",
+                                         this->config.printable_identifier(this->module_id, impl_id), cmd_name,
+                                         fmt::join(arg_names, ","), e.what());
+            error = ErrorMessage{ErrorType::HandlerException, e.what()};
+        }
 
         // check retval agains manifest
-        if (this->validate_data_with_schema) {
+        if (not error.has_value() && this->validate_data_with_schema) {
             try {
                 // only use validator on non-null return types
                 if (!(res_data.at("retval").is_null() &&
@@ -892,12 +975,14 @@ void Everest::provide_cmd(const std::string& impl_id, const std::string& cmd_nam
                 EVLOG_warning << fmt::format("Ignoring return value of cmd '{}' because the validation of the result "
                                              "failed: {}\ndefinition: {}\ndata: {}",
                                              cmd_name, e.what(), cmd_definition, res_data);
-                return;
+                error = ErrorMessage{ErrorType::SchemaValidation, e.what()};
             }
         }
 
-        EVLOG_verbose << fmt::format("RETVAL: {}", res_data["retval"].dump());
         res_data["origin"] = this->module_id;
+        if (error.has_value()) {
+            res_data["error"] = error.value();
+        }
 
         const json res_publish_data = json::object({{"name", cmd_name}, {"type", "result"}, {"data", res_data}});
 
@@ -1074,6 +1159,15 @@ bool Everest::check_arg(ArgumentType arg_types, json manifest_arg) {
         }
     }
     return true;
+}
+
+void to_json(nlohmann::json& j, const ErrorMessage& e) {
+    j = {{"type", conversions::error_type_to_string(e.type)}, {"msg", e.msg}};
+}
+
+void from_json(const nlohmann::json& j, ErrorMessage& e) {
+    e.type = conversions::string_to_error_type(j.at("type"));
+    e.msg = j.at("msg");
 }
 
 void Everest::check_external_mqtt() {
