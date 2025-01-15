@@ -305,6 +305,8 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
     const auto& main_config = config.get_main_config();
     const auto& module_names = config.get_module_names();
     modules_to_spawn.reserve(main_config.size());
+    const auto number_of_modules = main_config.size();
+    EVLOG_info << "Starting " << number_of_modules << " modules";
 
     const auto interface_definitions = config.get_interface_definitions();
     std::vector<std::string> interface_names;
