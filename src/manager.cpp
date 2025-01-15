@@ -12,8 +12,10 @@
 #include <cstdlib>
 #include <errno.h>
 #include <fcntl.h>
+#include <poll.h>
 #include <pwd.h>
 #include <signal.h>
+#include <sys/signalfd.h>
 #include <sys/socket.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -42,6 +44,7 @@ using namespace Everest;
 
 const auto PARENT_DIED_SIGNAL = SIGTERM;
 const int CONTROLLER_IPC_READ_TIMEOUT_MS = 50;
+const int SIGNAL_POLL_TIMEOUT_MS = 50;
 const auto complete_start_time = std::chrono::system_clock::now();
 
 #ifdef ENABLE_ADMIN_PANEL
@@ -603,6 +606,21 @@ void cleanup(std::thread& shutdown_thread, Everest::MQTTAbstraction& mqtt_abstra
 
 int boot(const po::variables_map& vm) {
     const bool check = (vm.count("check") != 0);
+    bool sigint_received = false;
+    sigset_t mask;
+
+    sigemptyset(&mask);
+    sigaddset(&mask, SIGINT);
+    if (sigprocmask(SIG_BLOCK, &mask, NULL) == -1) {
+        // TODO(kai): error logging
+        exit(EXIT_FAILURE);
+    }
+
+    auto signal_fd = signalfd(-1, &mask, 0);
+    if (signal_fd == -1) {
+        // TODO(kai): error logging
+        exit(EXIT_FAILURE);
+    }
 
     const auto prefix_opt = parse_string_option(vm, "prefix");
     const auto config_opt = parse_string_option(vm, "config");
@@ -800,9 +818,8 @@ int boot(const po::variables_map& vm) {
         auto pid = waitpid(-1, &wstatus, WNOHANG);
 #else
         // block if admin panel is disabled, no controller RPC is handled by main loop
-        auto pid = waitpid(-1, &wstatus, 0);
+        auto pid = waitpid(-1, &wstatus, 0, WNOHANG);
 #endif
-
         if (pid == 0) {
             // nothing new from our child process
         } else if (pid == -1) {
@@ -852,7 +869,12 @@ int boot(const po::variables_map& vm) {
                         continue;
                     } else {
                         // TODO: check the shutdown_info here for non-zero exit codes
+                        for (const auto& shutdown_info_entry : shutdown_info) {
+                            EVLOG_info << fmt::format("Module {} exited with status: {}.", shutdown_info_entry.id,
+                                                      shutdown_info_entry.wstatus);
+                        }
                         EVLOG_info << "All modules shut down properly, exiting manager.";
+                        shutdown_complete = true;
                         cleanup(shutdown_thread, mqtt_abstraction);
                         return EXIT_SUCCESS;
                     }
@@ -936,6 +958,31 @@ int boot(const po::variables_map& vm) {
             // TIMEOUT fall-through
         }
 #endif
+        // check signals
+        struct pollfd pollfds[1] = {{signal_fd, POLLIN, 0}};
+        auto poll_retval = poll(pollfds, 1, SIGNAL_POLL_TIMEOUT_MS);
+        if (poll_retval > 0) {
+            struct signalfd_siginfo siginfo;
+            auto read_retval = read(signal_fd, &siginfo, sizeof(siginfo));
+            if (read_retval != sizeof(siginfo)) {
+                // TODO(kai): error reporting
+                exit(EXIT_FAILURE);
+            }
+
+            if (siginfo.ssi_signo == SIGINT) {
+                if (not sigint_received) {
+                    sigint_received = true;
+                    EVLOG_info << "Shutting down modules...";
+                    mqtt_abstraction.publish(fmt::format("{}shutdown", ms.mqtt_settings.everest_prefix),
+                                             std::string("true"), QOS::QOS2, false);
+                } else {
+                    EVLOG_info << "Terminating manager";
+                    exit(EXIT_FAILURE);
+                }
+            } else {
+                // TODO(kai): handle unexpected signal?
+            }
+        }
     }
 
     return EXIT_SUCCESS;
