@@ -21,7 +21,7 @@ Module::Module(const RuntimeSession& session) : Module(get_variable_from_env("EV
 }
 
 Module::Module(const std::string& module_id_, const RuntimeSession& session_) :
-    module_id(module_id_), session(session_) {
+    module_id(module_id_), session(session_), start_time(std::chrono::system_clock::now()) {
 
     Everest::Logging::init(session.get_logging_config_file().string(), module_id);
 
