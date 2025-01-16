@@ -812,14 +812,9 @@ int boot(const po::variables_map& vm) {
     bool shutdown_initiated = false;
     bool shutdown_complete = false;
     while (true) {
-// check if anyone died
-#ifdef ENABLE_ADMIN_PANEL
-        // non-blocking if admin panel is enabled, as this main loop also processes controller RPC
+        // check if anyone died
+        // non-blocking as this main loop also processes controller RPC and the signal fd
         auto pid = waitpid(-1, &wstatus, WNOHANG);
-#else
-        // block if admin panel is disabled, no controller RPC is handled by main loop
-        auto pid = waitpid(-1, &wstatus, 0, WNOHANG);
-#endif
         if (pid == 0) {
             // nothing new from our child process
         } else if (pid == -1) {
