@@ -811,6 +811,7 @@ int boot(const po::variables_map& vm) {
     std::thread shutdown_thread;
     bool shutdown_initiated = false;
     bool shutdown_complete = false;
+    auto shutdown_start_time = std::chrono::system_clock::now();
     while (true) {
         // check if anyone died
         // non-blocking as this main loop also processes controller RPC and the signal fd
@@ -868,7 +869,12 @@ int boot(const po::variables_map& vm) {
                             EVLOG_info << fmt::format("Module {} exited with status: {}.", shutdown_info_entry.id,
                                                       shutdown_info_entry.wstatus);
                         }
-                        EVLOG_info << "All modules shut down properly, exiting manager.";
+                        EVLOG_info << fmt::format(
+                            TERMINAL_STYLE_ERROR,
+                            "👋👋👋 All modules shut down properly. EVerest manager is exiting [{}ms] 👋👋👋",
+                            std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() -
+                                                                                  shutdown_start_time)
+                                .count());
                         shutdown_complete = true;
                         cleanup(shutdown_thread, mqtt_abstraction);
                         return EXIT_SUCCESS;
@@ -892,9 +898,11 @@ int boot(const po::variables_map& vm) {
                         }
 
                         EVLOG_info << "The following modules did not shut down correctly:" << remaining_modules;
-                        // } else {
-                        //     EVLOG_info << "All modules shut down properly, exiting manager.";
-                        // }
+                        EVLOG_info << fmt::format(TERMINAL_STYLE_ERROR,
+                                                  "👋👋👋 EVerest manager is exiting [{}ms] 👋👋👋",
+                                                  std::chrono::duration_cast<std::chrono::milliseconds>(
+                                                      std::chrono::system_clock::now() - shutdown_start_time)
+                                                      .count());
 
                         cleanup(shutdown_thread, mqtt_abstraction);
                         return EXIT_SUCCESS;
@@ -967,6 +975,7 @@ int boot(const po::variables_map& vm) {
             if (siginfo.ssi_signo == SIGINT) {
                 if (not sigint_received) {
                     sigint_received = true;
+                    shutdown_start_time = std::chrono::system_clock::now();
                     EVLOG_info << "Shutting down modules...";
                     mqtt_abstraction.publish(fmt::format("{}shutdown", ms.mqtt_settings.everest_prefix),
                                              std::string("true"), QOS::QOS2, false);
