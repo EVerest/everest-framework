@@ -574,8 +574,6 @@ int ModuleLoader::initialize() {
                    << std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count() << "ms]";
 
         everest.wait_for_main_loop_end();
-
-        EVLOG_info << "Exiting...";
     } catch (boost::exception& e) {
         EVLOG_critical << fmt::format("Caught top level boost::exception:\n{}", boost::diagnostic_information(e, true));
     } catch (std::exception& e) {

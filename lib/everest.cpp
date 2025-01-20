@@ -266,8 +266,9 @@ void Everest::register_on_ready_handler(const std::function<void()>& handler) {
 
 void Everest::register_on_shutdown_handler(const std::function<void()>& handler) {
     BOOST_LOG_FUNCTION();
-
-    this->on_shutdown = std::make_unique<std::function<void()>>(handler);
+    if (handler != nullptr) {
+        this->on_shutdown = std::make_unique<std::function<void()>>(handler);
+    }
 }
 
 std::optional<ModuleTierMappings> Everest::get_3_tier_model_mapping() {
@@ -876,7 +877,7 @@ void Everest::handle_shutdown(json data) {
         auto on_shutdown_handler = *on_shutdown;
         on_shutdown_handler();
     } else {
-        EVLOG_error << "No shutdown handler registered";
+        EVLOG_warning << "No shutdown handler registered for module " << this->module_id;
     }
 
     this->mqtt_abstraction->disconnect();
