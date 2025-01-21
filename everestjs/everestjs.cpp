@@ -200,8 +200,19 @@ void framework_ready_handler() {
 
 void framework_shutdown_handler() {
     BOOST_LOG_FUNCTION();
-    EVLOG_error << "TODO: implement shutdown handlers for JavaScript modules";
+    EVLOG_error << "Shutdown handlers for JavaScript modules are not implemented at the moment";
     _exit(EXIT_SUCCESS);
+}
+
+static Napi::Value signal_shutdown(const Napi::CallbackInfo& info) {
+    BOOST_LOG_FUNCTION();
+
+    const auto& env = info.Env();
+    Napi::Value retval;
+
+    framework_shutdown_handler();
+
+    return retval;
 }
 
 static Napi::Value mqtt_publish(const Napi::CallbackInfo& info) {
@@ -1009,6 +1020,9 @@ static Napi::Object Init(Napi::Env env, Napi::Object exports) {
 
     exports.DefineProperty(
         Napi::PropertyDescriptor::Value("signal_ready", Napi::Function::New(env, signal_ready), napi_enumerable));
+
+    exports.DefineProperty(
+        Napi::PropertyDescriptor::Value("signal_shutdown", Napi::Function::New(env, signal_shutdown), napi_enumerable));
 
     exports.DefineProperty(
         Napi::PropertyDescriptor::Value("boot_module", Napi::Function::New(env, boot_module), napi_enumerable));

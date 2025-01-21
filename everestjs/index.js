@@ -25,6 +25,10 @@ const helpers = {
 };
 
 const EverestModule = function EverestModule(handler_setup, user_settings) {
+  process.on('SIGINT', () => {
+    addon.signal_shutdown.call(this);
+    process.exit(0);
+  });
   const env_settings = {
     module: process.env.EV_MODULE,
     prefix: process.env.EV_PREFIX,
