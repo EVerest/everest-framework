@@ -604,31 +604,7 @@ void cleanup(std::thread& shutdown_thread, Everest::MQTTAbstraction& mqtt_abstra
     shutdown_thread.join();
 }
 
-int boot(const po::variables_map& vm) {
-    const bool check = (vm.count("check") != 0);
-    bool sigint_received = false;
-    sigset_t mask;
-
-    sigemptyset(&mask);
-    sigaddset(&mask, SIGINT);
-    if (sigprocmask(SIG_BLOCK, &mask, NULL) == -1) {
-        // TODO(kai): error logging
-        exit(EXIT_FAILURE);
-    }
-
-    auto signal_fd = signalfd(-1, &mask, 0);
-    if (signal_fd == -1) {
-        // TODO(kai): error logging
-        exit(EXIT_FAILURE);
-    }
-
-    const auto prefix_opt = parse_string_option(vm, "prefix");
-    const auto config_opt = parse_string_option(vm, "config");
-
-    const auto ms = ManagerSettings(prefix_opt, config_opt);
-
-    Logging::init(ms.runtime_settings->logging_config_file.string());
-
+void print_start_message(const std::string& version_information) {
     EVLOG_info << "  \033[0;1;35;95m_\033[0;1;31;91m__\033[0;1;33;93m__\033[0;1;32;92m__\033[0;1;36;96m_\033[0m      "
                   "\033[0;1;31;91m_\033[0;1;33;93m_\033[0m                \033[0;1;36;96m_\033[0m   ";
     EVLOG_info << " \033[0;1;31;91m|\033[0m  \033[0;1;33;93m_\033[0;1;32;92m__\033[0;1;36;96m_\\\033[0m "
@@ -656,8 +632,57 @@ int boot(const po::variables_map& vm) {
                   "92m/\\\033[0;1;36;96m__\033[0;1;34;94m|\033[0m";
     EVLOG_info << "";
     EVLOG_info << PROJECT_NAME << " " << PROJECT_VERSION << " " << GIT_VERSION;
-    EVLOG_info << ms.version_information;
+    EVLOG_info << version_information;
     EVLOG_info << "";
+}
+
+void print_shutdown_message(const std::optional<std::chrono::system_clock::time_point> shutdown_start_time,
+                            const std::string& message_prefix = "") {
+    auto shutdown_duration = 0;
+    if (shutdown_start_time.has_value()) {
+        shutdown_duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() -
+                                                                                  shutdown_start_time.value())
+                                .count();
+    } else {
+        EVLOG_info << "shutdown start time is not set?";
+    }
+    EVLOG_info << fmt::format(
+        TERMINAL_STYLE_ERROR, "👋👋👋 {}{}", message_prefix,
+        fmt::format(TERMINAL_STYLE_ERROR, "EVerest manager is exiting [{}ms] 👋👋👋", shutdown_duration));
+}
+
+int setup_signal_fd() {
+    sigset_t mask;
+
+    sigemptyset(&mask);
+    sigaddset(&mask, SIGINT);
+    // sigaddset(&mask, SIGTERM); // TODO: what should SIGTERM lead to, a controlled shutdown of some sorts would be a
+    // good idea but unsure if it should go through a mqtt publish
+    if (sigprocmask(SIG_BLOCK, &mask, NULL) == -1) {
+        return EXIT_FAILURE;
+    }
+
+    return signalfd(-1, &mask, 0);
+}
+
+int boot(const po::variables_map& vm) {
+    const bool check = (vm.count("check") != 0);
+    bool sigint_received = false;
+    auto signal_fd = setup_signal_fd();
+    if (signal_fd == -1) {
+        // TODO(kai): error logging
+        exit(EXIT_FAILURE);
+    }
+    struct pollfd pollfds[1] = {{signal_fd, POLLIN, 0}};
+
+    const auto prefix_opt = parse_string_option(vm, "prefix");
+    const auto config_opt = parse_string_option(vm, "config");
+
+    const auto ms = ManagerSettings(prefix_opt, config_opt);
+
+    Logging::init(ms.runtime_settings->logging_config_file.string());
+
+    print_start_message(ms.version_information);
 
     if (not ms.mqtt_settings.uses_socket()) {
         EVLOG_info << "Using MQTT broker " << ms.mqtt_settings.broker_host << ":" << ms.mqtt_settings.broker_port;
@@ -811,7 +836,7 @@ int boot(const po::variables_map& vm) {
     std::thread shutdown_thread;
     bool shutdown_initiated = false;
     bool shutdown_complete = false;
-    auto shutdown_start_time = std::chrono::system_clock::now();
+    std::optional<std::chrono::system_clock::time_point> shutdown_start_time;
     while (true) {
         // check if anyone died
         // non-blocking as this main loop also processes controller RPC and the signal fd
@@ -821,7 +846,7 @@ int boot(const po::variables_map& vm) {
         } else if (pid == -1) {
             throw std::runtime_error(fmt::format("Syscall to waitpid() failed ({})", strerror(errno)));
         } else {
-
+            auto module_exited_time = std::chrono::system_clock::now();
 #ifdef ENABLE_ADMIN_PANEL
             // one of our children exited (first check controller, then modules)
             if (pid == controller_handle.pid) {
@@ -842,6 +867,9 @@ int boot(const po::variables_map& vm) {
                 if (wstatus == 0) {
                     if (not shutdown_initiated) {
                         shutdown_initiated = true;
+                        if (not shutdown_start_time.has_value()) {
+                            shutdown_start_time = module_exited_time;
+                        }
                         shutdown_thread = std::thread(
                             [&shutdown_complete, &module_handles, &config, &mqtt_abstraction, &modules_started]() {
                                 auto count = 0;
@@ -869,12 +897,8 @@ int boot(const po::variables_map& vm) {
                             EVLOG_info << fmt::format("Module {} exited with status: {}.", shutdown_info_entry.id,
                                                       shutdown_info_entry.wstatus);
                         }
-                        EVLOG_info << fmt::format(
-                            TERMINAL_STYLE_ERROR,
-                            "👋👋👋 All modules shut down properly. EVerest manager is exiting [{}ms] 👋👋👋",
-                            std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() -
-                                                                                  shutdown_start_time)
-                                .count());
+                        print_shutdown_message(shutdown_start_time,
+                                               fmt::format(TERMINAL_STYLE_OK, "All modules shut down properly. "));
                         shutdown_complete = true;
                         cleanup(shutdown_thread, mqtt_abstraction);
                         return EXIT_SUCCESS;
@@ -898,11 +922,7 @@ int boot(const po::variables_map& vm) {
                         }
 
                         EVLOG_info << "The following modules did not shut down correctly:" << remaining_modules;
-                        EVLOG_info << fmt::format(TERMINAL_STYLE_ERROR,
-                                                  "👋👋👋 EVerest manager is exiting [{}ms] 👋👋👋",
-                                                  std::chrono::duration_cast<std::chrono::milliseconds>(
-                                                      std::chrono::system_clock::now() - shutdown_start_time)
-                                                      .count());
+                        print_shutdown_message(shutdown_start_time);
 
                         cleanup(shutdown_thread, mqtt_abstraction);
                         return EXIT_SUCCESS;
@@ -914,7 +934,11 @@ int boot(const po::variables_map& vm) {
                 modules_started = false;
 
                 // Exit if a module died, this gives systemd a change to restart manager
-                EVLOG_critical << "Exiting manager.";
+                print_shutdown_message(shutdown_start_time,
+                                       fmt::format(fmt::format(TERMINAL_STYLE_ERROR, "Abnormal shutdown caused by {}{}",
+                                                               fmt::format(TERMINAL_STYLE_BLUE, module_name),
+                                                               fmt::format(TERMINAL_STYLE_ERROR, " module. "))));
+                // TODO: cleanup_retained_topics(config, mqtt_abstraction, mqtt_everest_prefix);
                 return EXIT_FAILURE;
             } else {
                 EVLOG_info << fmt::format("Module {} (pid: {}) exited with status: {}.", module_name, pid, wstatus);
@@ -962,7 +986,6 @@ int boot(const po::variables_map& vm) {
         }
 #endif
         // check signals
-        struct pollfd pollfds[1] = {{signal_fd, POLLIN, 0}};
         auto poll_retval = poll(pollfds, 1, SIGNAL_POLL_TIMEOUT_MS);
         if (poll_retval > 0) {
             struct signalfd_siginfo siginfo;
