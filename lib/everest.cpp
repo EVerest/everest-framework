@@ -513,7 +513,7 @@ void Everest::subscribe_var(const Requirement& req, const std::string& var_name,
 }
 
 void Everest::subscribe_error(const Requirement& req, const error::ErrorType& error_type,
-                              const error::ErrorCallback& callback, const error::ErrorCallback& clear_callback) {
+                              const error::ErrorCallback& raise_callback, const error::ErrorCallback& clear_callback) {
     BOOST_LOG_FUNCTION();
 
     EVLOG_debug << fmt::format("subscribing to error: {}:{}", req.id, error_type);
@@ -548,7 +548,7 @@ void Everest::subscribe_error(const Requirement& req, const error::ErrorType& er
         return;
     }
 
-    const auto error_handler = [this, requirement_module_id, requirement_impl_id, error_type, callback,
+    const auto error_handler = [this, requirement_module_id, requirement_impl_id, error_type, raise_callback,
                                 clear_callback](const std::string&, json const& data) {
         auto error = data.get<error::Error>();
         if (error.type != error_type) {
@@ -562,7 +562,7 @@ void Everest::subscribe_error(const Requirement& req, const error::ErrorType& er
                                        this->config.printable_identifier(requirement_module_id, requirement_impl_id),
                                        error_type);
 
-            callback(error);
+            raise_callback(error);
             break;
         case error::State::ClearedByModule:
         case error::State::ClearedByReboot:
@@ -637,7 +637,7 @@ std::shared_ptr<error::ErrorStateMonitor> Everest::get_global_error_state_monito
     return this->global_error_state_monitor;
 }
 
-void Everest::subscribe_global_all_errors(const error::ErrorCallback& callback,
+void Everest::subscribe_global_all_errors(const error::ErrorCallback& raise_callback,
                                           const error::ErrorCallback& clear_callback) {
     BOOST_LOG_FUNCTION();
 
@@ -649,14 +649,14 @@ void Everest::subscribe_global_all_errors(const error::ErrorCallback& callback,
         return;
     }
 
-    const auto error_handler = [this, callback, clear_callback](const std::string&, json const& data) {
+    const auto error_handler = [this, raise_callback, clear_callback](const std::string&, json const& data) {
         error::Error error = data.get<error::Error>();
         switch (error.state) {
         case error::State::Active:
             EVLOG_debug << fmt::format(
                 "Incoming error {}->{}",
                 this->config.printable_identifier(error.origin.module_id, error.origin.implementation_id), error.type);
-            callback(error);
+            raise_callback(error);
             break;
         case error::State::ClearedByModule:
         case error::State::ClearedByReboot:
