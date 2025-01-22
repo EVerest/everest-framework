@@ -665,15 +665,41 @@ int setup_signal_fd() {
     return signalfd(-1, &mask, 0);
 }
 
+struct SignalPolling {
+    bool available = false;
+    int signal_fd = -1;
+    struct pollfd pollfds[1];
+
+    SignalPolling() {
+        signal_fd = setup_signal_fd();
+        if (signal_fd != -1) {
+            pollfds[0] = {signal_fd, POLLIN, 0};
+            available = true;
+        }
+    }
+
+    std::optional<uint32_t> poll_signal() {
+        if (not available) {
+            return std::nullopt;
+        }
+        std::optional<uint32_t> received_signal = std::nullopt;
+        auto poll_retval = poll(pollfds, 1, SIGNAL_POLL_TIMEOUT_MS);
+        if (poll_retval > 0) {
+            struct signalfd_siginfo siginfo;
+            auto read_retval = read(signal_fd, &siginfo, sizeof(siginfo));
+            if (read_retval == sizeof(siginfo)) {
+                received_signal.emplace(siginfo.ssi_signo);
+            } // TODO(kai): should we go to not available in this case?
+        }
+
+        return received_signal;
+    }
+};
+
 int boot(const po::variables_map& vm) {
     const bool check = (vm.count("check") != 0);
     bool sigint_received = false;
-    auto signal_fd = setup_signal_fd();
-    if (signal_fd == -1) {
-        // TODO(kai): error logging
-        exit(EXIT_FAILURE);
-    }
-    struct pollfd pollfds[1] = {{signal_fd, POLLIN, 0}};
+    auto signal_polling = SignalPolling();
 
     const auto prefix_opt = parse_string_option(vm, "prefix");
     const auto config_opt = parse_string_option(vm, "config");
@@ -986,16 +1012,9 @@ int boot(const po::variables_map& vm) {
         }
 #endif
         // check signals
-        auto poll_retval = poll(pollfds, 1, SIGNAL_POLL_TIMEOUT_MS);
-        if (poll_retval > 0) {
-            struct signalfd_siginfo siginfo;
-            auto read_retval = read(signal_fd, &siginfo, sizeof(siginfo));
-            if (read_retval != sizeof(siginfo)) {
-                // TODO(kai): error reporting
-                exit(EXIT_FAILURE);
-            }
-
-            if (siginfo.ssi_signo == SIGINT) {
+        auto signal_received = signal_polling.poll_signal();
+        if (signal_received.has_value()) {
+            if (signal_received.value() == SIGINT) {
                 if (not sigint_received) {
                     sigint_received = true;
                     shutdown_start_time = std::chrono::system_clock::now();
@@ -1006,8 +1025,6 @@ int boot(const po::variables_map& vm) {
                     EVLOG_info << "Terminating manager";
                     exit(EXIT_FAILURE);
                 }
-            } else {
-                // TODO(kai): handle unexpected signal?
             }
         }
     }
