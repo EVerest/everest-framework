@@ -857,8 +857,6 @@ int boot(const po::variables_map& vm) {
 
                     EVLOG_debug << fmt::format("Module {} (pid: {}) exited with status: {}.", module_name, pid,
                                                wstatus);
-                    // TODO: properly count all modules that had a clean shutdown and track the ones that crashed from
-                    // now on
                     shutdown_info.push_back({module_name, wstatus});
                     if (module_handles.size() > 0) {
                         continue;
@@ -874,8 +872,7 @@ int boot(const po::variables_map& vm) {
                         cleanup(mqtt_abstraction);
                         return EXIT_SUCCESS;
                     }
-                } else if (shutdown_info.size() >
-                           0) { // TODO: propery check if we are in shutdown (from everest object)
+                } else if (shutdown_info.size() > 0) {
                     EVLOG_error << fmt::format("Module {} (pid: {}) exited with status: {} during a shutdown. This is "
                                                "probably a bug in your shutdown handler implementation.",
                                                module_name, pid, wstatus);
@@ -883,16 +880,14 @@ int boot(const po::variables_map& vm) {
                     if (module_handles.size() > 0) {
                         continue;
                     } else {
-                        // TODO: check the shutdown_info here for non-zero exit codes
-                        // FIXME: track this further up so module_handles is not always empty...
                         std::string remaining_modules;
                         for (auto& info : shutdown_info) {
                             if (info.wstatus != 0) {
-                                remaining_modules += " " + info.id + " (status: " + std::to_string(info.wstatus) + ")";
+                                remaining_modules += fmt::format(" {} (status: {})", info.id, info.wstatus);
                             }
                         }
 
-                        EVLOG_info << "The following modules did not shut down correctly:" << remaining_modules;
+                        EVLOG_info << "Modules that did not shut down correctly:" << remaining_modules;
                         print_shutdown_message(shutdown_start_time);
 
                         cleanup(mqtt_abstraction);
