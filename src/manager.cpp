@@ -43,6 +43,7 @@ using namespace Everest;
 const auto PARENT_DIED_SIGNAL = SIGTERM;
 const int CONTROLLER_IPC_READ_TIMEOUT_MS = 50;
 const auto complete_start_time = std::chrono::system_clock::now();
+const auto SHUTDOWN_TIMEOUT_MS = 5000;
 
 #ifdef ENABLE_ADMIN_PANEL
 class ControllerHandle {
@@ -596,9 +597,8 @@ static ControllerHandle start_controller(const ManagerSettings& ms) {
 }
 #endif
 
-void cleanup(std::thread& shutdown_thread, Everest::MQTTAbstraction& mqtt_abstraction) {
+void cleanup(Everest::MQTTAbstraction& mqtt_abstraction) {
     mqtt_abstraction.disconnect();
-    shutdown_thread.join();
 }
 
 void print_start_message(const std::string& version_information) {
@@ -811,9 +811,9 @@ int boot(const po::variables_map& vm) {
 #endif
 
     std::vector<ModuleShutdownInfo> shutdown_info;
-    std::thread shutdown_thread;
     bool shutdown_initiated = false;
     bool shutdown_complete = false;
+    bool completing_shutdown = false;
     std::optional<std::chrono::system_clock::time_point> shutdown_start_time;
     while (true) {
         // check if anyone died
@@ -848,20 +848,13 @@ int boot(const po::variables_map& vm) {
                         if (not shutdown_start_time.has_value()) {
                             shutdown_start_time = module_exited_time;
                         }
-                        shutdown_thread = std::thread(
-                            [&shutdown_complete, &module_handles, &config, &mqtt_abstraction, &modules_started]() {
-                                auto count = 0;
-                                while (not shutdown_complete and count < 5) {
-                                    std::this_thread::sleep_for(std::chrono::seconds(1));
-                                    count += 1;
-                                }
-                                if (not shutdown_complete) {
-                                    EVLOG_error << "Could not shut down in time. Terminating all remaining modules.";
-                                    shutdown_complete = true;
-                                    shutdown_modules(module_handles, *config, mqtt_abstraction);
-                                }
-                            });
                     }
+                    EVLOG_info << "Module " << fmt::format(TERMINAL_STYLE_BLUE, "{}", module_name) << " shutdown ["
+                               << std::chrono::duration_cast<std::chrono::milliseconds>(
+                                      module_exited_time - shutdown_start_time.value_or(module_exited_time))
+                                      .count()
+                               << "ms]";
+
                     EVLOG_debug << fmt::format("Module {} (pid: {}) exited with status: {}.", module_name, pid,
                                                wstatus);
                     // TODO: properly count all modules that had a clean shutdown and track the ones that crashed from
@@ -878,7 +871,7 @@ int boot(const po::variables_map& vm) {
                         print_shutdown_message(shutdown_start_time,
                                                fmt::format(TERMINAL_STYLE_OK, "All modules shut down properly. "));
                         shutdown_complete = true;
-                        cleanup(shutdown_thread, mqtt_abstraction);
+                        cleanup(mqtt_abstraction);
                         return EXIT_SUCCESS;
                     }
                 } else if (shutdown_info.size() >
@@ -902,7 +895,7 @@ int boot(const po::variables_map& vm) {
                         EVLOG_info << "The following modules did not shut down correctly:" << remaining_modules;
                         print_shutdown_message(shutdown_start_time);
 
-                        cleanup(shutdown_thread, mqtt_abstraction);
+                        cleanup(mqtt_abstraction);
                         return EXIT_SUCCESS;
                     }
                 }
@@ -976,6 +969,18 @@ int boot(const po::variables_map& vm) {
                 } else {
                     EVLOG_info << "Terminating manager";
                     exit(EXIT_FAILURE);
+                }
+            }
+        }
+
+        if (shutdown_initiated and not completing_shutdown and shutdown_start_time.has_value()) {
+            if (std::chrono::system_clock::now() >=
+                shutdown_start_time.value() + std::chrono::milliseconds(SHUTDOWN_TIMEOUT_MS)) {
+                completing_shutdown = true;
+                if (not shutdown_complete) {
+                    EVLOG_error << "Could not shut down in time. Terminating all remaining modules.";
+                    shutdown_complete = true;
+                    shutdown_modules(module_handles, *config, mqtt_abstraction);
                 }
             }
         }
