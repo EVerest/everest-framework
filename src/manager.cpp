@@ -12,10 +12,8 @@
 #include <cstdlib>
 #include <errno.h>
 #include <fcntl.h>
-#include <poll.h>
 #include <pwd.h>
 #include <signal.h>
-#include <sys/signalfd.h>
 #include <sys/socket.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -44,7 +42,6 @@ using namespace Everest;
 
 const auto PARENT_DIED_SIGNAL = SIGTERM;
 const int CONTROLLER_IPC_READ_TIMEOUT_MS = 50;
-const int SIGNAL_POLL_TIMEOUT_MS = 50;
 const auto complete_start_time = std::chrono::system_clock::now();
 
 #ifdef ENABLE_ADMIN_PANEL
@@ -651,55 +648,10 @@ void print_shutdown_message(const std::optional<std::chrono::system_clock::time_
         fmt::format(TERMINAL_STYLE_ERROR, "EVerest manager is exiting [{}ms] 👋👋👋", shutdown_duration));
 }
 
-int setup_signal_fd() {
-    sigset_t mask;
-
-    sigemptyset(&mask);
-    sigaddset(&mask, SIGINT);
-    // sigaddset(&mask, SIGTERM); // TODO: what should SIGTERM lead to, a controlled shutdown of some sorts would be a
-    // good idea but unsure if it should go through a mqtt publish
-    if (sigprocmask(SIG_BLOCK, &mask, NULL) == -1) {
-        return EXIT_FAILURE;
-    }
-
-    return signalfd(-1, &mask, 0);
-}
-
-struct SignalPolling {
-    bool available = false;
-    int signal_fd = -1;
-    struct pollfd pollfds[1];
-
-    SignalPolling() {
-        signal_fd = setup_signal_fd();
-        if (signal_fd != -1) {
-            pollfds[0] = {signal_fd, POLLIN, 0};
-            available = true;
-        }
-    }
-
-    std::optional<uint32_t> poll_signal() {
-        if (not available) {
-            return std::nullopt;
-        }
-        std::optional<uint32_t> received_signal = std::nullopt;
-        auto poll_retval = poll(pollfds, 1, SIGNAL_POLL_TIMEOUT_MS);
-        if (poll_retval > 0) {
-            struct signalfd_siginfo siginfo;
-            auto read_retval = read(signal_fd, &siginfo, sizeof(siginfo));
-            if (read_retval == sizeof(siginfo)) {
-                received_signal.emplace(siginfo.ssi_signo);
-            } // TODO(kai): should we go to not available in this case?
-        }
-
-        return received_signal;
-    }
-};
-
 int boot(const po::variables_map& vm) {
     const bool check = (vm.count("check") != 0);
     bool sigint_received = false;
-    auto signal_polling = SignalPolling();
+    auto signal_polling = Everest::system::SignalPolling();
 
     const auto prefix_opt = parse_string_option(vm, "prefix");
     const auto config_opt = parse_string_option(vm, "config");
