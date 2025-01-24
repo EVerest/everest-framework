@@ -1116,15 +1116,6 @@ bool Everest::check_arg(ArgumentType arg_types, json manifest_arg) {
     return true;
 }
 
-void to_json(nlohmann::json& j, const ErrorMessage& e) {
-    j = {{"type", conversions::error_type_to_string(e.type)}, {"msg", e.msg}};
-}
-
-void from_json(const nlohmann::json& j, ErrorMessage& e) {
-    e.type = conversions::string_to_error_type(j.at("type"));
-    e.msg = j.at("msg");
-}
-
 void Everest::check_external_mqtt() {
     // check if external mqtt is enabled
     if (!module_manifest.contains("enable_external_mqtt") && !module_manifest["enable_external_mqtt"]) {
@@ -1157,6 +1148,15 @@ std::optional<Mapping> get_impl_mapping(std::optional<ModuleTierMappings> module
         return mapping.module;
     }
     return mapping.implementations.at(impl_id);
+}
+
+void to_json(nlohmann::json& j, const ErrorMessage& e) {
+    j = {{"type", conversions::error_type_to_string(e.type)}, {"msg", e.msg}};
+}
+
+void from_json(const nlohmann::json& j, ErrorMessage& e) {
+    e.type = conversions::string_to_error_type(j.at("type"));
+    e.msg = j.at("msg");
 }
 
 namespace conversions {
