@@ -869,8 +869,11 @@ void Everest::provide_cmd(const std::string& impl_id, const std::string& cmd_nam
                                      fmt::join(arg_names, ","));
 
         json res_data = json({});
-        // FIXME: this id lookup might fail -> return MessageParsing error
-        res_data["id"] = data["id"];
+        try {
+            res_data["id"] = data.at("id");
+        } catch (const json::exception& e) {
+            throw CmdError("Command did not contain id");
+        }
         std::optional<ErrorMessage> error;
 
         // check data and ignore it if not matching (publishing it should have
