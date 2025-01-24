@@ -38,54 +38,6 @@ using json_validator = nlohmann::json_schema::json_validator;
 const auto remote_cmd_res_timeout_seconds = 300;
 const std::array<std::string, 3> TELEMETRY_RESERVED_KEYS = {{"connector_id"}};
 
-namespace conversions {
-constexpr auto ERROR_TYPE_MESSAGE_PARSING = "MessageParsing";
-constexpr auto ERROR_TYPE_SCHEMA_VALIDATION = "SchemaValidation";
-constexpr auto ERROR_TYPE_HANDLER_EXCEPTION = "HandlerException";
-constexpr auto ERROR_TYPE_TIMEOUT = "Timeout";
-constexpr auto ERROR_TYPE_SHUTDOWN = "Shutdown";
-constexpr auto ERROR_TYPE_UNKNOWN = "Unknown";
-std::string error_type_to_string(ErrorType error_type) {
-    switch (error_type) {
-    case ErrorType::MessageParsing:
-        return ERROR_TYPE_MESSAGE_PARSING;
-        break;
-    case ErrorType::SchemaValidation:
-        return ERROR_TYPE_SCHEMA_VALIDATION;
-        break;
-    case ErrorType::HandlerException:
-        return ERROR_TYPE_HANDLER_EXCEPTION;
-        break;
-    case ErrorType::Timeout:
-        return ERROR_TYPE_TIMEOUT;
-        break;
-    case ErrorType::Shutdown:
-        return ERROR_TYPE_SHUTDOWN;
-        break;
-    case ErrorType::Unknown:
-        return ERROR_TYPE_UNKNOWN;
-        break;
-    }
-
-    return ERROR_TYPE_UNKNOWN;
-}
-ErrorType string_to_error_type(const std::string& error_type_string) {
-    if (error_type_string == ERROR_TYPE_MESSAGE_PARSING) {
-        return ErrorType::MessageParsing;
-    } else if (error_type_string == ERROR_TYPE_SCHEMA_VALIDATION) {
-        return ErrorType::SchemaValidation;
-    } else if (error_type_string == ERROR_TYPE_HANDLER_EXCEPTION) {
-        return ErrorType::HandlerException;
-    } else if (error_type_string == ERROR_TYPE_TIMEOUT) {
-        return ErrorType::Timeout;
-    } else if (error_type_string == ERROR_TYPE_SHUTDOWN) {
-        return ErrorType::Shutdown;
-    }
-
-    return ErrorType::Unknown;
-}
-} // namespace conversions
-
 Everest::Everest(std::string module_id_, const Config& config_, bool validate_data_with_schema,
                  std::shared_ptr<MQTTAbstraction> mqtt_abstraction, const std::string& telemetry_prefix,
                  bool telemetry_enabled) :
@@ -422,7 +374,8 @@ json Everest::call_cmd(const Requirement& req, const std::string& cmd_name, json
 
         if (data.contains("error")) {
             EVLOG_error << fmt::format(
-                "{}:{} during command call: {}->{}()", data.at("error").at("type"), data.at("error").at("msg"),
+                "{}: {} during command call: {}->{}()", data.at("error").at("type").get<std::string>(),
+                data.at("error").at("msg"),
                 this->config.printable_identifier(connection.at("module_id"), connection.at("implementation_id")),
                 cmd_name);
             res_promise.set_value(CmdResult{std::nullopt, data.at("error")});
@@ -1202,4 +1155,54 @@ std::optional<Mapping> get_impl_mapping(std::optional<ModuleTierMappings> module
     }
     return mapping.implementations.at(impl_id);
 }
+
+namespace conversions {
+constexpr auto ERROR_TYPE_MESSAGE_PARSING = "MessageParsing";
+constexpr auto ERROR_TYPE_SCHEMA_VALIDATION = "SchemaValidation";
+constexpr auto ERROR_TYPE_HANDLER_EXCEPTION = "HandlerException";
+constexpr auto ERROR_TYPE_TIMEOUT = "Timeout";
+constexpr auto ERROR_TYPE_SHUTDOWN = "Shutdown";
+constexpr auto ERROR_TYPE_UNKNOWN = "Unknown";
+std::string error_type_to_string(ErrorType error_type) {
+    switch (error_type) {
+    case ErrorType::MessageParsing:
+        return ERROR_TYPE_MESSAGE_PARSING;
+        break;
+    case ErrorType::SchemaValidation:
+        return ERROR_TYPE_SCHEMA_VALIDATION;
+        break;
+    case ErrorType::HandlerException:
+        return ERROR_TYPE_HANDLER_EXCEPTION;
+        break;
+    case ErrorType::Timeout:
+        return ERROR_TYPE_TIMEOUT;
+        break;
+    case ErrorType::Shutdown:
+        return ERROR_TYPE_SHUTDOWN;
+        break;
+    case ErrorType::Unknown:
+        return ERROR_TYPE_UNKNOWN;
+        break;
+    }
+
+    return ERROR_TYPE_UNKNOWN;
+}
+
+ErrorType string_to_error_type(const std::string& error_type_string) {
+    if (error_type_string == ERROR_TYPE_MESSAGE_PARSING) {
+        return ErrorType::MessageParsing;
+    } else if (error_type_string == ERROR_TYPE_SCHEMA_VALIDATION) {
+        return ErrorType::SchemaValidation;
+    } else if (error_type_string == ERROR_TYPE_HANDLER_EXCEPTION) {
+        return ErrorType::HandlerException;
+    } else if (error_type_string == ERROR_TYPE_TIMEOUT) {
+        return ErrorType::Timeout;
+    } else if (error_type_string == ERROR_TYPE_SHUTDOWN) {
+        return ErrorType::Shutdown;
+    }
+
+    return ErrorType::Unknown;
+}
+} // namespace conversions
+
 } // namespace Everest
