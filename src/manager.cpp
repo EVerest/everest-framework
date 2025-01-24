@@ -229,7 +229,7 @@ static std::map<pid_t, std::string> spawn_modules(const std::vector<ModuleStartI
                                                   const ManagerSettings& ms) {
     std::map<pid_t, std::string> started_modules;
 
-    const auto rs = ms.get_runtime_settings();
+    const auto& rs = ms.get_runtime_settings();
 
     for (const auto& module : modules) {
 
@@ -267,7 +267,7 @@ std::mutex modules_ready_mutex;
 
 void cleanup_retained_topics(ManagerConfig& config, MQTTAbstraction& mqtt_abstraction,
                              const std::string& mqtt_everest_prefix) {
-    const auto interface_definitions = config.get_interface_definitions();
+    const auto& interface_definitions = config.get_interface_definitions();
 
     mqtt_abstraction.publish(fmt::format("{}interfaces", mqtt_everest_prefix), std::string(), QOS::QOS2, true);
 
@@ -300,8 +300,9 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
 
     std::vector<ModuleStartInfo> modules_to_spawn;
 
-    const auto main_config = config.get_main_config();
-    modules_to_spawn.reserve(main_config.size());
+    const auto& main_config = config.get_main_config();
+    const auto number_of_modules = main_config.size();
+    EVLOG_info << "Starting " << number_of_modules << " modules";
 
     const auto serialized_config = config.serialize();
     const auto interface_definitions = config.get_interface_definitions();
@@ -353,7 +354,7 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
                              QOS::QOS2, true);
 
     for (const auto& module : serialized_config.at("module_names").items()) {
-        const std::string module_name = module.key();
+        const std::string& module_name = module.key();
         json serialized_mod_config = serialized_config;
         serialized_mod_config["module_config"] = json::object();
         // add mappings of fulfillments
@@ -405,7 +406,7 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
 
         const Handler module_ready_handler = [module_name, &mqtt_abstraction, &config, standalone_modules,
                                               mqtt_everest_prefix = ms.mqtt_settings.everest_prefix,
-                                              &status_fifo](const std::string&, nlohmann::json json) {
+                                              &status_fifo](const std::string&, const nlohmann::json& json) {
             EVLOG_debug << fmt::format("received module ready signal for module: {}({})", module_name, json.dump());
             const std::unique_lock<std::mutex> lock(modules_ready_mutex);
             // FIXME (aw): here are race conditions, if the ready handler gets called while modules are shut down!
@@ -449,7 +450,7 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
 
         const std::string config_topic = fmt::format("{}/config", config.mqtt_module_prefix(module_name));
         const Handler module_get_config_handler = [module_name, config_topic, serialized_mod_config,
-                                                   &mqtt_abstraction](const std::string&, nlohmann::json json) {
+                                                   &mqtt_abstraction](const std::string&, const nlohmann::json& json) {
             mqtt_abstraction.publish(config_topic, serialized_mod_config.dump());
         };
 
@@ -627,7 +628,7 @@ int boot(const po::variables_map& vm) {
     EVLOG_info << ms.version_information;
     EVLOG_info << "";
 
-    if (ms.mqtt_settings.uses_socket()) {
+    if (not ms.mqtt_settings.uses_socket()) {
         EVLOG_info << "Using MQTT broker " << ms.mqtt_settings.broker_host << ":" << ms.mqtt_settings.broker_port;
     } else {
         EVLOG_info << "Using MQTT broker unix domain sockets:" << ms.mqtt_settings.broker_socket_path;
@@ -720,7 +721,7 @@ int boot(const po::variables_map& vm) {
 
     const auto& main_config = config->get_main_config();
     for (const auto& module : main_config.items()) {
-        const std::string module_id = module.key();
+        const std::string& module_id = module.key();
         // check if standalone parameter is set
         const auto& module_config = main_config.at(module_id);
         if (module_config.value("standalone", false)) {
@@ -745,7 +746,7 @@ int boot(const po::variables_map& vm) {
     auto mqtt_abstraction = MQTTAbstraction(ms.mqtt_settings);
 
     if (!mqtt_abstraction.connect()) {
-        if (ms.mqtt_settings.broker_socket_path.empty()) {
+        if (not ms.mqtt_settings.uses_socket()) {
             EVLOG_error << fmt::format("Cannot connect to MQTT broker at {}:{}", ms.mqtt_settings.broker_host,
                                        ms.mqtt_settings.broker_port);
         } else {

@@ -48,9 +48,87 @@ struct ParsedConfigMap {
     std::set<std::string> unknown_config_entries;
 };
 
+void loader(const json_uri& uri, json& schema) {
+    BOOST_LOG_FUNCTION();
+
+    if (uri.location() == "http://json-schema.org/draft-07/schema") {
+        schema = nlohmann::json_schema::draft7_schema_builtin;
+        return;
+    }
+
+    // TODO(kai): think about supporting more urls here
+    EVTHROW(EverestInternalError(fmt::format("{} is not supported for schema loading at the moment\n", uri.url())));
+}
+
+void format_checker(const std::string& format, const std::string& value) {
+    BOOST_LOG_FUNCTION();
+
+    if (format == "uri") {
+        if (value.find("://") == std::string::npos) {
+            EVTHROW(std::invalid_argument("URI does not contain :// - invalid"));
+        }
+    } else if (format == "uri-reference") {
+        if (!std::regex_match(value, type_uri_regex)) {
+            EVTHROW(std::invalid_argument("Type URI is malformed."));
+        }
+    } else {
+        nlohmann::json_schema::default_string_format_check(format, value);
+    }
+}
+
+std::tuple<nlohmann::json, nlohmann::json_schema::json_validator> load_schema(const fs::path& path) {
+    BOOST_LOG_FUNCTION();
+
+    if (!fs::exists(path)) {
+        EVLOG_AND_THROW(
+            EverestInternalError(fmt::format("Schema file does not exist at: {}", fs::absolute(path).string())));
+    }
+
+    EVLOG_debug << fmt::format("Loading schema file at: {}", fs::canonical(path).string());
+
+    json schema = load_yaml(path);
+
+    auto validator = nlohmann::json_schema::json_validator(loader, format_checker);
+
+    try {
+        validator.set_root_schema(schema);
+    } catch (const std::exception& e) {
+        EVLOG_AND_THROW(EverestInternalError(
+            fmt::format("Validation of schema '{}' failed, here is why: {}", path.string(), e.what())));
+    }
+
+    return std::make_tuple<nlohmann::json, nlohmann::json_schema::json_validator>(std::move(schema),
+                                                                                  std::move(validator));
+}
+
+SchemaValidation load_schemas(const fs::path& schemas_dir) {
+    BOOST_LOG_FUNCTION();
+    SchemaValidation schema_validation;
+
+    EVLOG_debug << fmt::format("Loading base schema files for config and manifests... from: {}", schemas_dir.string());
+    auto [config_schema, config_val] = load_schema(schemas_dir / "config.yaml");
+    schema_validation.schemas.config = config_schema;
+    schema_validation.validators.config = std::move(config_val);
+    auto [manifest_schema, manifest_val] = load_schema(schemas_dir / "manifest.yaml");
+    schema_validation.schemas.manifest = manifest_schema;
+    schema_validation.validators.manifest = std::move(manifest_val);
+    auto [interface_schema, interface_val] = load_schema(schemas_dir / "interface.yaml");
+    schema_validation.schemas.interface = interface_schema;
+    schema_validation.validators.interface = std::move(interface_val);
+    auto [type_schema, type_val] = load_schema(schemas_dir / "type.yaml");
+    schema_validation.schemas.type = type_schema;
+    schema_validation.validators.type = std::move(type_val);
+    auto [error_declaration_list_schema, error_declaration_list_val] =
+        load_schema(schemas_dir / "error-declaration-list.yaml");
+    schema_validation.schemas.error_declaration_list = error_declaration_list_schema;
+    schema_validation.validators.error_declaration_list = std::move(error_declaration_list_val);
+
+    return schema_validation;
+}
+
 static void validate_config_schema(const json& config_map_schema) {
     // iterate over every config entry
-    json_validator validator(Config::loader, Config::format_checker);
+    json_validator validator(loader, format_checker);
     for (const auto& config_item : config_map_schema.items()) {
         if (!config_item.value().contains("default")) {
             continue;
@@ -78,8 +156,8 @@ static ParsedConfigMap parse_config_map(const json& config_map_schema, const jso
 
     // validate each config entry
     for (const auto& config_entry_el : config_map_schema.items()) {
-        const std::string config_entry_name = config_entry_el.key();
-        const json config_entry = config_entry_el.value();
+        const std::string& config_entry_name = config_entry_el.key();
+        const json& config_entry = config_entry_el.value();
 
         // only convenience exception, would be catched by schema validation below if not thrown here
         if (!config_entry.contains("default") and !config_map.contains(config_entry_name)) {
@@ -92,7 +170,7 @@ static ParsedConfigMap parse_config_map(const json& config_map_schema, const jso
         } else if (config_entry.contains("default")) {
             config_entry_value = config_entry.at("default"); // use default value defined in manifest
         }
-        json_validator validator(Config::loader, Config::format_checker);
+        json_validator validator(loader, format_checker);
         validator.set_root_schema(config_entry);
         try {
             auto patch = validator.validate(config_entry_value);
@@ -125,7 +203,7 @@ static auto get_provides_for_probe_module(const std::string& probe_module_id, co
         const auto& connections = module_config.value("connections", json::object());
 
         for (const auto& connection : connections.items()) {
-            const std::string req_id = connection.key();
+            const std::string& req_id = connection.key();
             const std::string module_name = module_config.at("module");
             const auto& module_manifest = manifests.at(module_name);
 
@@ -161,7 +239,7 @@ static auto get_provides_for_probe_module(const std::string& probe_module_id, co
 
 static auto get_requirements_for_probe_module(const std::string& probe_module_id, const json& config,
                                               const json& manifests) {
-    const auto probe_module_config = config.at(probe_module_id);
+    const auto& probe_module_config = config.at(probe_module_id);
 
     auto requirements = json::object();
 
@@ -181,7 +259,7 @@ static auto get_requirements_for_probe_module(const std::string& probe_module_id
 
             if (module_config_it == config.end()) {
                 EVLOG_AND_THROW(
-                    EverestConfigError("ProbeModule refers to a non-existent module id '" + module_id + "'"));
+                    EverestConfigError(fmt::format("ProbeModule refers to a non-existent module id '{}'", module_id)));
             }
 
             const auto& module_manifest = manifests.at(module_config_it->at("module"));
@@ -189,14 +267,15 @@ static auto get_requirements_for_probe_module(const std::string& probe_module_id
             const auto& module_provides_it = module_manifest.find("provides");
 
             if (module_provides_it == module_manifest.end()) {
-                EVLOG_AND_THROW(EverestConfigError("ProbeModule requires something from module id' " + module_id +
-                                                   "', but it does not provide anything"));
+                EVLOG_AND_THROW(EverestConfigError(fmt::format(
+                    "ProbeModule requires something from module id '{}' but it does not provide anything", module_id)));
             }
 
             const auto& provide_it = module_provides_it->find(impl_id);
             if (provide_it == module_provides_it->end()) {
-                EVLOG_AND_THROW(EverestConfigError("ProbeModule requires something from module id '" + module_id +
-                                                   "', but it does not provide '" + impl_id + "'"));
+                EVLOG_AND_THROW(EverestConfigError(
+                    fmt::format("ProbeModule requires something from module id '{}', but it does not provide '{}'",
+                                module_id, impl_id)));
             }
 
             const std::string interface = provide_it->at("interface");
@@ -269,7 +348,7 @@ std::string create_printable_identifier(const ImplementationInfo& info, const st
     BOOST_LOG_FUNCTION();
 
     // no implementation id yet so only return this kind of string:
-    const auto module_string = fmt::format("{}:{}", info.module_id, info.module_name);
+    auto module_string = fmt::format("{}:{}", info.module_id, info.module_name);
     if (impl_id.empty()) {
         return module_string;
     }
@@ -339,7 +418,7 @@ const json& ConfigBase::get_settings() const {
 
 const json ConfigBase::get_schemas() const {
     BOOST_LOG_FUNCTION();
-    return this->_schemas;
+    return this->schemas;
 }
 
 json ConfigBase::get_error_types() {
@@ -483,9 +562,7 @@ void ManagerConfig::load_and_validate_manifest(const std::string& module_id, con
             this->manifests[module_name] = load_yaml(manifest_path);
         }
 
-        json_validator validator(Config::loader, Config::format_checker);
-        validator.set_root_schema(this->_schemas.manifest);
-        const auto patch = validator.validate(this->manifests[module_name]);
+        const auto patch = this->validators.manifest.validate(this->manifests[module_name]);
         if (!patch.is_null()) {
             // extend manifest with default values
             this->manifests[module_name] = this->manifests[module_name].patch(patch);
@@ -579,7 +656,7 @@ void ManagerConfig::load_and_validate_manifest(const std::string& module_id, con
 
     // validate config for !module
     {
-        const json config_map = module_config.at("config_module");
+        const json& config_map = module_config.at("config_module");
         const json config_map_schema = this->manifests[module_config.at("module").get<std::string>()]["config"];
 
         try {
@@ -613,7 +690,7 @@ std::tuple<json, int64_t> ManagerConfig::load_and_validate_with_schema(const fs:
     int64_t validation_ms = 0;
 
     const auto start_time_validate = std::chrono::system_clock::now();
-    json_validator validator(Config::loader, Config::format_checker);
+    json_validator validator(loader, format_checker);
     validator.set_root_schema(schema);
     validator.validate(json_to_validate);
     const auto end_time_validate = std::chrono::system_clock::now();
@@ -647,9 +724,7 @@ json ManagerConfig::load_interface_file(const std::string& intf_name) {
         // this subschema can not use allOf with the draft-07 schema because that will cause our validator to
         // add all draft-07 default values which never validate (the {"not": true} default contradicts everything)
         // --> validating against draft-07 will be done in an extra step below
-        json_validator validator(Config::loader, Config::format_checker);
-        validator.set_root_schema(this->_schemas.interface);
-        auto patch = validator.validate(interface_json);
+        auto patch = this->validators.interface.validate(interface_json);
         if (!patch.is_null()) {
             // extend config entry with default values
             interface_json = interface_json.patch(patch);
@@ -662,7 +737,6 @@ json ManagerConfig::load_interface_file(const std::string& intf_name) {
         }
 
         // validate every cmd arg/result and var definition against draft-07 schema
-        validator.set_root_schema(draft07);
         for (auto& var_entry : interface_json["vars"].items()) {
             auto& var_value = var_entry.value();
             // erase "description"
@@ -683,7 +757,7 @@ json ManagerConfig::load_interface_file(const std::string& intf_name) {
                     }
                 }
             }
-            validator.validate(var_value);
+            this->draft7_validator->validate(var_value);
         }
         for (auto& cmd_entry : interface_json["cmds"].items()) {
             auto& cmd = interface_json["cmds"][cmd_entry.key()];
@@ -697,14 +771,14 @@ json ManagerConfig::load_interface_file(const std::string& intf_name) {
                 if (arg_entry.contains("description")) {
                     arg_entry.erase("description");
                 }
-                validator.validate(arg_entry);
+                this->draft7_validator->validate(arg_entry);
             }
             auto& result = interface_json["cmds"][cmd_entry.key()]["result"];
             // erase "description"
             if (result.contains("description")) {
                 result.erase("description");
             }
-            validator.validate(result);
+            this->draft7_validator->validate(result);
         }
 
         return interface_json;
@@ -887,7 +961,7 @@ void ManagerConfig::resolve_all_requirements() {
 }
 
 void ManagerConfig::parse(json config) {
-    this->main = config;
+    this->main = std::move(config);
     // load type files
     if (this->ms.runtime_settings->validate_schema) {
         int64_t total_time_validation_ms = 0, total_time_parsing_ms = 0;
@@ -903,7 +977,7 @@ void ManagerConfig::parse(json config) {
                     EVLOG_verbose << fmt::format("Loading type file at: {}", fs::canonical(type_file_path).c_str());
 
                     const auto [type_json, validate_ms] =
-                        load_and_validate_with_schema(type_file_path, this->_schemas.type);
+                        load_and_validate_with_schema(type_file_path, this->schemas.type);
                     total_time_validation_ms += validate_ms;
 
                     this->types[type_path] = type_json.at("types");
@@ -934,7 +1008,7 @@ void ManagerConfig::parse(json config) {
                     EVLOG_verbose << fmt::format("Loading error file at: {}", fs::canonical(error_file_path).c_str());
 
                     const auto [error_json, validate_ms] =
-                        load_and_validate_with_schema(error_file_path, this->_schemas.error_declaration_list);
+                        load_and_validate_with_schema(error_file_path, this->schemas.error_declaration_list);
                     total_time_validation_ms += validate_ms;
 
                 } catch (const std::exception& e) {
@@ -1048,8 +1122,12 @@ ManagerConfig::ManagerConfig(const ManagerSettings& ms) : ConfigBase(ms.mqtt_set
     this->interfaces = json({});
     this->interface_definitions = json({});
     this->types = json({});
-    this->_schemas = Config::load_schemas(this->ms.schemas_dir);
+    auto schema_validation = load_schemas(this->ms.schemas_dir);
+    this->schemas = schema_validation.schemas;
+    this->validators = std::move(schema_validation.validators);
     this->error_map = error::ErrorTypeMap(this->ms.errors_dir);
+    this->draft7_validator = std::make_unique<json_validator>(loader, format_checker);
+    this->draft7_validator->set_root_schema(draft07);
 
     // load and process config file
     const fs::path config_path = this->ms.config_file;
@@ -1071,9 +1149,7 @@ ManagerConfig::ManagerConfig(const ManagerSettings& ms) : ConfigBase(ms.mqtt_set
             EVLOG_verbose << "No user-config provided.";
         }
 
-        json_validator validator(Config::loader, Config::format_checker);
-        validator.set_root_schema(this->_schemas.config);
-        const auto patch = validator.validate(complete_config);
+        const auto patch = this->validators.config.validate(complete_config);
         if (!patch.is_null()) {
             // extend config with default values
             complete_config = complete_config.patch(patch);
@@ -1118,7 +1194,7 @@ Config::Config(const MQTTSettings& mqtt_settings, json serialized_config) : Conf
         this->telemetry_config = serialized_config.at("telemetry_config");
     }
 
-    this->_schemas = serialized_config.at("schemas");
+    this->schemas = serialized_config.at("schemas");
     this->error_map = error::ErrorTypeMap();
     this->error_map.load_error_types_map(serialized_config.at("error_map"));
 }
@@ -1167,7 +1243,7 @@ ModuleConfigs Config::get_module_configs(const std::string& module_id) const {
             for (const auto& entry : conf_map.value().items()) {
                 const json entry_type = config_schema.at(entry.key()).at("type");
                 ConfigEntry value;
-                const json data = entry.value();
+                const json& data = entry.value();
 
                 if (data.is_string()) {
                     value = data.get<std::string>();
@@ -1239,7 +1315,7 @@ void Config::ref_loader(const json_uri& uri, json& schema) {
         schema = nlohmann::json_schema::draft7_schema_builtin;
         return;
     } else {
-        const auto path = uri.path();
+        const auto& path = uri.path();
         if (this->types.contains(path)) {
             schema = this->types[path];
             EVLOG_verbose << fmt::format("ref path \"{}\" schema has been found.", path);
@@ -1253,50 +1329,12 @@ void Config::ref_loader(const json_uri& uri, json& schema) {
     EVTHROW(EverestInternalError(fmt::format("{} is not supported for schema loading at the moment\n", uri.url())));
 }
 
-schemas Config::load_schemas(const fs::path& schemas_dir) {
-    BOOST_LOG_FUNCTION();
-    schemas schemas;
-
-    EVLOG_debug << fmt::format("Loading base schema files for config and manifests... from: {}", schemas_dir.string());
-    schemas.config = Config::load_schema(schemas_dir / "config.yaml");
-    schemas.manifest = Config::load_schema(schemas_dir / "manifest.yaml");
-    schemas.interface = Config::load_schema(schemas_dir / "interface.yaml");
-    schemas.type = Config::load_schema(schemas_dir / "type.yaml");
-    schemas.error_declaration_list = Config::load_schema(schemas_dir / "error-declaration-list.yaml");
-
-    return schemas;
-}
-
-json Config::load_schema(const fs::path& path) {
-    BOOST_LOG_FUNCTION();
-
-    if (!fs::exists(path)) {
-        EVLOG_AND_THROW(
-            EverestInternalError(fmt::format("Schema file does not exist at: {}", fs::absolute(path).string())));
-    }
-
-    EVLOG_debug << fmt::format("Loading schema file at: {}", fs::canonical(path).string());
-
-    const json schema = load_yaml(path);
-
-    json_validator validator(Config::loader, Config::format_checker);
-
-    try {
-        validator.set_root_schema(schema);
-    } catch (const std::exception& e) {
-        EVLOG_AND_THROW(EverestInternalError(
-            fmt::format("Validation of schema '{}' failed, here is why: {}", path.string(), e.what())));
-    }
-
-    return schema;
-}
-
 json Config::load_all_manifests(const std::string& modules_dir, const std::string& schemas_dir) {
     BOOST_LOG_FUNCTION();
 
     json manifests = json({});
 
-    const schemas schemas = Config::load_schemas(schemas_dir);
+    auto schema_validation = load_schemas(schemas_dir);
 
     const fs::path modules_path = fs::path(modules_dir);
 
@@ -1312,9 +1350,7 @@ json Config::load_all_manifests(const std::string& modules_dir, const std::strin
         try {
             manifests[module_name] = load_yaml(manifest_path);
 
-            json_validator validator(Config::loader, Config::format_checker);
-            validator.set_root_schema(schemas.manifest);
-            validator.validate(manifests.at(module_name));
+            schema_validation.validators.manifest.validate(manifests.at(module_name));
         } catch (const std::exception& e) {
             EVLOG_AND_THROW(EverestConfigError(
                 fmt::format("Failed to load and parse module manifest file of module {}: {}", module_name, e.what())));
@@ -1344,38 +1380,10 @@ std::set<std::string> Config::keys(const json& object) {
     return keys;
 }
 
-void Config::loader(const json_uri& uri, json& schema) {
-    BOOST_LOG_FUNCTION();
-
-    if (uri.location() == "http://json-schema.org/draft-07/schema") {
-        schema = nlohmann::json_schema::draft7_schema_builtin;
-        return;
-    }
-
-    // TODO(kai): think about supporting more urls here
-    EVTHROW(EverestInternalError(fmt::format("{} is not supported for schema loading at the moment\n", uri.url())));
-}
-
-void Config::format_checker(const std::string& format, const std::string& value) {
-    BOOST_LOG_FUNCTION();
-
-    if (format == "uri") {
-        if (value.find("://") == std::string::npos) {
-            EVTHROW(std::invalid_argument("URI does not contain :// - invalid"));
-        }
-    } else if (format == "uri-reference") {
-        if (!std::regex_match(value, type_uri_regex)) {
-            EVTHROW(std::invalid_argument("Type URI is malformed."));
-        }
-    } else {
-        nlohmann::json_schema::default_string_format_check(format, value);
-    }
-}
-
 } // namespace Everest
 
 NLOHMANN_JSON_NAMESPACE_BEGIN
-void adl_serializer<Everest::schemas>::to_json(nlohmann::json& j, const Everest::schemas& s) {
+void adl_serializer<Everest::Schemas>::to_json(nlohmann::json& j, const Everest::Schemas& s) {
     j = {{"config", s.config},
          {"manifest", s.manifest},
          {"interface", s.interface},
@@ -1383,7 +1391,7 @@ void adl_serializer<Everest::schemas>::to_json(nlohmann::json& j, const Everest:
          {"error_declaration_list", s.error_declaration_list}};
 }
 
-void adl_serializer<Everest::schemas>::from_json(const nlohmann::json& j, Everest::schemas& s) {
+void adl_serializer<Everest::Schemas>::from_json(const nlohmann::json& j, Everest::Schemas& s) {
     s.config = j.at("config");
     s.manifest = j.at("manifest");
     s.interface = j.at("interface");
