@@ -69,6 +69,7 @@ std::list<ErrorPtr> ErrorManagerImpl::clear_error(const ErrorType& type, const b
     std::stringstream ss;
     ss << "Cleared " << res.size() << " errors of type " << type << " with sub_types:" << std::endl;
     for (const ErrorPtr& error : res) {
+        error->state = State::ClearedByModule;
         this->publish_cleared_error(*error);
         ss << "  - " << error->sub_type << std::endl;
     }
