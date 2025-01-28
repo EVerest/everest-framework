@@ -6,6 +6,7 @@
 #include <utils/error.hpp>
 #include <utils/error/error_database.hpp>
 #include <utils/error/error_type_map.hpp>
+#include <utils/error/error_json.hpp>
 
 #include <everest/logging.hpp>
 
@@ -40,13 +41,19 @@ void ErrorManagerImpl::raise_error(const Error& error) {
     if (validate_error_types) {
         if (std::find(allowed_error_types.begin(), allowed_error_types.end(), error.type) ==
             allowed_error_types.end()) {
-            EVLOG_error << "Error type " << error.type << " is not allowed to be raised. Ignoring.";
+            std::stringstream ss;
+            ss << "Error type " << error.type << " is not allowed to be raised. Ignoring.";
+            ss << std::endl << "Error object: " << nlohmann::json(error).dump(2);
+            EVLOG_error << ss.str();
             return;
         }
     }
     if (!can_be_raised(error.type, error.sub_type)) {
-        EVLOG_debug << "Error can't be raised, because type " << error.type << ", sub_type " << error.sub_type
-                    << " is already active.";
+        std::stringstream ss;
+        ss << "Error can't be raised, because type " << error.type << ", sub_type " << error.sub_type
+            << " is already active.";
+        ss << std::endl << "Error object: " << nlohmann::json(error).dump(2);
+        EVLOG_debug << ss.str();
         return;
     }
     database->add_error(std::make_shared<Error>(error));
@@ -86,7 +93,12 @@ std::list<ErrorPtr> ErrorManagerImpl::clear_error(const ErrorType& type, const E
     std::list<ErrorFilter> filters = {ErrorFilter(TypeFilter(type)), ErrorFilter(SubTypeFilter(sub_type))};
     std::list<ErrorPtr> res = database->remove_errors(filters);
     if (res.size() > 1) {
-        EVLOG_error << "There are more than one matching error, this is not valid";
+        std::stringstream ss;
+        ss << "There are more than one matching error, this is not valid:" << std::endl;
+        for (const ErrorPtr& error : res) {
+            ss << nlohmann::json(*error).dump(2) << std::endl;
+        }
+        EVLOG_error << ss.str();
         return {};
     }
     const ErrorPtr error = res.front();
