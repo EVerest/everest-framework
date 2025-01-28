@@ -5,8 +5,8 @@
 
 #include <utils/error.hpp>
 #include <utils/error/error_database.hpp>
-#include <utils/error/error_type_map.hpp>
 #include <utils/error/error_json.hpp>
+#include <utils/error/error_type_map.hpp>
 
 #include <everest/logging.hpp>
 
@@ -51,7 +51,7 @@ void ErrorManagerImpl::raise_error(const Error& error) {
     if (!can_be_raised(error.type, error.sub_type)) {
         std::stringstream ss;
         ss << "Error can't be raised, because type " << error.type << ", sub_type " << error.sub_type
-            << " is already active.";
+           << " is already active.";
         ss << std::endl << "Error object: " << nlohmann::json(error).dump(2);
         EVLOG_debug << ss.str();
         return;

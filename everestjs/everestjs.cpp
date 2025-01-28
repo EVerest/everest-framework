@@ -767,11 +767,11 @@ static Napi::Value boot_module(const Napi::CallbackInfo& info) {
                 for (auto const& var_name : requirement_vars) {
                     var_subscribe_prop.DefineProperty(Napi::PropertyDescriptor::Value(
                         var_name,
-                        Napi::Function::New(env,
-                                            [requirement_id, i, var_name](const Napi::CallbackInfo& info) {
-                                                return set_var_subscription_handler({requirement_id, i}, var_name,
-                                                                                    info);
-                                            }),
+                        Napi::Function::New(
+                            env,
+                            [requirement_id, i, var_name](const Napi::CallbackInfo& info) {
+                                return set_var_subscription_handler({requirement_id, i}, var_name, info);
+                            }),
                         napi_enumerable));
                 }
 

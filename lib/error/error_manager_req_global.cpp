@@ -5,8 +5,8 @@
 
 #include <everest/logging.hpp>
 #include <utils/error/error_database.hpp>
-#include <utils/error/error_type_map.hpp>
 #include <utils/error/error_json.hpp>
+#include <utils/error/error_type_map.hpp>
 
 namespace Everest {
 namespace error {
@@ -47,7 +47,7 @@ void ErrorManagerReqGlobal::on_error_raised(const Error& error) {
     if (!errors.empty()) {
         std::stringstream ss;
         ss << "Error of type '" << error.type << "' and sub type '" << error.sub_type
-            << "' is already raised, ignoring new error";
+           << "' is already raised, ignoring new error";
         ss << std::endl << "Error object: " << nlohmann::json(error).dump(2);
         EVLOG_error << ss.str();
         return;
@@ -78,7 +78,7 @@ void ErrorManagerReqGlobal::on_error_cleared(const Error& error) {
     if (errors.empty()) {
         std::stringstream ss;
         ss << "Error of type '" << error.type << "' and sub type '" << error.sub_type
-                    << "' is not raised, ignoring clear error";
+           << "' is not raised, ignoring clear error";
         ss << std::endl << "Error object: " << nlohmann::json(error).dump(2);
         EVLOG_error << ss.str();
         return;

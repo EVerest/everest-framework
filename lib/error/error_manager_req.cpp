@@ -6,8 +6,8 @@
 #include <utils/error.hpp>
 #include <utils/error/error_database.hpp>
 #include <utils/error/error_filter.hpp>
-#include <utils/error/error_type_map.hpp>
 #include <utils/error/error_json.hpp>
+#include <utils/error/error_type_map.hpp>
 
 #include <everest/logging.hpp>
 
@@ -61,7 +61,7 @@ void ErrorManagerReq::on_error_raised(const Error& error) {
     if (std::find(allowed_error_types.begin(), allowed_error_types.end(), error.type) == allowed_error_types.end()) {
         std::stringstream ss;
         ss << "Error can't be raised by module_id " << error.origin.module_id << " and implemenetation_id "
-                    << error.origin.implementation_id << ", ignored.";
+           << error.origin.implementation_id << ", ignored.";
         ss << std::endl << "Error object: " << nlohmann::json(error).dump(2);
         EVLOG_error << ss.str();
         return;
@@ -82,8 +82,7 @@ void ErrorManagerReq::on_error_cleared(const Error& error) {
     std::list<ErrorPtr> res = database->remove_errors(filters);
     if (res.size() < 1) {
         std::stringstream ss;
-        ss << "Error wasn't raised, type: " << error.type << ", sub_type: " << error.sub_type
-                    << ", ignored.";
+        ss << "Error wasn't raised, type: " << error.type << ", sub_type: " << error.sub_type << ", ignored.";
         ss << std::endl << "Error object: " << nlohmann::json(error).dump(2);
         EVLOG_error << ss.str();
         return;
@@ -91,7 +90,7 @@ void ErrorManagerReq::on_error_cleared(const Error& error) {
     if (res.size() > 1) {
         std::stringstream ss;
         ss << "More than one error is cleared, type: " << error.type << ", sub_type: " << error.sub_type
-                    << ", ignored.";
+           << ", ignored.";
         for (const ErrorPtr& error : res) {
             ss << std::endl << "Error object: " << nlohmann::json(*error).dump(2);
         }
