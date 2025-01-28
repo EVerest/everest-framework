@@ -62,26 +62,9 @@ void ErrorManagerImpl::raise_error(const Error& error) {
                 << ", message: " << error.message;
 }
 
-std::list<ErrorPtr> ErrorManagerImpl::clear_error(const ErrorType& type, const bool clear_all) {
-    if (!clear_all) {
-        const ErrorSubType sub_type("");
-        return clear_error(type, sub_type);
-    }
-    if (!can_be_cleared(type)) {
-        EVLOG_debug << "Errors can't be cleared, because type " << type << " is not active.";
-        return {};
-    }
-    std::list<ErrorFilter> filters = {ErrorFilter(TypeFilter(type))};
-    std::list<ErrorPtr> res = database->remove_errors(filters);
-    std::stringstream ss;
-    ss << "Cleared " << res.size() << " errors of type " << type << " with sub_types:" << std::endl;
-    for (const ErrorPtr& error : res) {
-        error->state = State::ClearedByModule;
-        this->publish_cleared_error(*error);
-        ss << "  - " << error->sub_type << std::endl;
-    }
-    EVLOG_info << ss.str();
-    return res;
+std::list<ErrorPtr> ErrorManagerImpl::clear_error(const ErrorType& type) {
+    const ErrorSubType sub_type("");
+    return clear_error(type, sub_type);
 }
 
 std::list<ErrorPtr> ErrorManagerImpl::clear_error(const ErrorType& type, const ErrorSubType& sub_type) {
@@ -117,6 +100,24 @@ std::list<ErrorPtr> ErrorManagerImpl::clear_all_errors() {
         error->state = State::ClearedByModule;
         this->publish_cleared_error(*error);
         ss << "  - type: " << error->type << ", sub_type: " << error->sub_type << std::endl;
+    }
+    EVLOG_info << ss.str();
+    return res;
+}
+
+std::list<ErrorPtr> ErrorManagerImpl::clear_all_errors(const ErrorType& error_type) {
+    if (!can_be_cleared(error_type)) {
+        EVLOG_debug << "Errors can't be cleared, because type " << error_type << " is not active.";
+        return {};
+    }
+    std::list<ErrorFilter> filters = {ErrorFilter(TypeFilter(type))};
+    std::list<ErrorPtr> res = database->remove_errors(filters);
+    std::stringstream ss;
+    ss << "Cleared " << res.size() << " errors of type " << error_type << " with sub_types:" << std::endl;
+    for (const ErrorPtr& error : res) {
+        error->state = State::ClearedByModule;
+        this->publish_cleared_error(*error);
+        ss << "  - " << error->sub_type << std::endl;
     }
     EVLOG_info << ss.str();
     return res;
