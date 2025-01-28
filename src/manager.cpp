@@ -795,6 +795,8 @@ int boot(const po::variables_map& vm) {
                 shutdown_modules(module_handles, *config, mqtt_abstraction);
                 modules_started = false;
 
+                mqtt_abstraction.clear_retained_topics();
+
                 // Exit if a module died, this gives systemd a change to restart manager
                 EVLOG_critical << "Exiting manager.";
                 return EXIT_FAILURE;
