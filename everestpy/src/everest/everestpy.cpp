@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-// Copyright 2020 - 2023 Pionix GmbH and Contributors to EVerest
+// Copyright Pionix GmbH and Contributors to EVerest
 #include <filesystem>
 #include <fstream>
 
@@ -14,6 +14,7 @@
 #include "misc.hpp"
 #include "module.hpp"
 
+#include <generated/version_information.hpp>
 #include <utils/error.hpp>
 #include <utils/error/error_factory.hpp>
 #include <utils/error/error_state_monitor.hpp>

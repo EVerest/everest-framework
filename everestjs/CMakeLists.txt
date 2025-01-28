@@ -51,6 +51,9 @@ if (NOT NODE_ADDON_API_PACKAGE_DIR)
     endif ()
 endif ()
 
+# populate package.json with version information
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/package.json.in" "${CMAKE_CURRENT_SOURCE_DIR}/package.json" @ONLY)
+
 execute_process(
     COMMAND ${NODE} -p "require('node-addon-api').include"
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}

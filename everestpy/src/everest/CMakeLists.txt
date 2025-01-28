@@ -11,6 +11,14 @@ endif()
 
 pybind11_add_module(everestpy misc.cpp module.cpp everestpy.cpp)
 
+# generate version information header
+evc_generate_version_information()
+target_include_directories(everestpy
+    PRIVATE
+        ${CMAKE_CURRENT_BINARY_DIR}/generated/include
+)
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/framework/_version.in" "${CMAKE_CURRENT_SOURCE_DIR}/framework/_version.py" @ONLY)
+
 target_compile_options(everestpy PRIVATE ${COMPILER_WARNING_OPTIONS})
 
 target_link_libraries(everestpy
