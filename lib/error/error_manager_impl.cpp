@@ -110,7 +110,7 @@ std::list<ErrorPtr> ErrorManagerImpl::clear_all_errors(const ErrorType& error_ty
         EVLOG_debug << "Errors can't be cleared, because type " << error_type << " is not active.";
         return {};
     }
-    std::list<ErrorFilter> filters = {ErrorFilter(TypeFilter(type))};
+    std::list<ErrorFilter> filters = {ErrorFilter(TypeFilter(error_type))};
     std::list<ErrorPtr> res = database->remove_errors(filters);
     std::stringstream ss;
     ss << "Cleared " << res.size() << " errors of type " << error_type << " with sub_types:" << std::endl;
