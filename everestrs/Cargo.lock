@@ -128,7 +128,7 @@ dependencies = [
 
 [[package]]
 name = "everestrs-build"
-version = "0.1.0"
+version = "0.20.0"
 dependencies = [
  "anyhow",
  "argh",
