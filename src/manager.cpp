@@ -265,46 +265,21 @@ struct ModuleReadyInfo {
 std::map<std::string, ModuleReadyInfo> modules_ready;
 std::mutex modules_ready_mutex;
 
-void cleanup_retained_topics(ManagerConfig& config, MQTTAbstraction& mqtt_abstraction,
-                             const std::string& mqtt_everest_prefix) {
-    const auto& interface_definitions = config.get_interface_definitions();
-
-    mqtt_abstraction.publish(fmt::format("{}interfaces", mqtt_everest_prefix), std::string(), QOS::QOS2, true);
-
-    for (const auto& interface_definition : interface_definitions.items()) {
-        mqtt_abstraction.publish(
-            fmt::format("{}interface_definitions/{}", mqtt_everest_prefix, interface_definition.key()), std::string(),
-            QOS::QOS2, true);
-    }
-
-    mqtt_abstraction.publish(fmt::format("{}types", mqtt_everest_prefix), std::string(), QOS::QOS2, true);
-
-    mqtt_abstraction.publish(fmt::format("{}module_provides", mqtt_everest_prefix), std::string(), QOS::QOS2, true);
-
-    mqtt_abstraction.publish(fmt::format("{}settings", mqtt_everest_prefix), std::string(), QOS::QOS2, true);
-
-    mqtt_abstraction.publish(fmt::format("{}schemas", mqtt_everest_prefix), std::string(), QOS::QOS2, true);
-
-    mqtt_abstraction.publish(fmt::format("{}manifests", mqtt_everest_prefix), std::string(), QOS::QOS2, true);
-
-    mqtt_abstraction.publish(fmt::format("{}error_types_map", mqtt_everest_prefix), std::string(), QOS::QOS2, true);
-
-    mqtt_abstraction.publish(fmt::format("{}module_config_cache", mqtt_everest_prefix), std::string(), QOS::QOS2, true);
-}
-
 static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbstraction& mqtt_abstraction,
                                                   const std::vector<std::string>& ignored_modules,
                                                   const std::vector<std::string>& standalone_modules,
-                                                  const ManagerSettings& ms, StatusFifo& status_fifo) {
+                                                  const ManagerSettings& ms, StatusFifo& status_fifo,
+                                                  bool retain_topics) {
     BOOST_LOG_FUNCTION();
 
     std::vector<ModuleStartInfo> modules_to_spawn;
 
     const auto& main_config = config.get_main_config();
+    const auto& module_names = config.get_module_names();
+    modules_to_spawn.reserve(main_config.size());
     const auto number_of_modules = main_config.size();
     EVLOG_info << "Starting " << number_of_modules << " modules";
 
-    const auto serialized_config = config.serialize();
     const auto interface_definitions = config.get_interface_definitions();
     std::vector<std::string> interface_names;
     for (auto& interface_definition : interface_definitions.items()) {
@@ -343,7 +318,13 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
     mqtt_abstraction.publish(fmt::format("{}schemas", ms.mqtt_settings.everest_prefix), schemas, QOS::QOS2, true);
 
     const auto manifests = config.get_manifests();
-    mqtt_abstraction.publish(fmt::format("{}manifests", ms.mqtt_settings.everest_prefix), manifests, QOS::QOS2, true);
+
+    for (const auto& manifest : manifests.items()) {
+        auto manifest_copy = manifest.value();
+        manifest_copy.erase("config");
+        mqtt_abstraction.publish(fmt::format("{}manifests/{}", ms.mqtt_settings.everest_prefix, manifest.key()),
+                                 manifest_copy, QOS::QOS2, true);
+    }
 
     const auto error_types_map = config.get_error_types();
     mqtt_abstraction.publish(fmt::format("{}error_types_map", ms.mqtt_settings.everest_prefix), error_types_map,
@@ -353,12 +334,16 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
     mqtt_abstraction.publish(fmt::format("{}module_config_cache", ms.mqtt_settings.everest_prefix), module_config_cache,
                              QOS::QOS2, true);
 
-    for (const auto& module : serialized_config.at("module_names").items()) {
-        const std::string& module_name = module.key();
-        json serialized_mod_config = serialized_config;
+    mqtt_abstraction.publish(fmt::format("{}module_names", ms.mqtt_settings.everest_prefix), module_names, QOS::QOS2,
+                             true);
+
+    for (const auto& module_name_entry : module_names) {
+        const auto& module_name = module_name_entry.first;
+        const auto& module_type = module_name_entry.second;
+        json serialized_mod_config = json::object();
         serialized_mod_config["module_config"] = json::object();
+        serialized_mod_config["module_config"][module_name] = main_config.at(module_name);
         // add mappings of fulfillments
-        serialized_mod_config["module_config"][module_name] = serialized_config.at("main").at(module_name);
         const auto fulfillments = config.get_fulfillments(module_name);
         serialized_mod_config["mappings"] = json::object();
         for (const auto& fulfillment_list : fulfillments) {
@@ -374,7 +359,6 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
         if (mappings.has_value()) {
             serialized_mod_config["mappings"][module_name] = mappings.value();
         }
-        serialized_mod_config.erase("main"); // FIXME: do not put this "main" config in there in the first place
         const auto telemetry_config = config.get_telemetry_config(module_name);
         if (telemetry_config.has_value()) {
             serialized_mod_config["telemetry_config"] = telemetry_config.value();
@@ -385,10 +369,19 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
             continue;
         }
 
-        // FIXME (aw): shall create a ref to main_confit.at(module_name)!
-        const std::string module_type = main_config.at(module_name).at("module");
         // FIXME (aw): implicitely adding ModuleReadyInfo and setting its ready member
         auto module_it = modules_ready.emplace(module_name, ModuleReadyInfo{false, nullptr, nullptr}).first;
+
+        const std::string config_topic = fmt::format("{}/config", config.mqtt_module_prefix(module_name));
+        const Handler module_get_config_handler = [module_name, config_topic, serialized_mod_config,
+                                                   &mqtt_abstraction](const std::string&, const nlohmann::json& json) {
+            mqtt_abstraction.publish(config_topic, serialized_mod_config.dump(), QOS::QOS2);
+        };
+
+        const std::string get_config_topic = fmt::format("{}/get_config", config.mqtt_module_prefix(module_name));
+        module_it->second.get_config_token = std::make_shared<TypedHandler>(
+            HandlerType::ExternalMQTT, std::make_shared<Handler>(module_get_config_handler));
+        mqtt_abstraction.register_handler(get_config_topic, module_it->second.get_config_token, QOS::QOS2);
 
         const auto capabilities = [&module_config = main_config.at(module_name)]() {
             const auto cap_it = module_config.find("capabilities");
@@ -405,8 +398,8 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
         }
 
         const Handler module_ready_handler = [module_name, &mqtt_abstraction, &config, standalone_modules,
-                                              mqtt_everest_prefix = ms.mqtt_settings.everest_prefix,
-                                              &status_fifo](const std::string&, const nlohmann::json& json) {
+                                              mqtt_everest_prefix = ms.mqtt_settings.everest_prefix, &status_fifo,
+                                              retain_topics](const std::string&, const nlohmann::json& json) {
             EVLOG_debug << fmt::format("received module ready signal for module: {}({})", module_name, json.dump());
             const std::unique_lock<std::mutex> lock(modules_ready_mutex);
             // FIXME (aw): here are race conditions, if the ready handler gets called while modules are shut down!
@@ -428,11 +421,16 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
                             [](const auto& element) { return element.second.ready; })) {
                 const auto complete_end_time = std::chrono::system_clock::now();
                 status_fifo.update(StatusFifo::ALL_MODULES_STARTED);
+                if (not retain_topics) {
+                    EVLOG_info << "Clearing retained topics published by manager during startup";
+                    mqtt_abstraction.clear_retained_topics();
+                } else {
+                    EVLOG_info << "Keeping retained topics published by manager during startup for inspection";
+                }
                 EVLOG_info << fmt::format(
                     TERMINAL_STYLE_OK, "🚙🚙🚙 All modules are initialized. EVerest up and running [{}ms] 🚙🚙🚙",
                     std::chrono::duration_cast<std::chrono::milliseconds>(complete_end_time - complete_start_time)
                         .count());
-                // cleanup_retained_topics(config, mqtt_abstraction, mqtt_everest_prefix);
                 mqtt_abstraction.publish(fmt::format("{}ready", mqtt_everest_prefix), nlohmann::json(true));
             } else if (!standalone_modules.empty()) {
                 if (modules_spawned == modules_ready.size() - standalone_modules.size()) {
@@ -447,17 +445,6 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
         module_it->second.ready_token =
             std::make_shared<TypedHandler>(HandlerType::ExternalMQTT, std::make_shared<Handler>(module_ready_handler));
         mqtt_abstraction.register_handler(ready_topic, module_it->second.ready_token, QOS::QOS2);
-
-        const std::string config_topic = fmt::format("{}/config", config.mqtt_module_prefix(module_name));
-        const Handler module_get_config_handler = [module_name, config_topic, serialized_mod_config,
-                                                   &mqtt_abstraction](const std::string&, const nlohmann::json& json) {
-            mqtt_abstraction.publish(config_topic, serialized_mod_config.dump());
-        };
-
-        const std::string get_config_topic = fmt::format("{}/get_config", config.mqtt_module_prefix(module_name));
-        module_it->second.get_config_token = std::make_shared<TypedHandler>(
-            HandlerType::ExternalMQTT, std::make_shared<Handler>(module_get_config_handler));
-        mqtt_abstraction.register_handler(get_config_topic, module_it->second.get_config_token, QOS::QOS2);
 
         if (std::any_of(standalone_modules.begin(), standalone_modules.end(),
                         [module_name](const auto& element) { return element == module_name; })) {
@@ -666,6 +653,8 @@ int boot(const po::variables_map& vm) {
         return EXIT_SUCCESS;
     }
 
+    const bool retain_topics = (vm.count("retain-topics") != 0);
+
     const auto start_time = std::chrono::system_clock::now();
     std::unique_ptr<ManagerConfig> config;
     try {
@@ -759,7 +748,7 @@ int boot(const po::variables_map& vm) {
     mqtt_abstraction.spawn_main_loop_thread();
 
     auto module_handles =
-        start_modules(*config, mqtt_abstraction, ignored_modules, standalone_modules, ms, status_fifo);
+        start_modules(*config, mqtt_abstraction, ignored_modules, standalone_modules, ms, status_fifo, retain_topics);
     bool modules_started = true;
     bool restart_modules = false;
 
@@ -814,6 +803,8 @@ int boot(const po::variables_map& vm) {
                 shutdown_modules(module_handles, *config, mqtt_abstraction);
                 modules_started = false;
 
+                mqtt_abstraction.clear_retained_topics();
+
                 // Exit if a module died, this gives systemd a change to restart manager
                 EVLOG_critical << "Exiting manager.";
                 return EXIT_FAILURE;
@@ -824,8 +815,8 @@ int boot(const po::variables_map& vm) {
 
 #ifdef ENABLE_ADMIN_PANEL
         if (module_handles.size() == 0 && restart_modules) {
-            module_handles =
-                start_modules(*config, mqtt_abstraction, ignored_modules, standalone_modules, ms, status_fifo);
+            module_handles = start_modules(*config, mqtt_abstraction, ignored_modules, standalone_modules, ms,
+                                           status_fifo, retain_topics);
             restart_modules = false;
             modules_started = true;
         }
@@ -889,6 +880,8 @@ int main(int argc, char* argv[]) {
                        "looked up in the default config directory");
     desc.add_options()("status-fifo", po::value<std::string>()->default_value(""),
                        "Path to a named pipe, that shall be used for status updates from the manager");
+    desc.add_options()("retain-topics", "Retain configuration MQTT topics setup by manager for inspection, by default "
+                                        "these will be cleared after startup");
 
     po::variables_map vm;
 
