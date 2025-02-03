@@ -1,6 +1,5 @@
 use everestrs_build::schema;
 
-use argh::FromArgs;
 use log::debug;
 use serde::de::DeserializeOwned;
 use std::collections::HashMap;
@@ -12,6 +11,7 @@ use std::sync::Once;
 use std::sync::RwLock;
 use std::sync::Weak;
 use thiserror::Error;
+use clap::Parser;
 
 /// Prevent calling the init of loggers more than once.
 static INIT_LOGGER_ONCE: Once = Once::new();
@@ -325,40 +325,38 @@ unsafe impl Send for ffi::Module {}
 pub use ffi::{ErrorSeverity, ErrorType};
 
 /// Arguments for an EVerest node.
-#[derive(FromArgs, Debug)]
+#[derive(Parser, Debug)]
 struct Args {
-    /// TODO: add version param
-
     /// prefix of installation.
-    #[argh(option)]
+    #[arg(long)]
     pub prefix: PathBuf,
 
     /// logging configuration that we are using.
-    #[argh(option, long="log_config")]
+    #[arg(long, long="log_config")]
     pub log_config: PathBuf,
 
     /// module name for us.
-    #[argh(option)]
+    #[arg(long)]
     pub module: String,
 
     /// MQTT broker socket path
-    #[argh(option, long="mqtt_broker_socket_path")]
-    pub mqtt_broker_socket_path: PathBuf,
+    #[arg(long="mqtt_broker_socket_path")]
+    pub mqtt_broker_socket_path: Option<PathBuf>,
 
     /// MQTT broker hostname
-    #[argh(option, long="mqtt_broker_host")]
+    #[arg(long="mqtt_broker_host")]
     pub mqtt_broker_host: String,
 
     /// MQTT broker port
-    #[argh(option, long="mqtt_broker_port")]
+    #[arg(long="mqtt_broker_port")]
     pub mqtt_broker_port: u32,
 
     /// MQTT EVerest prefix
-    #[argh(option, long="mqtt_everest_prefix")]
+    #[arg(long="mqtt_everest_prefix")]
     pub mqtt_everest_prefix: String,
 
     /// MQTT external prefix
-    #[argh(option, long="mqtt_external_prefix")]
+    #[arg(long="mqtt_external_prefix")]
     pub mqtt_external_prefix: String,
 }
 
@@ -531,7 +529,7 @@ impl Runtime {
 
     // TODO(hrapp): This function could use some error handling.
     pub fn new() -> Pin<Arc<Self>> {
-        let args: Args = argh::from_env();
+        let args: Args = Args::parse();
         logger::Logger::init_logger(
             &args.module,
             &args.prefix.to_string_lossy(),
@@ -541,7 +539,7 @@ impl Runtime {
         let cpp_module = ffi::create_module(
             &args.module,
             &args.prefix.to_string_lossy(),
-            &args.mqtt_broker_socket_path.to_string_lossy(),
+            &args.mqtt_broker_socket_path.unwrap_or_default().to_string_lossy(),
             &args.mqtt_broker_host,
             &args.mqtt_broker_port,
             &args.mqtt_everest_prefix,
@@ -558,12 +556,15 @@ impl Runtime {
         *self.sub_impl.write().unwrap() = Some(sub_impl);
         let manifest_json = self.cpp_module.get_manifest();
         let manifest: schema::Manifest = manifest_json.deserialize();
+        log::debug!("Deserialiazed the manifest {manifest:?}");
 
         // Implement all commands for all of our implementations, dispatch everything to the
         // Subscriber.
         for (implementation_id, provides) in manifest.provides {
             let interface_s = self.cpp_module.get_interface(&provides.interface);
             let interface: schema::InterfaceFromEverest = interface_s.deserialize();
+            log::debug!("Deserialiazed the interface {interface:?}");
+
             for (name, _) in interface.cmds {
                 self.cpp_module
                     .provide_command(self, implementation_id.clone(), name);
@@ -583,6 +584,7 @@ impl Runtime {
                 continue;
             }
             let interface: schema::InterfaceFromEverest = interface_s.deserialize();
+            log::debug!("Deserialiazed the interface {interface:?}");
 
             for i in 0usize..connection {
                 for (name, _) in interface.vars.iter() {
@@ -669,7 +671,7 @@ impl TryFrom<&Config> for i64 {
 /// This is separetated from the module since the user might need the config
 /// to create the [Runtime].
 pub fn get_module_configs() -> HashMap<String, HashMap<String, Config>> {
-    let args: Args = argh::from_env();
+    let args: Args = Args::parse();
     logger::Logger::init_logger(
         &args.module,
         &args.prefix.to_string_lossy(),
@@ -678,7 +680,7 @@ pub fn get_module_configs() -> HashMap<String, HashMap<String, Config>> {
     let cpp_module = ffi::create_module(
         &args.module,
         &args.prefix.to_string_lossy(),
-        &args.mqtt_broker_socket_path.to_string_lossy(),
+        &args.mqtt_broker_socket_path.unwrap_or_default().to_string_lossy(),
         &args.mqtt_broker_host,
         &args.mqtt_broker_port,
         &args.mqtt_everest_prefix,
