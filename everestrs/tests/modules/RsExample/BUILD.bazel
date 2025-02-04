@@ -1,5 +1,8 @@
 load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_test")
 load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
+load("@python3_10//:defs.bzl", "interpreter")
+load("//bazel_tools:modules_def.bzl", "rs_everest_module")
+load("//bazel_tools:everest_env.bzl", "everest_env")
 
 cargo_build_script(
     name = "build_script",
@@ -20,7 +23,7 @@ cargo_build_script(
 )
 
 rust_binary(
-    name = "RsExample",
+    name = "RsExampleBinary",
     srcs = glob(["src/**/*.rs"]),
     visibility = ["//visibility:public"],
     edition = "2021",
@@ -40,5 +43,20 @@ rust_test(
     proc_macro_deps = ["@crate_index//:mockall_double",],
     srcs = [],
     crate_features = ["mockall", "mockall_double"],
-    crate = ":RsExample",
+    crate = ":RsExampleBinary",
+)
+
+rs_everest_module(
+    name = "RsExample",
+    binary = ":RsExampleBinary",
+    manifest = "manifest.yaml",
+)
+
+everest_env(
+    name = "integration_test_env",
+    modules = [
+        ":RsExample",
+    ],
+    config_file = "config.yaml",
+    python_interpreter_target = interpreter,
 )
