@@ -1,5 +1,6 @@
 use everestrs_build::schema;
 
+use clap::Parser;
 use log::debug;
 use serde::de::DeserializeOwned;
 use std::collections::HashMap;
@@ -8,13 +9,18 @@ use std::path::PathBuf;
 use std::pin::Pin;
 use std::sync::Arc;
 use std::sync::Once;
-use std::sync::RwLock;
-use std::sync::Weak;
+use std::sync::OnceLock;
 use thiserror::Error;
-use clap::Parser;
 
 /// Prevent calling the init of loggers more than once.
 static INIT_LOGGER_ONCE: Once = Once::new();
+
+/// Prevent from calling [Runtime] more than once and keep it alive.
+///
+/// The c++ [Module] has a static lifetime. We will pass the reference of
+/// the `Runtime` to the `Module` and thus the `Module` must not outlife the
+/// `Runtime`. To achive this we make the lifetime of the `Runtime` also static.
+static INIT_RUNTIME_ONCE: OnceLock<Pin<Arc<Runtime>>> = OnceLock::new();
 
 // Reexport everything so the clients can use it.
 pub use serde;
@@ -332,7 +338,7 @@ struct Args {
     pub prefix: PathBuf,
 
     /// logging configuration that we are using.
-    #[arg(long, long="log_config")]
+    #[arg(long, long = "log_config")]
     pub log_config: PathBuf,
 
     /// module name for us.
@@ -340,23 +346,23 @@ struct Args {
     pub module: String,
 
     /// MQTT broker socket path
-    #[arg(long="mqtt_broker_socket_path")]
+    #[arg(long = "mqtt_broker_socket_path")]
     pub mqtt_broker_socket_path: Option<PathBuf>,
 
     /// MQTT broker hostname
-    #[arg(long="mqtt_broker_host")]
+    #[arg(long = "mqtt_broker_host")]
     pub mqtt_broker_host: String,
 
     /// MQTT broker port
-    #[arg(long="mqtt_broker_port")]
+    #[arg(long = "mqtt_broker_port")]
     pub mqtt_broker_port: u32,
 
     /// MQTT EVerest prefix
-    #[arg(long="mqtt_everest_prefix")]
+    #[arg(long = "mqtt_everest_prefix")]
     pub mqtt_everest_prefix: String,
 
     /// MQTT external prefix
-    #[arg(long="mqtt_external_prefix")]
+    #[arg(long = "mqtt_external_prefix")]
     pub mqtt_external_prefix: String,
 }
 
@@ -399,24 +405,17 @@ pub trait Subscriber: Sync + Send {
 /// The [Runtime] is the central piece of the bridge between c++ and Rust. The
 /// [ffi::Module] is owned by the c++ side and will outlife the [Runtime].
 ///
-/// The `Subscriber` is not owned by the [Runtime] - in fact in derived user
-/// code the `Subscriber` might take ownership of the [Runtime] - the weak
-/// ownership hence is necessary to break possible ownership cycles.
+/// The `Subscriber` and the `Runtime` have a cyclic dependency. Since the
+/// `Runtime` has a static lifetime we must uphold that the `Subscriber` also
+/// has a static lifetime.
 pub struct Runtime {
     cpp_module: &'static ffi::Module,
-    sub_impl: RwLock<Option<Weak<dyn Subscriber>>>,
+    sub_impl: OnceLock<Arc<dyn Subscriber>>,
 }
 
 impl Runtime {
     fn on_ready(&self) {
-        self.sub_impl
-            .read()
-            .unwrap()
-            .as_ref()
-            .unwrap()
-            .upgrade()
-            .unwrap()
-            .on_ready();
+        self.sub_impl.get().unwrap().on_ready();
     }
 
     fn handle_command(&self, impl_id: &str, name: &str, json: ffi::JsonBlob) -> ffi::JsonBlob {
@@ -424,11 +423,7 @@ impl Runtime {
         let parameters: Option<HashMap<String, serde_json::Value>> = json.deserialize();
         let blob = self
             .sub_impl
-            .read()
-            .unwrap()
-            .as_ref()
-            .unwrap()
-            .upgrade()
+            .get()
             .unwrap()
             .handle_command(impl_id, name, parameters.unwrap_or_default())
             .unwrap();
@@ -441,11 +436,7 @@ impl Runtime {
             json.as_bytes()
         );
         self.sub_impl
-            .read()
-            .unwrap()
-            .as_ref()
-            .unwrap()
-            .upgrade()
+            .get()
             .unwrap()
             .handle_variable(impl_id, index, name, json.deserialize())
             .unwrap();
@@ -456,11 +447,7 @@ impl Runtime {
 
         // We want to split the error type into the group and the remainder.
         self.sub_impl
-            .read()
-            .unwrap()
-            .as_ref()
-            .unwrap()
-            .upgrade()
+            .get()
             .unwrap()
             .handle_on_error(impl_id, index, error, raised);
     }
@@ -529,31 +516,39 @@ impl Runtime {
 
     // TODO(hrapp): This function could use some error handling.
     pub fn new() -> Pin<Arc<Self>> {
-        let args: Args = Args::parse();
-        logger::Logger::init_logger(
-            &args.module,
-            &args.prefix.to_string_lossy(),
-            &args.log_config.to_string_lossy(),
-        );
+        INIT_RUNTIME_ONCE
+            .get_or_init(|| {
+                let args: Args = Args::parse();
+                logger::Logger::init_logger(
+                    &args.module,
+                    &args.prefix.to_string_lossy(),
+                    &args.log_config.to_string_lossy(),
+                );
 
-        let cpp_module = ffi::create_module(
-            &args.module,
-            &args.prefix.to_string_lossy(),
-            &args.mqtt_broker_socket_path.unwrap_or_default().to_string_lossy(),
-            &args.mqtt_broker_host,
-            &args.mqtt_broker_port,
-            &args.mqtt_everest_prefix,
-            &args.mqtt_external_prefix,
-        );
-
-        Arc::pin(Self {
-            cpp_module,
-            sub_impl: RwLock::new(None),
-        })
+                let cpp_module = ffi::create_module(
+                    &args.module,
+                    &args.prefix.to_string_lossy(),
+                    &args
+                        .mqtt_broker_socket_path
+                        .unwrap_or_default()
+                        .to_string_lossy(),
+                    &args.mqtt_broker_host,
+                    &args.mqtt_broker_port,
+                    &args.mqtt_everest_prefix,
+                    &args.mqtt_external_prefix,
+                );
+                Arc::pin(Self {
+                    cpp_module,
+                    sub_impl: OnceLock::new(),
+                })
+            })
+            .clone()
     }
 
-    pub fn set_subscriber(self: Pin<&Self>, sub_impl: Weak<dyn Subscriber>) {
-        *self.sub_impl.write().unwrap() = Some(sub_impl);
+    pub fn set_subscriber(self: Pin<&Self>, sub_impl: Arc<dyn Subscriber>) {
+        self.sub_impl
+            .set(sub_impl)
+            .unwrap_or_else(|_| panic!("set_subscriber called twice"));
         let manifest_json = self.cpp_module.get_manifest();
         let manifest: schema::Manifest = manifest_json.deserialize();
         log::debug!("Deserialiazed the manifest {manifest:?}");
@@ -680,7 +675,10 @@ pub fn get_module_configs() -> HashMap<String, HashMap<String, Config>> {
     let cpp_module = ffi::create_module(
         &args.module,
         &args.prefix.to_string_lossy(),
-        &args.mqtt_broker_socket_path.unwrap_or_default().to_string_lossy(),
+        &args
+            .mqtt_broker_socket_path
+            .unwrap_or_default()
+            .to_string_lossy(),
         &args.mqtt_broker_host,
         &args.mqtt_broker_port,
         &args.mqtt_everest_prefix,
