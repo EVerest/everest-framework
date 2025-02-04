@@ -589,6 +589,7 @@ bool ModuleLoader::parse_command_line(int argc, char* argv[]) {
     desc.add_options()("module,m", po::value<std::string>(),
                        "Which module should be executed (module id from config file)");
     desc.add_options()("dontvalidateschema", "Don't validate json schema on every message");
+    desc.add_options()("config", po::value<std::string>(), "Just kept for compatibility, not used anymore.");
     desc.add_options()("log_config", po::value<std::string>(), "The path to a custom logging config");
     desc.add_options()("mqtt_broker_socket_path", po::value<std::string>(), "The MQTT broker socket path");
     desc.add_options()("mqtt_broker_host", po::value<std::string>(), "The MQTT broker hostname");
