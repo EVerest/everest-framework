@@ -402,7 +402,7 @@ ModuleLoader::ModuleLoader(int argc, char* argv[], ModuleCallbacks callbacks, Ve
         if (!this->parse_command_line(argc, argv)) {
             this->should_exit = true;
         }
-    }  catch (std::exception& e) {
+    } catch (std::exception& e) {
         std::cout << "Error during command line parsing: " << e.what() << "\n";
         this->should_exit = true;
     }
@@ -626,7 +626,8 @@ bool ModuleLoader::parse_command_line(int argc, char* argv[]) {
 
     if (vm.count("config") != 0) {
         std::cout
-            << "--config is not used anymore, modules request their config automatically via MQTT" << "\n"
+            << "--config is not used anymore, modules request their config automatically via MQTT"
+            << "\n"
             << "If you want to influence this config loading behavior you can specify the appropriate --mqtt_* flags"
             << "\n";
     }
