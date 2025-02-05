@@ -620,6 +620,13 @@ bool ModuleLoader::parse_command_line(int argc, char* argv[]) {
         return false;
     }
 
+    if (vm.count("config") != 0) {
+        std::cout
+            << "--config is not used anymore, modules request their config automatically via MQTT" << "\n"
+            << "If you want to influence this config loading behavior you can specify the appropriate --mqtt_* flags"
+            << "\n";
+    }
+
     std::string mqtt_broker_socket_path;
     if (vm.count("mqtt_broker_socket_path") != 0) {
         mqtt_broker_socket_path = vm["mqtt_broker_socket_path"].as<std::string>();
