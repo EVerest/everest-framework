@@ -398,15 +398,19 @@ ModuleCallbacks::ModuleCallbacks(
 
 ModuleLoader::ModuleLoader(int argc, char* argv[], ModuleCallbacks callbacks, VersionInformation version_information) :
     runtime_settings(nullptr), callbacks(std::move(callbacks)), version_information(std::move(version_information)) {
-    if (!this->parse_command_line(argc, argv)) {
+    try {
+        if (!this->parse_command_line(argc, argv)) {
+            this->should_exit = true;
+        }
+    }  catch (std::exception& e) {
+        std::cout << "Error during command line parsing: " << e.what() << "\n";
         this->should_exit = true;
-        return;
     }
 }
 
 int ModuleLoader::initialize() {
     if (this->should_exit) {
-        return 0;
+        return EXIT_FAILURE;
     }
     Logging::init(this->logging_config_file.string(), this->module_id);
 
