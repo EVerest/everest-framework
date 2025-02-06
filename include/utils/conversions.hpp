@@ -75,13 +75,6 @@ template <typename T> nlohmann::json variant_to_json(T variant) {
     return std::visit([](auto&& arg) -> nlohmann::json { return arg; }, variant);
 }
 
-///
-/// \brief converts the given typed \p json_config with entries like {"type": "xyz", "value": "val"}
-/// to a config map that just contains the values
-///
-/// \returns the converted config map
-nlohmann::json typed_json_map_to_config_map(const nlohmann::json& typed_json_config);
-
 } // namespace Everest
 
 #endif // UTILS_CONVERSIONS_HPP

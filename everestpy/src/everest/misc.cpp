@@ -6,7 +6,6 @@
 #include <cstdlib>
 #include <stdexcept>
 
-#include <utils/conversions.hpp>
 #include <utils/filesystem.hpp>
 
 const std::string get_variable_from_env(const std::string& variable) {

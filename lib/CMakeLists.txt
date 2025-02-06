@@ -16,7 +16,6 @@ target_sources(framework
     PRIVATE
         config.cpp
         config_cache.cpp
-        conversions.cpp
         error/error.cpp
         error/error_database_map.cpp
         error/error_filter.cpp
