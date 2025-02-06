@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <stdexcept>
 
+#include <utils/conversions.hpp>
 #include <utils/filesystem.hpp>
 
 const std::string get_variable_from_env(const std::string& variable) {
@@ -51,14 +52,6 @@ static Everest::MQTTSettings get_mqtt_settings_from_env() {
     } else {
         return Everest::create_mqtt_settings(mqtt_broker_socket_path, mqtt_everest_prefix, mqtt_external_prefix);
     }
-}
-
-Everest::json convert_to_config_map(const Everest::json& json_config) {
-    json config_map;
-    for (auto& entry : json_config.items()) {
-        config_map[entry.key()] = entry.value().at("value");
-    }
-    return config_map;
 }
 
 /// This is just kept for compatibility
@@ -122,7 +115,7 @@ ModuleSetup create_setup_from_config(const std::string& module_id, Everest::Conf
     const auto& config_maps = config.get_module_json_config(module_id);
 
     for (const auto& config_map : config_maps.items()) {
-        const auto& json_config_map = convert_to_config_map(config_map.value());
+        const auto& json_config_map = Everest::typed_json_map_to_config_map(config_map.value());
         const auto& impl_id = config_map.key();
         if (impl_id == "!module") {
             setup.configs.module = json_config_map;
