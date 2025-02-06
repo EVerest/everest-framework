@@ -106,8 +106,13 @@ def _everest_env(ctx):
 
     # For the executable we need to export the python specific variables by
     # hand.
-    script = ctx.actions.declare_file("manager_wrapper")
-    if ctx.attr.test_script[DefaultInfo].files.to_list():
+    script = ctx.actions.declare_file(ctx.attr.manager_wrapper_fname + "_test" if ctx.attr.is_test else ctx.attr.manager_wrapper_fname)
+    if ctx.attr.is_test:
+        script_content = """
+        bin/manager --prefix . --config etc/everest/config-sil.yaml --check
+        """
+
+    if ctx.attr.test_script and ctx.attr.test_script[DefaultInfo].files.to_list():
         script_content = """
         export PATH=$(realpath {}):$PATH
         declare -a PYTHON_ROOTS=({})
@@ -115,6 +120,7 @@ def _everest_env(ctx):
         do
             export PYTHONPATH=$(realpath ../$i):$PYTHONPATH
         done
+        bin/manager --prefix . --config etc/everest/config-sil.yaml --check
         bin/manager --prefix . --config etc/everest/config-sil.yaml &
         PID_MANAGER=$!
         {}
@@ -127,17 +133,11 @@ def _everest_env(ctx):
             exit -1
         fi
 
-        """.format(py_interpreter, " ".join(py_imports), ctx.attr.test_script[DefaultInfo].files.to_list()[0].path)
+        """.format(py_interpreter, " ".join(py_imports), ctx.attr.test_script[DefaultInfo].files.to_list()[0].path if ctx.attr.test_script else None)
         files.append(ctx.attr.test_script[DefaultInfo].files.to_list()[0])
     else:
         script_content = """
-        export PATH=$(realpath {}):$PATH
-        declare -a PYTHON_ROOTS=({})
-        for i in "${{PYTHON_ROOTS[@]}}"
-        do
-            export PYTHONPATH=$(realpath ../$i):$PYTHONPATH
-        done
-        bin/manager --prefix . --config etc/everest/config-sil.yaml
+        bin/manager --prefix . --config etc/everest/config-sil.yaml --check
         """.format(py_interpreter, " ".join(py_imports))
     ctx.actions.write(script, script_content, is_executable = True)
 
@@ -230,6 +230,14 @@ The rule will not enforce that these modules are defined in the given
         allow_single_file = True,
         doc = "The python interpreter to use for the EVerest environment.",
     ),
+    "is_test": attr.bool(
+        default = False,
+        doc = "Indicates if target is test target to validate config"
+    ),
+    "manager_wrapper_fname": attr.string(
+        doc = "Name for manager_wrapper filename. Useful if one BUILD file generates multiple everest_envs",
+        default = "manager_wrapper",
+    ),
 }
 
 everest_env = rule(
@@ -264,7 +272,7 @@ test which will run your tests against the environment.
 
 everest_test = rule(
     implementation = _everest_env,
-    attrs = ATTRS,
+    attrs = dict(ATTRS, is_test=attr.bool(default=True)),
     doc = """
 Creates an EVerest Test.
 
@@ -293,3 +301,6 @@ You can run it with `bazel test`.
     test = True,
 )
 
+def everest_env_with_test(name, **kwargs):
+    everest_env(name=name, **kwargs)
+    everest_test(name=name + "_test", **kwargs)
