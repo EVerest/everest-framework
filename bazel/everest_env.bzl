@@ -106,38 +106,41 @@ def _everest_env(ctx):
 
     # For the executable we need to export the python specific variables by
     # hand.
-    script = ctx.actions.declare_file(ctx.attr.manager_wrapper_fname + "_test" if ctx.attr.is_test else ctx.attr.manager_wrapper_fname)
-    if ctx.attr.is_test:
-        script_content = """
-        bin/manager --prefix . --config etc/everest/config-sil.yaml --check
+    script = ctx.actions.declare_file("manager_wrapper.{}".format(ctx.label.name))
+    script_content = """
+#!/bin/sh
+set -ex
+export PATH=$(realpath {}):$PATH
+declare -a PYTHON_ROOTS=({})
+for i in "${{PYTHON_ROOTS[@]}}"
+do
+    export PYTHONPATH=$(realpath ../$i):$PYTHONPATH
+done
+    """.format(py_interpreter, " ".join(py_imports))
+    if ctx.attr._is_test:
+        script_content += """
+bin/manager --prefix . --config etc/everest/config-sil.yaml --check
         """
 
-    if ctx.attr.test_script and ctx.attr.test_script[DefaultInfo].files.to_list():
-        script_content = """
-        export PATH=$(realpath {}):$PATH
-        declare -a PYTHON_ROOTS=({})
-        for i in "${{PYTHON_ROOTS[@]}}"
-        do
-            export PYTHONPATH=$(realpath ../$i):$PYTHONPATH
-        done
-        bin/manager --prefix . --config etc/everest/config-sil.yaml --check
-        bin/manager --prefix . --config etc/everest/config-sil.yaml &
-        PID_MANAGER=$!
-        {}
+        if ctx.attr.test_script and ctx.attr.test_script[DefaultInfo].files.to_list():
+            script_content += """
+bin/manager --prefix . --config etc/everest/config-sil.yaml &
+PID_MANAGER=$!
+{}
 
-        if ps -p $PID_MANAGER > /dev/null
-        then
-            kill $PID_MANAGER
-        else
-            echo "manager died"
-            exit -1
-        fi
+if ps -p $PID_MANAGER > /dev/null
+then
+    kill $PID_MANAGER
+else
+    echo "manager died"
+    exit -1
+fi
 
-        """.format(py_interpreter, " ".join(py_imports), ctx.attr.test_script[DefaultInfo].files.to_list()[0].path if ctx.attr.test_script else None)
-        files.append(ctx.attr.test_script[DefaultInfo].files.to_list()[0])
+            """.format(ctx.attr.test_script[DefaultInfo].files.to_list()[0].path)
+            files.append(ctx.attr.test_script[DefaultInfo].files.to_list()[0])
     else:
-        script_content = """
-        bin/manager --prefix . --config etc/everest/config-sil.yaml --check
+        script_content += """
+bin/manager --prefix . --config etc/everest/config-sil.yaml
         """.format(py_interpreter, " ".join(py_imports))
     ctx.actions.write(script, script_content, is_executable = True)
 
@@ -230,49 +233,21 @@ The rule will not enforce that these modules are defined in the given
         allow_single_file = True,
         doc = "The python interpreter to use for the EVerest environment.",
     ),
-    "is_test": attr.bool(
+    "_is_test": attr.bool(
         default = False,
         doc = "Indicates if target is test target to validate config"
     ),
-    "manager_wrapper_fname": attr.string(
-        doc = "Name for manager_wrapper filename. Useful if one BUILD file generates multiple everest_envs",
-        default = "manager_wrapper",
-    ),
 }
 
-everest_env = rule(
+everest_impl_env = rule(
     implementation = _everest_env,
     attrs = ATTRS,
-    doc = """
-Creates an EVerest environment.
-
-Example:
-
-Suppose you have the EVerest modules `ModuleFoo` and `ModuleBar` and the
-EVerest config `my_config.yaml` which uses both modules.
-
-Then you can create an environment by writing:
-
-```
-everest_env(
-    name = "my_everest_env",
-    modules = [":ModuleFoo", ":ModuleBar"],
-    config_file = ":my_config.yaml",
-    python_interpreter_target=interpreter,
-)
-
-```
-Where `interpreter` is a python interpreter, for example a python3.10 resource.
-
-You can either run this target with `bazel run` or pass it for example to a (py)
-test which will run your tests against the environment.
-    """,
     executable = True,
 )
 
 everest_test = rule(
     implementation = _everest_env,
-    attrs = dict(ATTRS, is_test=attr.bool(default=True)),
+    attrs = dict(ATTRS, _is_test=attr.bool(default=True)),
     doc = """
 Creates an EVerest Test.
 
@@ -301,6 +276,30 @@ You can run it with `bazel test`.
     test = True,
 )
 
-def everest_env_with_test(name, **kwargs):
-    everest_env(name=name, **kwargs)
-    everest_test(name=name + "_test", **kwargs)
+def everest_env(name, **kwargs):
+    """
+    Creates an EVerest environment.
+
+    Example:
+
+    Suppose you have the EVerest modules `ModuleFoo` and `ModuleBar` and the
+    EVerest config `my_config.yaml` which uses both modules.
+
+    Then you can create an environment by writing:
+
+    ```
+    everest_env(
+        name = "my_everest_env",
+        modules = [":ModuleFoo", ":ModuleBar"],
+        config_file = ":my_config.yaml",
+        python_interpreter_target=interpreter,
+    )
+
+    ```
+    Where `interpreter` is a python interpreter, for example a python3.10 resource.
+
+    You can either run this target with `bazel run` or pass it for example to a (py)
+    test which will run your tests against the environment.
+    """
+    everest_impl_env(name=name, **kwargs)
+    everest_test(name=name + "__manager_test", tags=["exclusive"],**kwargs)
