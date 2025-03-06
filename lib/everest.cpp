@@ -486,6 +486,13 @@ void Everest::subscribe_var(const Requirement& req, const std::string& var_name,
         EVLOG_verbose << fmt::format(
             "Incoming {}->{}", this->config.printable_identifier(requirement_module_id, requirement_impl_id), var_name);
 
+        // A race condition where some other module might received its on-ready
+        // and this module not (and calling us).
+        while (!ready_received) { // In C++20 we might mark it as [[unlikely]]
+            EVLOG_warning << "Not yet ready";
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+        }
+
         if (this->validate_data_with_schema) {
             // check data and ignore it if not matching (publishing it should have been prohibited already)
             try {
@@ -554,6 +561,11 @@ void Everest::subscribe_error(const Requirement& req, const error::ErrorType& er
         if (error.type != error_type) {
             // error type doesn't match, ignoring
             return;
+        }
+
+        while (!ready_received) { // In C++20 we might mark it as [[unlikely]]
+            EVLOG_warning << "Not yet ready";
+            std::this_thread::sleep_for(std::chrono::seconds(1));
         }
 
         switch (error.state) {
@@ -792,7 +804,6 @@ void Everest::handle_ready(const json& data) {
                          "restarting a standalone module)!";
         return;
     }
-    this->ready_received = true;
 
     // call module ready handler
     EVLOG_debug << "Framework now ready to process events, calling module ready handler";
@@ -800,6 +811,8 @@ void Everest::handle_ready(const json& data) {
         const auto on_ready_handler = *on_ready;
         on_ready_handler();
     }
+
+    this->ready_received = true;
 
     // TODO(kai): make heartbeat interval configurable, disable it completely until then
     // this->heartbeat_thread = std::thread(&Everest::heartbeat, this);
@@ -822,6 +835,9 @@ void Everest::provide_cmd(const std::string& impl_id, const std::string& cmd_nam
     // define command wrapper
     const auto wrapper = [this, cmd_topic, impl_id, cmd_name, handler, cmd_definition](const std::string&, json data) {
         BOOST_LOG_FUNCTION();
+
+        // TODO(ddo) Add here the ready_recieved check once we can report
+        // errors from Rpcs. Right now this would lead to a deadlock.
 
         std::set<std::string> arg_names;
         if (cmd_definition.contains("arguments")) {
