@@ -67,12 +67,27 @@ public:
     using EverestBaseRuntimeError::EverestBaseRuntimeError;
 };
 
+class MessageParsingError : public CmdError {
+public:
+    using CmdError::CmdError;
+};
+
+class SchemaValidationError : public CmdError {
+public:
+    using CmdError::CmdError;
+};
+
 class HandlerException : public CmdError {
 public:
     using CmdError::CmdError;
 };
 
 class CmdTimeout : public CmdError {
+public:
+    using CmdError::CmdError;
+};
+
+class Shutdown : public CmdError {
 public:
     using CmdError::CmdError;
 };
