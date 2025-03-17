@@ -398,15 +398,19 @@ ModuleCallbacks::ModuleCallbacks(
 
 ModuleLoader::ModuleLoader(int argc, char* argv[], ModuleCallbacks callbacks, VersionInformation version_information) :
     runtime_settings(nullptr), callbacks(std::move(callbacks)), version_information(std::move(version_information)) {
-    if (!this->parse_command_line(argc, argv)) {
+    try {
+        if (!this->parse_command_line(argc, argv)) {
+            this->should_exit = true;
+        }
+    } catch (std::exception& e) {
+        std::cout << "Error during command line parsing: " << e.what() << "\n";
         this->should_exit = true;
-        return;
     }
 }
 
 int ModuleLoader::initialize() {
     if (this->should_exit) {
-        return 0;
+        return EXIT_FAILURE;
     }
     Logging::init(this->logging_config_file.string(), this->module_id);
 
@@ -589,6 +593,7 @@ bool ModuleLoader::parse_command_line(int argc, char* argv[]) {
     desc.add_options()("module,m", po::value<std::string>(),
                        "Which module should be executed (module id from config file)");
     desc.add_options()("dontvalidateschema", "Don't validate json schema on every message");
+    desc.add_options()("config", po::value<std::string>(), "Just kept for compatibility, not used anymore.");
     desc.add_options()("log_config", po::value<std::string>(), "The path to a custom logging config");
     desc.add_options()("mqtt_broker_socket_path", po::value<std::string>(), "The MQTT broker socket path");
     desc.add_options()("mqtt_broker_host", po::value<std::string>(), "The MQTT broker hostname");
@@ -617,6 +622,14 @@ bool ModuleLoader::parse_command_line(int argc, char* argv[]) {
                   << this->version_information.project_version << " " << this->version_information.git_version << ")"
                   << std::endl;
         return false;
+    }
+
+    if (vm.count("config") != 0) {
+        std::cout
+            << "--config is not used anymore, modules request their config automatically via MQTT"
+            << "\n"
+            << "If you want to influence this config loading behavior you can specify the appropriate --mqtt_* flags"
+            << "\n";
     }
 
     std::string mqtt_broker_socket_path;
@@ -701,10 +714,14 @@ bool ModuleLoader::parse_command_line(int argc, char* argv[]) {
             assert_file(command_line_logging_config_file, "Command line provided logging config");
 
     } else {
-        auto default_logging_config_file = assert_dir(defaults::PREFIX, "Default prefix") /
-                                           fs::path(defaults::SYSCONF_DIR) / defaults::NAMESPACE /
-                                           defaults::LOGGING_CONFIG_NAME;
+        auto default_logging_config_file =
+            fs::path(defaults::SYSCONF_DIR) / defaults::NAMESPACE / defaults::LOGGING_CONFIG_NAME;
 
+        if (std::strcmp(defaults::PREFIX, "/usr") != 0) {
+            default_logging_config_file = defaults::PREFIX / default_logging_config_file;
+        } else {
+            default_logging_config_file = fs::path("/") / default_logging_config_file;
+        }
         this->logging_config_file = assert_file(default_logging_config_file, "Default logging config");
     }
 
