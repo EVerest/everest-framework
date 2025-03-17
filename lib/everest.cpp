@@ -413,8 +413,8 @@ json Everest::call_cmd(const Requirement& req, const std::string& cmd_name, json
 
     CmdResult result;
     if (res_future_status == std::future_status::timeout) {
-        result.error = ErrorMessage{
-            ErrorType::Timeout,
+        result.error = CmdResultError{
+            CmdEvent::Timeout,
             fmt::format("Timeout while waiting for result of {}->{}()",
                         this->config.printable_identifier(connection["module_id"], connection["implementation_id"]),
                         cmd_name)};
@@ -426,12 +426,12 @@ json Everest::call_cmd(const Requirement& req, const std::string& cmd_name, json
 
     if (result.error.has_value()) {
         auto& error = result.error.value();
-        if (error.type == ErrorType::HandlerException) {
+        if (error.event == CmdEvent::HandlerException) {
             throw HandlerException(fmt::format("{}", error.msg));
-        } else if (error.type == ErrorType::Timeout) {
+        } else if (error.event == CmdEvent::Timeout) {
             throw CmdTimeout(fmt::format("{}", error.msg));
         }
-        throw CmdError(fmt::format("{}: {}", conversions::error_type_to_string(error.type), error.msg));
+        throw CmdError(fmt::format("{}: {}", conversions::cmd_event_to_string(error.event), error.msg));
     } else if (not result.result.has_value()) {
         throw CmdError("Command did not return result");
     } else {
@@ -862,7 +862,7 @@ void Everest::provide_cmd(const std::string& impl_id, const std::string& cmd_nam
         } catch (const json::exception& e) {
             throw CmdError("Command did not contain id");
         }
-        std::optional<ErrorMessage> error;
+        std::optional<CmdResultError> error;
 
         // check data and ignore it if not matching (publishing it should have
         // been prohibited already)
@@ -883,7 +883,7 @@ void Everest::provide_cmd(const std::string& impl_id, const std::string& cmd_nam
             } catch (const std::exception& e) {
                 EVLOG_warning << fmt::format("Ignoring incoming cmd '{}' because not matching manifest schema: {}",
                                              cmd_name, e.what());
-                error = ErrorMessage{ErrorType::SchemaValidation, e.what()};
+                error = CmdResultError{CmdEvent::SchemaValidation, e.what()};
             }
         }
 
@@ -898,7 +898,7 @@ void Everest::provide_cmd(const std::string& impl_id, const std::string& cmd_nam
             EVLOG_verbose << fmt::format("Exception during handling of: {}->{}({}): {}",
                                          this->config.printable_identifier(this->module_id, impl_id), cmd_name,
                                          fmt::join(arg_names, ","), e.what());
-            error = ErrorMessage{ErrorType::HandlerException, e.what()};
+            error = CmdResultError{CmdEvent::HandlerException, e.what()};
         }
 
         // check retval agains manifest
@@ -918,7 +918,7 @@ void Everest::provide_cmd(const std::string& impl_id, const std::string& cmd_nam
                 EVLOG_warning << fmt::format("Ignoring return value of cmd '{}' because the validation of the result "
                                              "failed: {}\ndefinition: {}\ndata: {}",
                                              cmd_name, e.what(), cmd_definition, res_data);
-                error = ErrorMessage{ErrorType::SchemaValidation, e.what()};
+                error = CmdResultError{CmdEvent::SchemaValidation, e.what()};
             }
         }
 
@@ -1138,61 +1138,62 @@ std::optional<Mapping> get_impl_mapping(std::optional<ModuleTierMappings> module
     return mapping.implementations.at(impl_id);
 }
 
-void to_json(nlohmann::json& j, const ErrorMessage& e) {
-    j = {{"type", conversions::error_type_to_string(e.type)}, {"msg", e.msg}};
+void to_json(nlohmann::json& j, const CmdResultError& e) {
+    j = {{"type", conversions::cmd_event_to_string(e.event)}, {"msg", e.msg}};
 }
 
-void from_json(const nlohmann::json& j, ErrorMessage& e) {
-    e.type = conversions::string_to_error_type(j.at("type"));
+void from_json(const nlohmann::json& j, CmdResultError& e) {
+    e.event = conversions::string_to_cmd_event(j.at("type"));
     e.msg = j.at("msg");
 }
 
 namespace conversions {
-constexpr auto ERROR_TYPE_MESSAGE_PARSING = "MessageParsing";
-constexpr auto ERROR_TYPE_SCHEMA_VALIDATION = "SchemaValidation";
-constexpr auto ERROR_TYPE_HANDLER_EXCEPTION = "HandlerException";
-constexpr auto ERROR_TYPE_TIMEOUT = "Timeout";
-constexpr auto ERROR_TYPE_SHUTDOWN = "Shutdown";
-constexpr auto ERROR_TYPE_UNKNOWN = "Unknown";
-std::string error_type_to_string(ErrorType error_type) {
-    switch (error_type) {
-    case ErrorType::MessageParsing:
-        return ERROR_TYPE_MESSAGE_PARSING;
+constexpr auto CMD_EVENT_MESSAGE_PARSING = "MessageParsing";
+constexpr auto CMD_EVENT_SCHEMA_VALIDATION = "SchemaValidation";
+constexpr auto CMD_EVENT_HANDLER_EXCEPTION = "HandlerException";
+constexpr auto CMD_EVENT_TIMEOUT = "Timeout";
+constexpr auto CMD_EVENT_SHUTDOWN = "Shutdown";
+constexpr auto CMD_EVENT_UNKNOWN = "Unknown";
+
+std::string cmd_event_to_string(CmdEvent cmd_event) {
+    switch (cmd_event) {
+    case CmdEvent::MessageParsing:
+        return CMD_EVENT_MESSAGE_PARSING;
         break;
-    case ErrorType::SchemaValidation:
-        return ERROR_TYPE_SCHEMA_VALIDATION;
+    case CmdEvent::SchemaValidation:
+        return CMD_EVENT_SCHEMA_VALIDATION;
         break;
-    case ErrorType::HandlerException:
-        return ERROR_TYPE_HANDLER_EXCEPTION;
+    case CmdEvent::HandlerException:
+        return CMD_EVENT_HANDLER_EXCEPTION;
         break;
-    case ErrorType::Timeout:
-        return ERROR_TYPE_TIMEOUT;
+    case CmdEvent::Timeout:
+        return CMD_EVENT_TIMEOUT;
         break;
-    case ErrorType::Shutdown:
-        return ERROR_TYPE_SHUTDOWN;
+    case CmdEvent::Shutdown:
+        return CMD_EVENT_SHUTDOWN;
         break;
-    case ErrorType::Unknown:
-        return ERROR_TYPE_UNKNOWN;
+    case CmdEvent::Unknown:
+        return CMD_EVENT_UNKNOWN;
         break;
     }
 
-    return ERROR_TYPE_UNKNOWN;
+    return CMD_EVENT_UNKNOWN;
 }
 
-ErrorType string_to_error_type(const std::string& error_type_string) {
-    if (error_type_string == ERROR_TYPE_MESSAGE_PARSING) {
-        return ErrorType::MessageParsing;
-    } else if (error_type_string == ERROR_TYPE_SCHEMA_VALIDATION) {
-        return ErrorType::SchemaValidation;
-    } else if (error_type_string == ERROR_TYPE_HANDLER_EXCEPTION) {
-        return ErrorType::HandlerException;
-    } else if (error_type_string == ERROR_TYPE_TIMEOUT) {
-        return ErrorType::Timeout;
-    } else if (error_type_string == ERROR_TYPE_SHUTDOWN) {
-        return ErrorType::Shutdown;
+CmdEvent string_to_cmd_event(const std::string& cmd_event_string) {
+    if (cmd_event_string == CMD_EVENT_MESSAGE_PARSING) {
+        return CmdEvent::MessageParsing;
+    } else if (cmd_event_string == CMD_EVENT_SCHEMA_VALIDATION) {
+        return CmdEvent::SchemaValidation;
+    } else if (cmd_event_string == CMD_EVENT_HANDLER_EXCEPTION) {
+        return CmdEvent::HandlerException;
+    } else if (cmd_event_string == CMD_EVENT_TIMEOUT) {
+        return CmdEvent::Timeout;
+    } else if (cmd_event_string == CMD_EVENT_SHUTDOWN) {
+        return CmdEvent::Shutdown;
     }
 
-    return ErrorType::Unknown;
+    return CmdEvent::Unknown;
 }
 } // namespace conversions
 

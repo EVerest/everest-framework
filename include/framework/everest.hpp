@@ -34,7 +34,7 @@ using TelemetryEntry = std::variant<std::string, const char*, bool, int32_t, uin
 using TelemetryMap = std::map<std::string, TelemetryEntry>;
 using UnsubscribeToken = std::function<void()>;
 
-enum class ErrorType {
+enum class CmdEvent {
     MessageParsing,
     SchemaValidation,
     HandlerException,
@@ -43,23 +43,23 @@ enum class ErrorType {
     Unknown
 };
 
-struct ErrorMessage {
-    ErrorType type;
+struct CmdResultError {
+    CmdEvent event;
     std::string msg;
 };
 
 namespace conversions {
-std::string error_type_to_string(ErrorType error_type);
-ErrorType string_to_error_type(const std::string& error_type_string);
+std::string cmd_event_to_string(CmdEvent cmd_event);
+CmdEvent string_to_cmd_event(const std::string& cmd_event_string);
 } // namespace conversions
 
-void to_json(nlohmann::json& j, const ErrorMessage& e);
-void from_json(const nlohmann::json& j, ErrorMessage& e);
+void to_json(nlohmann::json& j, const CmdResultError& e);
+void from_json(const nlohmann::json& j, CmdResultError& e);
 
 /// \brief Result of a command
 struct CmdResult {
     std::optional<json> result;
-    std::optional<ErrorMessage> error;
+    std::optional<CmdResultError> error;
 };
 
 class CmdError : public Everest::EverestBaseRuntimeError {
