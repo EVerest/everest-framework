@@ -46,6 +46,7 @@ enum class CmdEvent {
 struct CmdResultError {
     CmdEvent event;
     std::string msg;
+    std::optional<std::exception_ptr> ex;
 };
 
 namespace conversions {

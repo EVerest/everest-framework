@@ -894,14 +894,14 @@ void Everest::provide_cmd(const std::string& impl_id, const std::string& cmd_nam
             if (not error.has_value()) {
                 res_data["retval"] = handler(data.at("args"));
             }
-        } catch (const std::exception& e) {
+        } catch (const std::exception& e) { // TODO: catch all exceptions?
             EVLOG_verbose << fmt::format("Exception during handling of: {}->{}({}): {}",
                                          this->config.printable_identifier(this->module_id, impl_id), cmd_name,
                                          fmt::join(arg_names, ","), e.what());
-            error = CmdResultError{CmdEvent::HandlerException, e.what()};
+            error = CmdResultError{CmdEvent::HandlerException, e.what(), std::current_exception()};
         }
 
-        // check retval agains manifest
+        // check retval against manifest
         if (not error.has_value() && this->validate_data_with_schema) {
             try {
                 // only use validator on non-null return types
@@ -930,6 +930,14 @@ void Everest::provide_cmd(const std::string& impl_id, const std::string& cmd_nam
         const json res_publish_data = json::object({{"name", cmd_name}, {"type", "result"}, {"data", res_data}});
 
         this->mqtt_abstraction->publish(cmd_topic, res_publish_data);
+
+        // re-throw exception caught in handler
+        if (error.has_value()) {
+            auto err = error.value();
+            if (err.event == CmdEvent::HandlerException) {
+                std::rethrow_exception(err.ex.value());
+            }
+        }
     };
 
     const auto typed_handler =
