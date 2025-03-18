@@ -894,11 +894,16 @@ void Everest::provide_cmd(const std::string& impl_id, const std::string& cmd_nam
             if (not error.has_value()) {
                 res_data["retval"] = handler(data.at("args"));
             }
-        } catch (const std::exception& e) { // TODO: catch all exceptions?
-            EVLOG_verbose << fmt::format("Exception during handling of: {}->{}({}): {}",
-                                         this->config.printable_identifier(this->module_id, impl_id), cmd_name,
-                                         fmt::join(arg_names, ","), e.what());
+        } catch (const std::exception& e) {
+            EVLOG_error << fmt::format("Exception during handling of: {}->{}({}): {}",
+                                       this->config.printable_identifier(this->module_id, impl_id), cmd_name,
+                                       fmt::join(arg_names, ","), e.what());
             error = CmdResultError{CmdEvent::HandlerException, e.what(), std::current_exception()};
+        } catch (...) {
+            EVLOG_error << fmt::format("Unknown exception during handling of: {}->{}({})",
+                                       this->config.printable_identifier(this->module_id, impl_id), cmd_name,
+                                       fmt::join(arg_names, ","));
+            error = CmdResultError{CmdEvent::HandlerException, "Unknown exception"};
         }
 
         // check retval against manifest
@@ -935,7 +940,11 @@ void Everest::provide_cmd(const std::string& impl_id, const std::string& cmd_nam
         if (error.has_value()) {
             auto err = error.value();
             if (err.event == CmdEvent::HandlerException) {
-                std::rethrow_exception(err.ex.value());
+                if (err.ex) {
+                    std::rethrow_exception(err.ex);
+                } else {
+                    throw std::runtime_error("Unknown exception during cmd handling");
+                }
             }
         }
     };
