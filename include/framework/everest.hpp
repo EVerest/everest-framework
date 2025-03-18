@@ -39,8 +39,7 @@ enum class CmdEvent {
     SchemaValidation,
     HandlerException,
     Timeout,
-    Shutdown,
-    Unknown
+    Shutdown
 };
 
 struct CmdResultError {

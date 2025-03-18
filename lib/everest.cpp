@@ -1170,7 +1170,6 @@ constexpr auto CMD_EVENT_SCHEMA_VALIDATION = "SchemaValidation";
 constexpr auto CMD_EVENT_HANDLER_EXCEPTION = "HandlerException";
 constexpr auto CMD_EVENT_TIMEOUT = "Timeout";
 constexpr auto CMD_EVENT_SHUTDOWN = "Shutdown";
-constexpr auto CMD_EVENT_UNKNOWN = "Unknown";
 
 std::string cmd_event_to_string(CmdEvent cmd_event) {
     switch (cmd_event) {
@@ -1189,12 +1188,9 @@ std::string cmd_event_to_string(CmdEvent cmd_event) {
     case CmdEvent::Shutdown:
         return CMD_EVENT_SHUTDOWN;
         break;
-    case CmdEvent::Unknown:
-        return CMD_EVENT_UNKNOWN;
-        break;
     }
 
-    return CMD_EVENT_UNKNOWN;
+    throw std::runtime_error("Unknown CmdEvent");
 }
 
 CmdEvent string_to_cmd_event(const std::string& cmd_event_string) {
@@ -1210,7 +1206,7 @@ CmdEvent string_to_cmd_event(const std::string& cmd_event_string) {
         return CmdEvent::Shutdown;
     }
 
-    return CmdEvent::Unknown;
+    throw std::runtime_error("Unknown CmdEvent");
 }
 } // namespace conversions
 
