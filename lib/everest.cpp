@@ -1154,5 +1154,4 @@ std::optional<Mapping> get_impl_mapping(std::optional<ModuleTierMappings> module
     }
     return mapping.implementations.at(impl_id);
 }
-
 } // namespace Everest

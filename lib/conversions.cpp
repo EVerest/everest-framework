@@ -50,11 +50,11 @@ CmdEvent string_to_cmd_event(const std::string& cmd_event_string) {
 } // namespace conversions
 
 void to_json(nlohmann::json& j, const CmdResultError& e) {
-    j = {{"type", conversions::cmd_event_to_string(e.event)}, {"msg", e.msg}};
+    j = {{"event", conversions::cmd_event_to_string(e.event)}, {"msg", e.msg}};
 }
 
 void from_json(const nlohmann::json& j, CmdResultError& e) {
-    e.event = conversions::string_to_cmd_event(j.at("type"));
+    e.event = conversions::string_to_cmd_event(j.at("event"));
     e.msg = j.at("msg");
 }
 
