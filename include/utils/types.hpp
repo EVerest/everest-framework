@@ -189,8 +189,8 @@ NLOHMANN_JSON_NAMESPACE_END
 namespace Everest {
 
 enum class CmdEvent {
-    MessageParsing,
-    SchemaValidation,
+    MessageParsingFailed,
+    SchemaValidationFailed,
     HandlerException,
     Timeout,
     Shutdown

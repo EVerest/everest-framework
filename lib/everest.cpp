@@ -883,7 +883,7 @@ void Everest::provide_cmd(const std::string& impl_id, const std::string& cmd_nam
             } catch (const std::exception& e) {
                 EVLOG_warning << fmt::format("Ignoring incoming cmd '{}' because not matching manifest schema: {}",
                                              cmd_name, e.what());
-                error = CmdResultError{CmdEvent::SchemaValidation, e.what()};
+                error = CmdResultError{CmdEvent::SchemaValidationFailed, e.what()};
             }
         }
 
@@ -923,7 +923,7 @@ void Everest::provide_cmd(const std::string& impl_id, const std::string& cmd_nam
                 EVLOG_warning << fmt::format("Ignoring return value of cmd '{}' because the validation of the result "
                                              "failed: {}\ndefinition: {}\ndata: {}",
                                              cmd_name, e.what(), cmd_definition, res_data);
-                error = CmdResultError{CmdEvent::SchemaValidation, e.what()};
+                error = CmdResultError{CmdEvent::SchemaValidationFailed, e.what()};
             }
         }
 

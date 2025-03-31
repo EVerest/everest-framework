@@ -4,19 +4,19 @@
 
 namespace Everest {
 namespace conversions {
-constexpr auto CMD_EVENT_MESSAGE_PARSING = "MessageParsing";
-constexpr auto CMD_EVENT_SCHEMA_VALIDATION = "SchemaValidation";
+constexpr auto CMD_EVENT_MESSAGE_PARSING_FAILED = "MessageParsingFailed";
+constexpr auto CMD_EVENT_SCHEMA_VALIDATION_FAILED = "SchemaValidationFailed";
 constexpr auto CMD_EVENT_HANDLER_EXCEPTION = "HandlerException";
 constexpr auto CMD_EVENT_TIMEOUT = "Timeout";
 constexpr auto CMD_EVENT_SHUTDOWN = "Shutdown";
 
 std::string cmd_event_to_string(CmdEvent cmd_event) {
     switch (cmd_event) {
-    case CmdEvent::MessageParsing:
-        return CMD_EVENT_MESSAGE_PARSING;
+    case CmdEvent::MessageParsingFailed:
+        return CMD_EVENT_MESSAGE_PARSING_FAILED;
         break;
-    case CmdEvent::SchemaValidation:
-        return CMD_EVENT_SCHEMA_VALIDATION;
+    case CmdEvent::SchemaValidationFailed:
+        return CMD_EVENT_SCHEMA_VALIDATION_FAILED;
         break;
     case CmdEvent::HandlerException:
         return CMD_EVENT_HANDLER_EXCEPTION;
@@ -33,10 +33,10 @@ std::string cmd_event_to_string(CmdEvent cmd_event) {
 }
 
 CmdEvent string_to_cmd_event(const std::string& cmd_event_string) {
-    if (cmd_event_string == CMD_EVENT_MESSAGE_PARSING) {
-        return CmdEvent::MessageParsing;
-    } else if (cmd_event_string == CMD_EVENT_SCHEMA_VALIDATION) {
-        return CmdEvent::SchemaValidation;
+    if (cmd_event_string == CMD_EVENT_MESSAGE_PARSING_FAILED) {
+        return CmdEvent::MessageParsingFailed;
+    } else if (cmd_event_string == CMD_EVENT_SCHEMA_VALIDATION_FAILED) {
+        return CmdEvent::SchemaValidationFailed;
     } else if (cmd_event_string == CMD_EVENT_HANDLER_EXCEPTION) {
         return CmdEvent::HandlerException;
     } else if (cmd_event_string == CMD_EVENT_TIMEOUT) {
