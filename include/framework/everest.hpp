@@ -34,33 +34,9 @@ using TelemetryEntry = std::variant<std::string, const char*, bool, int32_t, uin
 using TelemetryMap = std::map<std::string, TelemetryEntry>;
 using UnsubscribeToken = std::function<void()>;
 
-enum class CmdEvent {
-    MessageParsing,
-    SchemaValidation,
-    HandlerException,
-    Timeout,
-    Shutdown
-};
-
-struct CmdResultError {
-    CmdEvent event;
-    std::string msg;
-    std::exception_ptr ex;
-};
-
-namespace conversions {
-std::string cmd_event_to_string(CmdEvent cmd_event);
-CmdEvent string_to_cmd_event(const std::string& cmd_event_string);
-} // namespace conversions
-
-void to_json(nlohmann::json& j, const CmdResultError& e);
-void from_json(const nlohmann::json& j, CmdResultError& e);
-
-/// \brief Result of a command
-struct CmdResult {
-    std::optional<json> result;
-    std::optional<CmdResultError> error;
-};
+enum class CmdEvent;
+struct CmdResultError;
+struct CmdResult;
 
 namespace error {
 struct ErrorDatabaseMap;

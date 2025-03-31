@@ -187,6 +187,26 @@ NLOHMANN_JSON_NAMESPACE_END
 #define EVCALLBACK(function) [](auto&& PH1) { function(std::forward<decltype(PH1)>(PH1)); }
 
 namespace Everest {
+
+enum class CmdEvent {
+    MessageParsing,
+    SchemaValidation,
+    HandlerException,
+    Timeout,
+    Shutdown
+};
+
+struct CmdResultError {
+    CmdEvent event;
+    std::string msg;
+    std::exception_ptr ex;
+};
+
+struct CmdResult {
+    std::optional<json> result;
+    std::optional<CmdResultError> error;
+};
+
 struct BootException : public std::runtime_error {
     using std::runtime_error::runtime_error;
 };
