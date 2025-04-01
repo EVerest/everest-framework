@@ -374,7 +374,7 @@ json Everest::call_cmd(const Requirement& req, const std::string& cmd_name, json
 
         if (data.contains("error")) {
             EVLOG_error << fmt::format(
-                "{}: {} during command call: {}->{}()", data.at("error").at("type").get<std::string>(),
+                "{}: {} during command call: {}->{}()", data.at("error").at("event").get<std::string>(),
                 data.at("error").at("msg"),
                 this->config.printable_identifier(connection.at("module_id"), connection.at("implementation_id")),
                 cmd_name);
