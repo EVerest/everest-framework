@@ -330,10 +330,6 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
     mqtt_abstraction.publish(fmt::format("{}error_types_map", ms.mqtt_settings.everest_prefix), error_types_map,
                              QOS::QOS2, true);
 
-    const auto module_config_cache = config.get_module_config_cache();
-    mqtt_abstraction.publish(fmt::format("{}module_config_cache", ms.mqtt_settings.everest_prefix), module_config_cache,
-                             QOS::QOS2, true);
-
     mqtt_abstraction.publish(fmt::format("{}module_names", ms.mqtt_settings.everest_prefix), module_names, QOS::QOS2,
                              true);
 

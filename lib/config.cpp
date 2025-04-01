@@ -440,11 +440,6 @@ const json& ConfigBase::get_types() const {
     return this->types;
 }
 
-std::unordered_map<std::string, ConfigCache> ConfigBase::get_module_config_cache() {
-    BOOST_LOG_FUNCTION();
-    return this->module_config_cache;
-}
-
 std::unordered_map<std::string, std::string> ConfigBase::get_module_names() {
     return this->module_names;
 }
@@ -556,7 +551,6 @@ std::optional<Mapping> ConfigBase::get_3_tier_model_mapping(const std::string& m
 void ManagerConfig::load_and_validate_manifest(const std::string& module_id, const json& module_config) {
     const std::string module_name = module_config.at("module");
 
-    this->module_config_cache[module_id] = ConfigCache();
     this->module_names[module_id] = module_name;
     EVLOG_debug << fmt::format("Found module {}, loading and verifying manifest...", printable_identifier(module_id));
 
@@ -604,15 +598,12 @@ void ManagerConfig::load_and_validate_manifest(const std::string& module_id, con
     const std::set<std::string> provided_impls = Config::keys(this->manifests[module_name]["provides"]);
 
     this->interfaces[module_name] = json({});
-    this->module_config_cache[module_name].provides_impl = provided_impls;
 
     for (const auto& impl_id : provided_impls) {
         EVLOG_debug << fmt::format("Loading interface for implementation: {}", impl_id);
         auto intf_name = this->manifests[module_name]["provides"][impl_id]["interface"].get<std::string>();
-        auto seen_interfaces = std::set<std::string>();
         this->interfaces[module_name][impl_id] = intf_name;
         resolve_interface(intf_name);
-        this->module_config_cache[module_name].cmds[impl_id] = this->interface_definitions.at(intf_name).at("cmds");
     }
 
     // check if config only contains impl_ids listed in manifest file
@@ -1190,7 +1181,19 @@ Config::Config(const MQTTSettings& mqtt_settings, json serialized_config) : Conf
     this->interface_definitions = serialized_config.value("interface_definitions", json({}));
     this->types = serialized_config.value("types", json({}));
     this->module_names = serialized_config.at("module_names");
-    this->module_config_cache = serialized_config.at("module_config_cache");
+
+    // FIXME: move this to its own function
+    // create module config cache
+    for (const auto& [module_id, module_name] : this->module_names) {
+        this->module_config_cache[module_id] = ConfigCache();
+        const std::set<std::string> provided_impls = Config::keys(this->manifests[module_name]["provides"]);
+        this->module_config_cache[module_name].provides_impl = provided_impls;
+        for (const auto& impl_id : provided_impls) {
+            auto intf_name = this->manifests[module_name]["provides"][impl_id]["interface"].get<std::string>();
+            this->module_config_cache[module_name].cmds[impl_id] = this->interface_definitions.at(intf_name).at("cmds");
+        }
+    }
+
     if (serialized_config.contains("mappings") and !serialized_config.at("mappings").is_null()) {
         this->tier_mappings = serialized_config.at("mappings");
     }
