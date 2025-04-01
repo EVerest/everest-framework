@@ -110,10 +110,6 @@ json get_module_config(std::shared_ptr<MQTTAbstraction> mqtt, const std::string&
     const auto error_types_map = mqtt->get(error_types_map_topic, QOS::QOS2);
     result["error_map"] = error_types_map;
 
-    const auto module_config_cache_topic = fmt::format("{}module_config_cache", everest_prefix);
-    const auto module_config_cache = mqtt->get(module_config_cache_topic, QOS::QOS2);
-    result["module_config_cache"] = module_config_cache;
-
     return result;
 }
 
