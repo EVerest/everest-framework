@@ -109,10 +109,6 @@ json get_module_config(std::shared_ptr<MQTTAbstraction> mqtt, const std::string&
 
     result["manifests"] = manifests;
 
-    const auto error_types_map_topic = fmt::format("{}error_types_map", everest_prefix);
-    const auto error_types_map = mqtt->get(error_types_map_topic, QOS::QOS2);
-    result["error_map"] = error_types_map;
-
     return result;
 }
 

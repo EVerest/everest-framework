@@ -327,10 +327,6 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
                                  manifest_copy, QOS::QOS2, true);
     }
 
-    const auto error_types_map = config.get_error_types();
-    mqtt_abstraction.publish(fmt::format("{}error_types_map", ms.mqtt_settings.everest_prefix), error_types_map,
-                             QOS::QOS2, true);
-
     mqtt_abstraction.publish(fmt::format("{}module_names", ms.mqtt_settings.everest_prefix), module_names, QOS::QOS2,
                              true);
 
