@@ -307,10 +307,6 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
             type_definition.value(), QOS::QOS2, true);
     }
 
-    const auto module_provides = config.get_interfaces();
-    mqtt_abstraction.publish(fmt::format("{}module_provides", ms.mqtt_settings.everest_prefix), module_provides,
-                             QOS::QOS2, true);
-
     const auto settings = config.get_settings();
     mqtt_abstraction.publish(fmt::format("{}settings", ms.mqtt_settings.everest_prefix), settings, QOS::QOS2, true);
 
