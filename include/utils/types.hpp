@@ -187,8 +187,58 @@ NLOHMANN_JSON_NAMESPACE_END
 #define EVCALLBACK(function) [](auto&& PH1) { function(std::forward<decltype(PH1)>(PH1)); }
 
 namespace Everest {
+
+enum class CmdEvent {
+    MessageParsingFailed,
+    SchemaValidationFailed,
+    HandlerException,
+    Timeout,
+    Shutdown
+};
+
+struct CmdResultError {
+    CmdEvent event;
+    std::string msg;
+    std::exception_ptr ex;
+};
+
+struct CmdResult {
+    std::optional<json> result;
+    std::optional<CmdResultError> error;
+};
+
 struct BootException : public std::runtime_error {
     using std::runtime_error::runtime_error;
+};
+
+class CmdError : public std::runtime_error {
+public:
+    using std::runtime_error::runtime_error;
+};
+
+class MessageParsingError : public CmdError {
+public:
+    using CmdError::CmdError;
+};
+
+class SchemaValidationError : public CmdError {
+public:
+    using CmdError::CmdError;
+};
+
+class HandlerException : public CmdError {
+public:
+    using CmdError::CmdError;
+};
+
+class CmdTimeout : public CmdError {
+public:
+    using CmdError::CmdError;
+};
+
+class Shutdown : public CmdError {
+public:
+    using CmdError::CmdError;
 };
 } // namespace Everest
 
