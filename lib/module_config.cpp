@@ -80,10 +80,6 @@ json get_module_config(std::shared_ptr<MQTTAbstraction> mqtt, const std::string&
 
     result["types"] = type_definitions;
 
-    const auto module_provides_topic = fmt::format("{}module_provides", everest_prefix);
-    const auto module_provides = mqtt->get(module_provides_topic, QOS::QOS2);
-    result["module_provides"] = module_provides;
-
     const auto settings_topic = fmt::format("{}settings", everest_prefix);
     const auto settings = mqtt->get(settings_topic, QOS::QOS2);
     result["settings"] = settings;

@@ -1177,7 +1177,6 @@ std::optional<TelemetryConfig> ManagerConfig::get_telemetry_config(const std::st
 Config::Config(const MQTTSettings& mqtt_settings, json serialized_config) : ConfigBase(mqtt_settings) {
     this->main = serialized_config.value("module_config", json({}));
     this->manifests = serialized_config.value("manifests", json({}));
-    this->interfaces = serialized_config.value("module_provides", json({}));
     this->interface_definitions = serialized_config.value("interface_definitions", json({}));
     this->types = serialized_config.value("types", json({}));
     this->module_names = serialized_config.at("module_names");
@@ -1187,9 +1186,11 @@ Config::Config(const MQTTSettings& mqtt_settings, json serialized_config) : Conf
     for (const auto& [module_id, module_name] : this->module_names) {
         this->module_config_cache[module_id] = ConfigCache();
         const std::set<std::string> provided_impls = Config::keys(this->manifests[module_name]["provides"]);
+        this->interfaces[module_name] = json({});
         this->module_config_cache[module_name].provides_impl = provided_impls;
         for (const auto& impl_id : provided_impls) {
             auto intf_name = this->manifests[module_name]["provides"][impl_id]["interface"].get<std::string>();
+            this->interfaces[module_name][impl_id] = intf_name;
             this->module_config_cache[module_name].cmds[impl_id] = this->interface_definitions.at(intf_name).at("cmds");
         }
     }
