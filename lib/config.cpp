@@ -1204,8 +1204,23 @@ Config::Config(const MQTTSettings& mqtt_settings, json serialized_config) : Conf
     if (serialized_config.contains("schemas")) {
         this->schemas = serialized_config.at("schemas");
     }
+
+    // FIXME: move this to its own function
+    // create error type map from interface definitions
+    json error_types_map = json({});
+    for (const auto& [interface_name, interface_definition] : this->interface_definitions.items()) {
+        for (const auto& [error_namespace, errors] : interface_definition.at("errors").items()) {
+            for (const auto& [error_key, error_definition] : errors.items()) {
+                const auto error_type_name = fmt::format("{}/{}", error_definition.at("namespace").get<std::string>(),
+                                                         error_definition.at("name").get<std::string>());
+                if (not error_types_map.contains(error_type_name)) {
+                    error_types_map[error_type_name] = error_definition.at("description").get<std::string>();
+                }
+            }
+        }
+    }
     this->error_map = error::ErrorTypeMap();
-    this->error_map.load_error_types_map(serialized_config.at("error_map"));
+    this->error_map.load_error_types_map(error_types_map);
 }
 
 error::ErrorTypeMap Config::get_error_map() const {
