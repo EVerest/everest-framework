@@ -340,6 +340,9 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
         json serialized_mod_config = json::object();
         serialized_mod_config["module_config"] = json::object();
         serialized_mod_config["module_config"][module_name] = main_config.at(module_name);
+        // remove redundant config_implementation and config_module
+        serialized_mod_config["module_config"][module_name].erase("config_implementation");
+        serialized_mod_config["module_config"][module_name].erase("config_module");
         // add mappings of fulfillments
         const auto fulfillments = config.get_fulfillments(module_name);
         serialized_mod_config["mappings"] = json::object();
