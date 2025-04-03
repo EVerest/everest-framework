@@ -314,9 +314,10 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
     const auto settings = config.get_settings();
     mqtt_abstraction.publish(fmt::format("{}settings", ms.mqtt_settings.everest_prefix), settings, QOS::QOS2, true);
 
-    const auto schemas = config.get_schemas();
-    mqtt_abstraction.publish(fmt::format("{}schemas", ms.mqtt_settings.everest_prefix), schemas, QOS::QOS2, true);
-
+    if (ms.runtime_settings->validate_schema) {
+        const auto schemas = config.get_schemas();
+        mqtt_abstraction.publish(fmt::format("{}schemas", ms.mqtt_settings.everest_prefix), schemas, QOS::QOS2, true);
+    }
     const auto manifests = config.get_manifests();
 
     for (const auto& manifest : manifests.items()) {
