@@ -1201,7 +1201,9 @@ Config::Config(const MQTTSettings& mqtt_settings, json serialized_config) : Conf
         this->telemetry_config = serialized_config.at("telemetry_config");
     }
 
-    this->schemas = serialized_config.at("schemas");
+    if (serialized_config.contains("schemas")) {
+        this->schemas = serialized_config.at("schemas");
+    }
     this->error_map = error::ErrorTypeMap();
     this->error_map.load_error_types_map(serialized_config.at("error_map"));
 }

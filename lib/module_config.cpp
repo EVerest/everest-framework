@@ -88,9 +88,12 @@ json get_module_config(std::shared_ptr<MQTTAbstraction> mqtt, const std::string&
     const auto settings = mqtt->get(settings_topic, QOS::QOS2);
     result["settings"] = settings;
 
-    const auto schemas_topic = fmt::format("{}schemas", everest_prefix);
-    const auto schemas = mqtt->get(schemas_topic, QOS::QOS2);
-    result["schemas"] = schemas;
+    bool validate_schema = settings.value("validate_schema", json(false)).get<bool>();
+    if (validate_schema) {
+        const auto schemas_topic = fmt::format("{}schemas", everest_prefix);
+        const auto schemas = mqtt->get(schemas_topic, QOS::QOS2);
+        result["schemas"] = schemas;
+    }
 
     const auto module_names_topic = fmt::format("{}module_names", everest_prefix);
     const auto module_names = mqtt->get(module_names_topic, QOS::QOS2);
