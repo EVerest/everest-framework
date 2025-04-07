@@ -15,22 +15,16 @@ std::string cmd_event_to_string(CmdEvent cmd_event) {
     switch (cmd_event) {
     case CmdEvent::MessageParsingFailed:
         return CMD_EVENT_MESSAGE_PARSING_FAILED;
-        break;
     case CmdEvent::SchemaValidationFailed:
         return CMD_EVENT_SCHEMA_VALIDATION_FAILED;
-        break;
     case CmdEvent::HandlerException:
         return CMD_EVENT_HANDLER_EXCEPTION;
-        break;
     case CmdEvent::Timeout:
         return CMD_EVENT_TIMEOUT;
-        break;
     case CmdEvent::Shutdown:
         return CMD_EVENT_SHUTDOWN;
-        break;
     case CmdEvent::NotReady:
         return CMD_EVENT_NOT_READY;
-        break;
     }
 
     throw std::runtime_error("Unknown CmdEvent");
