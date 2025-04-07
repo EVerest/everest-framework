@@ -425,18 +425,23 @@ json Everest::call_cmd(const Requirement& req, const std::string& cmd_name, json
     this->mqtt_abstraction->unregister_handler(cmd_topic, res_token);
 
     if (result.error.has_value()) {
-        auto& error = result.error.value();
-        if (error.event == CmdEvent::HandlerException) {
-            throw HandlerException(fmt::format("{}", error.msg));
-        } else if (error.event == CmdEvent::Timeout) {
-            throw CmdTimeout(fmt::format("{}", error.msg));
+        const auto& error = result.error.value();
+        const auto error_message = fmt::format("{}", error.msg);
+        switch (error.event) {
+        case CmdEvent::HandlerException:
+            throw HandlerException(error_message);
+        case CmdEvent::Timeout:
+            throw CmdTimeout(error_message);
+        default:
+            throw CmdError(fmt::format("{}: {}", conversions::cmd_event_to_string(error.event), error.msg));
         }
-        throw CmdError(fmt::format("{}: {}", conversions::cmd_event_to_string(error.event), error.msg));
-    } else if (not result.result.has_value()) {
-        throw CmdError("Command did not return result");
-    } else {
-        return result.result.value();
     }
+
+    if (not result.result.has_value()) {
+        throw CmdError("Command did not return result");
+    }
+
+    return result.result.value();
 }
 
 void Everest::publish_var(const std::string& impl_id, const std::string& var_name, json value) {
