@@ -908,7 +908,7 @@ void Everest::provide_cmd(const std::string& impl_id, const std::string& cmd_nam
             EVLOG_error << fmt::format("Unknown exception during handling of: {}->{}({})",
                                        this->config.printable_identifier(this->module_id, impl_id), cmd_name,
                                        fmt::join(arg_names, ","));
-            error = CmdResultError{CmdEvent::HandlerException, "Unknown exception"};
+            error = CmdResultError{CmdEvent::HandlerException, "Unknown exception", std::current_exception()};
         }
 
         // check retval against manifest
