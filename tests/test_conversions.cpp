@@ -16,6 +16,7 @@ SCENARIO("Check conversions", "[!throws]") {
             CHECK(Everest::conversions::cmd_event_to_string(Everest::CmdEvent::HandlerException) == "HandlerException");
             CHECK(Everest::conversions::cmd_event_to_string(Everest::CmdEvent::Timeout) == "Timeout");
             CHECK(Everest::conversions::cmd_event_to_string(Everest::CmdEvent::Shutdown) == "Shutdown");
+            CHECK(Everest::conversions::cmd_event_to_string(Everest::CmdEvent::NotReady) == "NotReady");
         }
     }
 
@@ -35,6 +36,7 @@ SCENARIO("Check conversions", "[!throws]") {
             CHECK(Everest::conversions::string_to_cmd_event("HandlerException") == Everest::CmdEvent::HandlerException);
             CHECK(Everest::conversions::string_to_cmd_event("Timeout") == Everest::CmdEvent::Timeout);
             CHECK(Everest::conversions::string_to_cmd_event("Shutdown") == Everest::CmdEvent::Shutdown);
+            CHECK(Everest::conversions::string_to_cmd_event("NotReady") == Everest::CmdEvent::NotReady);
         }
     }
 

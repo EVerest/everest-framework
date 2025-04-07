@@ -9,6 +9,7 @@ constexpr auto CMD_EVENT_SCHEMA_VALIDATION_FAILED = "SchemaValidationFailed";
 constexpr auto CMD_EVENT_HANDLER_EXCEPTION = "HandlerException";
 constexpr auto CMD_EVENT_TIMEOUT = "Timeout";
 constexpr auto CMD_EVENT_SHUTDOWN = "Shutdown";
+constexpr auto CMD_EVENT_NOT_READY = "NotReady";
 
 std::string cmd_event_to_string(CmdEvent cmd_event) {
     switch (cmd_event) {
@@ -27,6 +28,9 @@ std::string cmd_event_to_string(CmdEvent cmd_event) {
     case CmdEvent::Shutdown:
         return CMD_EVENT_SHUTDOWN;
         break;
+    case CmdEvent::NotReady:
+        return CMD_EVENT_NOT_READY;
+        break;
     }
 
     throw std::runtime_error("Unknown CmdEvent");
@@ -43,6 +47,8 @@ CmdEvent string_to_cmd_event(const std::string& cmd_event_string) {
         return CmdEvent::Timeout;
     } else if (cmd_event_string == CMD_EVENT_SHUTDOWN) {
         return CmdEvent::Shutdown;
+    } else if (cmd_event_string == CMD_EVENT_NOT_READY) {
+        return CmdEvent::NotReady;
     }
 
     throw std::runtime_error("Unknown CmdEvent");

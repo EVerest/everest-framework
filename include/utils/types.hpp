@@ -188,12 +188,14 @@ NLOHMANN_JSON_NAMESPACE_END
 
 namespace Everest {
 
+/// \brief Events than can happen related to commands
 enum class CmdEvent {
-    MessageParsingFailed,
-    SchemaValidationFailed,
-    HandlerException,
-    Timeout,
-    Shutdown
+    MessageParsingFailed,   ///< Parsing of the message to the command handler has failed
+    SchemaValidationFailed, ///< Schema validation of arguments or result has failed
+    HandlerException,       ///< An exception was thrown during handling of the command in user code
+    Timeout,  ///< A timeout happened when calling the command (eg. when the callee doesn't respond to the caller)
+    Shutdown, ///< EVerest is shutting down during a command call
+    NotReady  ///< EVerest / the callee is not yet ready but received a command call already from another module
 };
 
 struct CmdResultError {
@@ -237,6 +239,11 @@ public:
 };
 
 class Shutdown : public CmdError {
+public:
+    using CmdError::CmdError;
+};
+
+class NotReady : public CmdError {
 public:
     using CmdError::CmdError;
 };
