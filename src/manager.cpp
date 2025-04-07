@@ -475,8 +475,8 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
                                           fs::canonical(python_module_path), capabilities);
         } else {
             if (module_name == "probe" || module_type == "ProbeModule") {
-                EVLOG_error <<  "You are trying to start the probe module as binary, please check "
-                                "your test case, did you add \"@pytest.mark.probe_module\" to your test case?";
+                EVLOG_error << "You are trying to start the probe module as binary, please check "
+                               "your test case, did you add \"@pytest.mark.probe_module\" to your test case?";
             }
             throw std::runtime_error(
                 fmt::format("module: {} ({}) cannot be loaded because no Binary, JavaScript or Python "
@@ -484,8 +484,9 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
                             "  checked paths:\n"
                             "    binary: {}\n"
                             "    js:  {}\n"
-                            "    py:  {}\n", module_name, module_type, binary_path.string(),
-                            javascript_library_path.string(), python_module_path.string()));
+                            "    py:  {}\n",
+                            module_name, module_type, binary_path.string(), javascript_library_path.string(),
+                            python_module_path.string()));
         }
     }
 
