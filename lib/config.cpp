@@ -440,11 +440,6 @@ const json& ConfigBase::get_types() const {
     return this->types;
 }
 
-std::unordered_map<std::string, ConfigCache> ConfigBase::get_module_config_cache() {
-    BOOST_LOG_FUNCTION();
-    return this->module_config_cache;
-}
-
 std::unordered_map<std::string, std::string> ConfigBase::get_module_names() {
     return this->module_names;
 }
@@ -556,7 +551,6 @@ std::optional<Mapping> ConfigBase::get_3_tier_model_mapping(const std::string& m
 void ManagerConfig::load_and_validate_manifest(const std::string& module_id, const json& module_config) {
     const std::string module_name = module_config.at("module");
 
-    this->module_config_cache[module_id] = ConfigCache();
     this->module_names[module_id] = module_name;
     EVLOG_debug << fmt::format("Found module {}, loading and verifying manifest...", printable_identifier(module_id));
 
@@ -604,15 +598,12 @@ void ManagerConfig::load_and_validate_manifest(const std::string& module_id, con
     const std::set<std::string> provided_impls = Config::keys(this->manifests[module_name]["provides"]);
 
     this->interfaces[module_name] = json({});
-    this->module_config_cache[module_name].provides_impl = provided_impls;
 
     for (const auto& impl_id : provided_impls) {
         EVLOG_debug << fmt::format("Loading interface for implementation: {}", impl_id);
         auto intf_name = this->manifests[module_name]["provides"][impl_id]["interface"].get<std::string>();
-        auto seen_interfaces = std::set<std::string>();
         this->interfaces[module_name][impl_id] = intf_name;
         resolve_interface(intf_name);
-        this->module_config_cache[module_name].cmds[impl_id] = this->interface_definitions.at(intf_name).at("cmds");
     }
 
     // check if config only contains impl_ids listed in manifest file
@@ -1186,11 +1177,24 @@ std::optional<TelemetryConfig> ManagerConfig::get_telemetry_config(const std::st
 Config::Config(const MQTTSettings& mqtt_settings, json serialized_config) : ConfigBase(mqtt_settings) {
     this->main = serialized_config.value("module_config", json({}));
     this->manifests = serialized_config.value("manifests", json({}));
-    this->interfaces = serialized_config.value("module_provides", json({}));
     this->interface_definitions = serialized_config.value("interface_definitions", json({}));
     this->types = serialized_config.value("types", json({}));
     this->module_names = serialized_config.at("module_names");
-    this->module_config_cache = serialized_config.at("module_config_cache");
+
+    // FIXME: move this to its own function
+    // create module config cache
+    for (const auto& [module_id, module_name] : this->module_names) {
+        this->module_config_cache[module_id] = ConfigCache();
+        const std::set<std::string> provided_impls = Config::keys(this->manifests[module_name]["provides"]);
+        this->interfaces[module_name] = json({});
+        this->module_config_cache[module_name].provides_impl = provided_impls;
+        for (const auto& impl_id : provided_impls) {
+            auto intf_name = this->manifests[module_name]["provides"][impl_id]["interface"].get<std::string>();
+            this->interfaces[module_name][impl_id] = intf_name;
+            this->module_config_cache[module_name].cmds[impl_id] = this->interface_definitions.at(intf_name).at("cmds");
+        }
+    }
+
     if (serialized_config.contains("mappings") and !serialized_config.at("mappings").is_null()) {
         this->tier_mappings = serialized_config.at("mappings");
     }
@@ -1198,9 +1202,30 @@ Config::Config(const MQTTSettings& mqtt_settings, json serialized_config) : Conf
         this->telemetry_config = serialized_config.at("telemetry_config");
     }
 
-    this->schemas = serialized_config.at("schemas");
+    if (serialized_config.contains("schemas")) {
+        this->schemas = serialized_config.at("schemas");
+    }
+
+    // FIXME: move this to its own function
+    // create error type map from interface definitions
+    // TODO: move this code to manager and distribute the error information centrally again (split over multiple topics)
+    // since there can be some redundancies with eg. generic errors that might be in multiple interfaces
+    // remove the "errors" entry from the interface definitions that are shared via MQTT, this could reduce their size a
+    // bit since it limits the amount of shared redundant information
+    json error_types_map = json({});
+    for (const auto& [interface_name, interface_definition] : this->interface_definitions.items()) {
+        for (const auto& [error_namespace, errors] : interface_definition.at("errors").items()) {
+            for (const auto& [error_key, error_definition] : errors.items()) {
+                const auto error_type_name = fmt::format("{}/{}", error_definition.at("namespace").get<std::string>(),
+                                                         error_definition.at("name").get<std::string>());
+                if (not error_types_map.contains(error_type_name)) {
+                    error_types_map[error_type_name] = error_definition.at("description").get<std::string>();
+                }
+            }
+        }
+    }
     this->error_map = error::ErrorTypeMap();
-    this->error_map.load_error_types_map(serialized_config.at("error_map"));
+    this->error_map.load_error_types_map(error_types_map);
 }
 
 error::ErrorTypeMap Config::get_error_map() const {
