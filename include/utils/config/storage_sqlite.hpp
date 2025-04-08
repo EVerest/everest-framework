@@ -17,7 +17,12 @@ public:
     /// \param migration_files_path Path to SQL migration files
     /// \throws MigrationException if migration fails
     /// \throws std::runtime_error if database cannot be opened
-    SqliteStorage(const fs::path& db_path, const std::filesystem::path& migration_files_path);
+    SqliteStorage(const fs::path& db_path);
+
+    void apply_migrations(const fs::path& migration_files_path);
+    void open_connection();
+    void close_connection();
+    bool is_initialized() const;
 
     GenericResponseStatus write_module_configs(const ModuleConfigurations& module_configs) override;
     GenericResponseStatus write_settings(const Everest::ManagerSettings& manager_settings) override;
