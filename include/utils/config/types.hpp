@@ -2,6 +2,7 @@
 // Copyright 2020 - 2025 Pionix GmbH and Contributors to EVerest
 
 #include <cstdint>
+#include <filesystem>
 #include <optional>
 #include <string>
 #include <map>
@@ -9,6 +10,8 @@
 #include <vector>
 
 namespace everest::config {
+
+namespace fs = std::filesystem;
 
 struct ConfigurationParameter;
 struct ModuleConfig;
@@ -33,26 +36,26 @@ enum class Datatype {
 
 struct Settings {
     int id;
-    std::string prefix;
-    std::string config_file;
-    std::string configs_dir;
-    std::string schemas_dir;
-    std::string modules_dir;
-    std::string interfaces_dir;
-    std::string types_dir;
-    std::string errors_dir;
-    std::string www_dir;
-    std::string logging_config_file;
-    uint16_t controller_port;
-    std::string controller_rpc_timeout_ms;
+    fs::path prefix;
+    fs::path config_file;
+    fs::path configs_dir;
+    fs::path schemas_dir;
+    fs::path modules_dir;
+    fs::path interfaces_dir;
+    fs::path types_dir;
+    fs::path errors_dir;
+    fs::path www_dir;
+    fs::path logging_config_file;
+    int controller_port;
+    int controller_rpc_timeout_ms;
     std::string mqtt_broker_socket_path;
     std::string mqtt_broker_host;
-    std::string mqtt_broker_port;
+    int mqtt_broker_port;
     std::string mqtt_everest_prefix;
     std::string mqtt_external_prefix;
     std::string telemetry_prefix;
-    std::string telemetry_enabled;
-    std::string validate_schema;
+    bool telemetry_enabled;
+    bool validate_schema;
     std::string run_as_user;
 };
 
