@@ -11,9 +11,9 @@
 #include <sys/prctl.h>
 
 #include <framework/ModuleAdapter.hpp>
+#include <utils/config/settings.hpp>
 #include <utils/module_config.hpp>
 #include <utils/yaml_loader.hpp>
-#include <utils/config/settings.hpp>
 
 #include <everest/compile_time_settings.hpp>
 #include <everest/logging.hpp>
@@ -123,12 +123,10 @@ struct ManagerSettings {
 
     nlohmann::json config; ///< Parsed json of the config_file
 
-    MQTTSettings mqtt_settings;                        ///< MQTT connection settings
-    std::unique_ptr<RuntimeSettings> runtime_settings; ///< Runtime settings needed to successfully run modules
+    MQTTSettings mqtt_settings;       ///< MQTT connection settings
+    RuntimeSettings runtime_settings; ///< Runtime settings needed to successfully run modules
 
     ManagerSettings(const std::string& prefix, const std::string& config);
-
-    const RuntimeSettings& get_runtime_settings() const;
 };
 
 // NOTE: this function needs the be called with a pre-initialized ModuleInfo struct

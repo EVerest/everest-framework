@@ -21,6 +21,20 @@ RuntimeSettings create_runtime_settings(const fs::path& prefix, const fs::path& 
     return runtime_settings;
 }
 
+void populate_runtime_settings(RuntimeSettings& runtime_settings, const fs::path& prefix, const fs::path& etc_dir,
+                               const fs::path& data_dir, const fs::path& modules_dir,
+                               const fs::path& logging_config_file, const std::string& telemetry_prefix,
+                               bool telemetry_enabled, bool validate_schema) {
+    runtime_settings.prefix = prefix;
+    runtime_settings.etc_dir = etc_dir;
+    runtime_settings.data_dir = data_dir;
+    runtime_settings.modules_dir = modules_dir;
+    runtime_settings.logging_config_file = logging_config_file;
+    runtime_settings.telemetry_prefix = telemetry_prefix;
+    runtime_settings.telemetry_enabled = telemetry_enabled;
+    runtime_settings.validate_schema = validate_schema;
+}
+
 } // namespace Everest
 
 NLOHMANN_JSON_NAMESPACE_BEGIN
