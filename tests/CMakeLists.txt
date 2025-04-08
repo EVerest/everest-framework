@@ -14,6 +14,7 @@ target_include_directories(${TEST_TARGET_NAME} PRIVATE
 
 target_sources(${TEST_TARGET_NAME} PRIVATE
     test_config.cpp
+    test_config_sqlite.cpp
     test_filesystem_helpers.cpp
     helpers.cpp
 )
@@ -73,6 +74,12 @@ setup_test_directory(
     two_module_test 
     CONFIG two_modules.yaml 
     MODULES TESTModuleA TESTModuleB
+    INTERFACE_FILES test_interface test_interface_cmd_var
+)
+setup_test_directory(
+    two_module_test 
+    CONFIG two_modules.yaml 
+    MODULES ModuleA ModuleB 
     INTERFACE_FILES test_interface test_interface_cmd_var
 )
 
