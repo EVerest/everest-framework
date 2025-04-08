@@ -613,7 +613,7 @@ static Napi::Value boot_module(const Napi::CallbackInfo& info) {
         Everest::RuntimeSettings result_settings = result.at("settings");
         auto rs = std::make_unique<Everest::RuntimeSettings>(std::move(result_settings));
 
-        auto config = std::make_unique<Everest::Config>(mqtt_settings, result);
+        auto config = std::make_unique<Everest::Config>(mqtt_settings, result, module_id);
 
         if (!config->contains(module_id)) {
             EVTHROW(EVEXCEPTION(Everest::EverestConfigError,
@@ -885,7 +885,7 @@ static Napi::Value boot_module(const Napi::CallbackInfo& info) {
         }
 
         // config property
-        json module_config = config->get_module_json_config(module_id);
+        const auto module_config = config->get_module_config();
 
         auto module_info = config->get_module_info(module_id);
         populate_module_info_path_from_runtime_settings(module_info, *rs);
@@ -893,15 +893,19 @@ static Napi::Value boot_module(const Napi::CallbackInfo& info) {
         auto module_config_prop = Napi::Object::New(env);
         auto module_config_impl_prop = Napi::Object::New(env);
 
-        for (const auto& config_map : module_config.items()) {
-            const auto& json_config_map = Everest::typed_json_map_to_config_map(config_map.value());
-            if (config_map.key() == "!module") {
-                module_config_prop.DefineProperty(Napi::PropertyDescriptor::Value(
-                    "module", convertToNapiValue(env, json_config_map), napi_enumerable));
+        for (const auto& [impl_id, parameters] : module_config.configuration_parameters) {
+            json config_map;
+            for (const auto& param : parameters) {
+                config_map[param.name] = param.value;
+            }
+
+            if (impl_id == "!module") {
+                module_config_prop.DefineProperty(
+                    Napi::PropertyDescriptor::Value("module", convertToNapiValue(env, config_map), napi_enumerable));
                 continue;
             }
-            module_config_impl_prop.DefineProperty(Napi::PropertyDescriptor::Value(
-                config_map.key(), convertToNapiValue(env, json_config_map), napi_enumerable));
+            module_config_impl_prop.DefineProperty(
+                Napi::PropertyDescriptor::Value(impl_id, convertToNapiValue(env, config_map), napi_enumerable));
         }
         module_config_prop.DefineProperty(
             Napi::PropertyDescriptor::Value("impl", module_config_impl_prop, napi_enumerable));

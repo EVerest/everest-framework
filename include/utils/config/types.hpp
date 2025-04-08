@@ -168,6 +168,13 @@ struct EverestConfig {
     std::map<ModuleId, ModuleConfig> module_configs;
 };
 
+/// \brief Struct that contains the settings for the EVerest framework and all module configurations. It can represent a
+/// full YAML configuration file.
+struct EverestConfig {
+    Settings settings;
+    std::map<ModuleId, ModuleConfig> module_configs;
+};
+
 /// \brief Struct that contains the configuration of an EVerest module
 struct ModuleConfig {
     bool standalone;
