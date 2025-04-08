@@ -31,7 +31,8 @@ enum class Datatype {
     String,
     Decimal,
     Integer,
-    Boolean
+    Boolean,
+    Path
 };
 
 struct Settings {
