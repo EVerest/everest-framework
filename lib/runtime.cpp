@@ -357,13 +357,8 @@ ManagerSettings::ManagerSettings(const std::string& prefix_, const std::string& 
         validate_schema = defaults::VALIDATE_SCHEMA;
     }
 
-    runtime_settings = std::make_unique<RuntimeSettings>(
-        std::move(create_runtime_settings(prefix, etc_dir, data_dir, modules_dir, logging_config_file, telemetry_prefix,
-                                          telemetry_enabled, validate_schema)));
-}
-
-const RuntimeSettings& ManagerSettings::get_runtime_settings() const {
-    return *runtime_settings.get();
+    populate_runtime_settings(this->runtime_settings, prefix, etc_dir, data_dir, modules_dir, logging_config_file,
+                              telemetry_prefix, telemetry_enabled, validate_schema);
 }
 
 ModuleCallbacks::ModuleCallbacks(
