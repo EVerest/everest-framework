@@ -2,6 +2,7 @@
 // Copyright Pionix GmbH and Contributors to EVerest
 
 #include <fmt/core.h>
+#include <fstream>
 
 #include <everest/exceptions.hpp>
 #include <everest/logging.hpp>
@@ -29,14 +30,22 @@ fs::path assert_dir(const std::string& path, const std::string& path_alias) {
     return fs_path;
 }
 
-/// \brief Check if the provided \p path is a file
+/// \brief Check if the provided \p path is a file, optionally create if missing
 /// \returns The canonical version of the provided path
-/// \throws BootException if the path doesn't exist or isn't a regular file
-fs::path assert_file(const std::string& path, const std::string& file_alias) {
+/// \throws BootException if the path isn't a regular file (or can't be created)
+fs::path assert_file(const std::string& path, const std::string& file_alias, MissingFilePolicy policy) {
     auto fs_file = fs::path(path);
 
     if (!fs::exists(fs_file)) {
-        throw BootException(fmt::format("{} file '{}' does not exist", file_alias, path));
+        if (policy == MissingFilePolicy::Throw) {
+            throw BootException(fmt::format("{} file '{}' does not exist", file_alias, path));
+        }
+        // Try to create an empty file
+        std::ofstream file(fs_file);
+        if (!file) {
+            throw BootException(fmt::format("{} file '{}' could not be created", file_alias, path));
+        }
+        file.close();
     }
 
     fs_file = fs::canonical(fs_file);

@@ -2,6 +2,7 @@
 // Copyright Pionix GmbH and Contributors to EVerest
 
 #include <framework/runtime.hpp>
+#include <utils/config/storage_sqlite.hpp>
 #include <utils/error.hpp>
 #include <utils/error/error_factory.hpp>
 #include <utils/error/error_json.hpp>
@@ -34,7 +35,7 @@ void populate_module_info_path_from_runtime_settings(ModuleInfo& mi, const Runti
     mi.paths.share = rs.data_dir / defaults::MODULES_DIR / mi.name;
 }
 
-ManagerSettings::ManagerSettings(const std::string& prefix_, const std::string& config_) {
+ManagerSettings::ManagerSettings(const std::string& prefix_, const std::string& config_, const std::string& db_) {
     // if prefix or config is empty, we assume they have not been set!
     // if they have been set, check their validity, otherwise bail out!
 
@@ -54,6 +55,8 @@ ManagerSettings::ManagerSettings(const std::string& prefix_, const std::string& 
     if (prefix_.length() != 0) {
         // user provided
         prefix = assert_dir(prefix_, "User provided prefix");
+    } else {
+        prefix = assert_dir(defaults::PREFIX, "Default prefix");
     }
 
     if (config_file.empty()) {
@@ -78,36 +81,66 @@ ManagerSettings::ManagerSettings(const std::string& prefix_, const std::string& 
             config_file = assert_file(user_config_file, short_form_alias);
         } else {
             // default
-            config_file =
-                assert_file(config_file_prefix / defaults::SYSCONF_DIR / defaults::NAMESPACE / defaults::CONFIG_NAME,
-                            "Default config");
+            config_file = config_file_prefix / defaults::SYSCONF_DIR / defaults::NAMESPACE / defaults::CONFIG_NAME;
         }
     }
+    // now the config file should have been found if it exists
 
-    // now the config file should have been found
-    if (config_file.empty()) {
-        throw std::runtime_error("Assertion for found config file failed");
-    }
+    // share directory
+    const auto data_dir =
+        assert_dir((prefix / defaults::DATAROOT_DIR / defaults::NAMESPACE).string(), "Default share directory");
 
-    config = load_yaml(config_file);
-    if (config == nullptr) {
-        EVLOG_info << "Config file is null, treating it as empty";
-        config = json::object();
-    } else if (!config.is_object()) {
-        throw BootException(fmt::format("Config file '{}' is not an object", config_file.string()));
-    }
-    const auto settings = everest::config::parse_settings(config.value("settings", json::object()));
-    if (prefix.empty()) {
-        if (settings.prefix.has_value()) {
-            const auto settings_prefix = settings.prefix.value();
-            if (!settings_prefix.is_absolute()) {
-                throw BootException("Setting a non-absolute directory for the prefix is not allowed");
-            }
-
-            prefix = assert_dir(settings_prefix, "Config provided prefix");
-        } else {
-            prefix = assert_dir(defaults::PREFIX, "Default prefix");
+    if (db_.length() != 0) {
+        // user provided database file
+        try {
+            db_dir = assert_file(db_, "User provided database", MissingFilePolicy::Create);
+        } catch (const BootException& e) {
+            db_dir = data_dir / defaults::DEFAULT_DATABASE_FILE_NAME;
         }
+    } else {
+        // default database file
+        db_dir = data_dir / defaults::DEFAULT_DATABASE_FILE_NAME;
+    }
+    // now the db_dir should have been found
+
+    const auto user_selected_config_source = db_.empty() ? ConfigBootSource::YamlFile : ConfigBootSource::Database;
+    const auto migrations_dir = data_dir / "migrations";
+    everest::config::SqliteStorage storage(db_dir);
+    storage.apply_migrations(migrations_dir);
+    bool storage_marked_valid = storage.contains_valid_config();
+
+    bool config_exists = fs::exists(config_file);
+
+    if (user_selected_config_source == ConfigBootSource::Database && storage_marked_valid) {
+        boot_source = ConfigBootSource::Database;
+    } else if (!config_exists && storage_marked_valid) {
+        boot_source = ConfigBootSource::Database;
+    } else if (!config_exists && !storage_marked_valid) {
+        throw BootException(fmt::format("No config file provided and database not initialized"));
+    } else {
+        boot_source = ConfigBootSource::YamlFile;
+    }
+
+    everest::config::Settings settings;
+    if (boot_source == ConfigBootSource::YamlFile) {
+        EVLOG_info << "Booting and parsing configuration from YAML file: " << config_file;
+        storage.wipe();
+        config = load_yaml(config_file);
+        if (config == nullptr) {
+            EVLOG_info << "Config file is null, treating it as empty";
+            config = json::object();
+        } else if (!config.is_object()) {
+            throw BootException(fmt::format("Config file '{}' is not an object", config_file.string()));
+        }
+        settings = everest::config::parse_settings(config.value("settings", json::object()));
+    } else {
+        EVLOG_info << "Booting and parsing configuration from database: " << db_dir;
+        const auto settings_response = storage.get_settings();
+        if (settings_response.status != everest::config::GenericResponseStatus::OK or
+            !settings_response.settings.has_value()) {
+            throw BootException("Failed to load settings from database");
+        }
+        settings = settings_response.settings.value();
     }
 
     fs::path etc_dir;
@@ -120,13 +153,6 @@ ManagerSettings::ManagerSettings(const std::string& prefix_, const std::string& 
             etc_dir = fs::path("/") / default_etc_dir;
         }
         etc_dir = assert_dir(etc_dir.string(), "Default etc directory");
-    }
-
-    fs::path data_dir;
-    {
-        // share directory
-        data_dir =
-            assert_dir((prefix / defaults::DATAROOT_DIR / defaults::NAMESPACE).string(), "Default share directory");
     }
 
     if (settings.configs_dir.has_value()) {
@@ -340,6 +366,8 @@ ManagerSettings::ManagerSettings(const std::string& prefix_, const std::string& 
 
     populate_runtime_settings(this->runtime_settings, prefix, etc_dir, data_dir, modules_dir, logging_config_file,
                               telemetry_prefix, telemetry_enabled, validate_schema);
+
+    storage.write_settings(*this);
 }
 
 ModuleCallbacks::ModuleCallbacks(

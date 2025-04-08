@@ -14,6 +14,11 @@ namespace Everest {
 
 namespace fs = std::filesystem;
 
+enum class ConfigBootSource {
+    YamlFile = 1,
+    Database = 2,
+};
+
 /// \brief EVerest framework runtime settings needed to successfully run modules
 struct RuntimeSettings {
     fs::path prefix;      ///< Prefix for EVerest installation
@@ -38,6 +43,7 @@ void populate_runtime_settings(RuntimeSettings& runtime_settings, const fs::path
 /// \brief Settings needed by the manager to load and validate a config
 struct ManagerSettings {
     fs::path configs_dir;          ///< Directory that contains EVerest configs
+    fs::path db_dir;               ///< Directory that contains the database
     fs::path schemas_dir;          ///< Directory that contains schemas for config, manifest, interfaces, etc.
     fs::path interfaces_dir;       ///< Directory that contains interface definitions
     fs::path types_dir;            ///< Directory that contains type definitions
@@ -55,9 +61,11 @@ struct ManagerSettings {
 
     MQTTSettings mqtt_settings;       ///< MQTT connection settings
     RuntimeSettings runtime_settings; ///< Runtime settings needed to successfully run modules
+    ConfigBootSource boot_source;
 
-    ManagerSettings(const std::string& prefix, const std::string& config);
+    ManagerSettings(const std::string& prefix, const std::string& config, const std::string& db = "");
 };
+
 } // namespace Everest
 
 NLOHMANN_JSON_NAMESPACE_BEGIN
