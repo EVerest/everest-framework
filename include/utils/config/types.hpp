@@ -35,7 +35,6 @@ enum class Datatype {
 };
 
 struct Settings {
-    int id;
     fs::path prefix;
     fs::path config_file;
     fs::path configs_dir;
