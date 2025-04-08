@@ -16,6 +16,8 @@ target_sources(framework
     PRIVATE
         config.cpp
         config/mqtt_settings.cpp
+        config/settings.cpp
+        config/types.cpp
         config_cache.cpp
         error/error.cpp
         error/error_database_map.cpp

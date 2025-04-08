@@ -13,6 +13,7 @@
 #include <framework/ModuleAdapter.hpp>
 #include <utils/module_config.hpp>
 #include <utils/yaml_loader.hpp>
+#include <utils/config/settings.hpp>
 
 #include <everest/compile_time_settings.hpp>
 #include <everest/logging.hpp>
@@ -104,26 +105,7 @@ const auto TERMINAL_STYLE_ERROR = fmt::emphasis::bold | fg(fmt::terminal_color::
 const auto TERMINAL_STYLE_OK = fmt::emphasis::bold | fg(fmt::terminal_color::green);
 const auto TERMINAL_STYLE_BLUE = fmt::emphasis::bold | fg(fmt::terminal_color::blue);
 
-/// \brief Runtime settings needed to successfully run modules
-struct RuntimeSettings {
-    fs::path prefix;      ///< Prefix for EVerest installation
-    fs::path etc_dir;     ///< Directory that contains configs, certificates
-    fs::path data_dir;    ///< Directory for general data, definitions for EVerest interfaces, types, errors an schemas
-    fs::path modules_dir; ///< Directory that contains EVerest modules
-    fs::path logging_config_file; ///< Path to the logging configuration file
-    std::string telemetry_prefix; ///< MQTT prefix for telemetry
-    bool telemetry_enabled;       ///< If telemetry is enabled
-    bool validate_schema;         ///< If schema validation for all var publishes and cmd calls is enabled
-
-    explicit RuntimeSettings(const fs::path& prefix, const fs::path& etc_dir, const fs::path& data_dir,
-                             const fs::path& modules_dir, const fs::path& logging_config_file,
-                             const std::string& telemetry_prefix, bool telemetry_enabled, bool validate_schema);
-
-    explicit RuntimeSettings(const nlohmann::json& json);
-};
-
 /// \brief Settings needed by the manager to load and validate a config
-
 struct ManagerSettings {
     fs::path configs_dir;          ///< Directory that contains EVerest configs
     fs::path schemas_dir;          ///< Directory that contains schemas for config, manifest, interfaces, etc.
@@ -200,13 +182,5 @@ public:
 };
 
 } // namespace Everest
-
-NLOHMANN_JSON_NAMESPACE_BEGIN
-template <> struct adl_serializer<Everest::RuntimeSettings> {
-    static void to_json(nlohmann::json& j, const Everest::RuntimeSettings& r);
-
-    static void from_json(const nlohmann::json& j, Everest::RuntimeSettings& r);
-};
-NLOHMANN_JSON_NAMESPACE_END
 
 #endif // FRAMEWORK_EVEREST_RUNTIME_HPP

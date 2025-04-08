@@ -30,6 +30,7 @@
 #include <utils/filesystem.hpp>
 #include <utils/module_config.hpp>
 #include <utils/config/mqtt_settings.hpp>
+#include <utils/config/settings.hpp>
 
 namespace EverestJs {
 
