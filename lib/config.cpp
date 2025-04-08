@@ -14,6 +14,7 @@
 
 #include <framework/runtime.hpp>
 #include <utils/config.hpp>
+#include <utils/config/storage_sqlite.hpp>
 #include <utils/formatter.hpp>
 #include <utils/yaml_loader.hpp>
 
@@ -1049,7 +1050,7 @@ void ManagerConfig::parse(ModuleConfigurations& module_configs) {
 
     std::optional<std::string> probe_module_id;
 
-    // load manifest files of configured modules
+    /// load manifest files of configured modules
     for (auto& [module_id, module_config] : module_configs) {
         if (module_config.module_name == "ProbeModule") {
             if (probe_module_id) {
@@ -1115,37 +1116,51 @@ ManagerConfig::ManagerConfig(const ManagerSettings& ms) : ConfigBase(ms.mqtt_set
     this->draft7_validator = std::make_unique<json_validator>(loader, format_checker);
     this->draft7_validator->set_root_schema(draft07);
 
-    // load and process config file
-    const fs::path config_path = this->ms.config_file;
+    const auto db_file = ms.runtime_settings.data_dir / defaults::DATABASE_FILE;
+    everest::config::SqliteStorage storage(db_file);
+    storage.open_connection();
 
+    ModuleConfigurations module_configs;
+    this->settings = this->ms.runtime_settings;
     try {
-        EVLOG_info << fmt::format("Loading config file at: {}", fs::canonical(config_path).string());
-        auto complete_config = this->ms.config;
-        // try to load user config from a directory "user-config" that might be in the same parent directory as the
-        // config_file. The config is supposed to have the same name as the parent config.
-        // TODO(kai): introduce a parameter that can overwrite the location of the user config?
-        // TODO(kai): or should we introduce a "meta-config" that references all configs that should be merged here?
-        const auto user_config_path = config_path.parent_path() / "user-config" / config_path.filename();
-        if (fs::exists(user_config_path)) {
-            EVLOG_info << fmt::format("Loading user-config file at: {}", fs::canonical(user_config_path).string());
-            auto user_config = load_yaml(user_config_path);
-            EVLOG_debug << "Augmenting main config with user-config entries";
-            complete_config.merge_patch(user_config);
+        if (ms.config_source == ConfigSource::FILE) {
+            // load and process config file
+            const fs::path config_path = this->ms.config_file;
+            EVLOG_info << fmt::format("Loading config file at: {}", fs::canonical(config_path).string());
+            auto complete_config = this->ms.config;
+            // try to load user config from a directory "user-config" that might be in the same parent directory as the
+            // config_file. The config is supposed to have the same name as the parent config.
+            // TODO(kai): introduce a parameter that can overwrite the location of the user config?
+            // TODO(kai): or should we introduce a "meta-config" that references all configs that should be merged here?
+            const auto user_config_path = config_path.parent_path() / "user-config" / config_path.filename();
+            if (fs::exists(user_config_path)) {
+                EVLOG_info << fmt::format("Loading user-config file at: {}", fs::canonical(user_config_path).string());
+                auto user_config = load_yaml(user_config_path);
+                EVLOG_debug << "Augmenting main config with user-config entries";
+                complete_config.merge_patch(user_config);
+            } else {
+                EVLOG_verbose << "No user-config provided.";
+            }
+
+            const auto patch = this->validators.config.validate(complete_config);
+            if (!patch.is_null()) {
+                // extend config with default values
+                complete_config = complete_config.patch(patch);
+            }
+
+            // this config is parsed from the file, it doesnt contain any defaults or patches!
+            module_configs = parse_module_configs(complete_config.value("active_modules", json::object()));
+            // now the config is parsed, validated and patched!
         } else {
-            EVLOG_verbose << "No user-config provided.";
+            const auto module_configs_response = storage.get_module_configs();
+            if (module_configs_response.status == GenericResponseStatus::Failed) {
+                EVLOG_AND_THROW(EverestConfigError(fmt::format("Failed to load config from database: {}")));
+            }
+            module_configs = module_configs_response.module_configs;
         }
 
-        const auto patch = this->validators.config.validate(complete_config);
-        if (!patch.is_null()) {
-            // extend config with default values
-            complete_config = complete_config.patch(patch);
-        }
-
-        this->settings = this->ms.runtime_settings;
-        // this config is parsed from the file, it doesnt contain any defaults or patches!
-        auto module_configs = parse_module_configs(complete_config.value("active_modules", json::object()));
         this->parse(module_configs);
-        // now the config is parsed, validated and patched!
+        storage.write_module_configs(module_configs);
     } catch (const std::exception& e) {
         EVLOG_AND_THROW(EverestConfigError(fmt::format("Failed to load and parse config file: {}", e.what())));
     }
