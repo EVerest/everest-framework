@@ -23,13 +23,12 @@ struct RuntimeSettings {
     std::string telemetry_prefix; ///< MQTT prefix for telemetry
     bool telemetry_enabled;       ///< If telemetry is enabled
     bool validate_schema;         ///< If schema validation for all var publishes and cmd calls is enabled
-
-    explicit RuntimeSettings(const fs::path& prefix, const fs::path& etc_dir, const fs::path& data_dir,
-                             const fs::path& modules_dir, const fs::path& logging_config_file,
-                             const std::string& telemetry_prefix, bool telemetry_enabled, bool validate_schema);
-
-    explicit RuntimeSettings(const nlohmann::json& json);
 };
+
+RuntimeSettings create_runtime_settings(const fs::path& prefix, const fs::path& etc_dir, const fs::path& data_dir,
+                                        const fs::path& modules_dir, const fs::path& logging_config_file,
+                                        const std::string& telemetry_prefix, bool telemetry_enabled,
+                                        bool validate_schema);
 
 } // namespace Everest
 

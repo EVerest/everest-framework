@@ -357,8 +357,9 @@ ManagerSettings::ManagerSettings(const std::string& prefix_, const std::string& 
         validate_schema = defaults::VALIDATE_SCHEMA;
     }
 
-    runtime_settings = std::make_unique<RuntimeSettings>(prefix, etc_dir, data_dir, modules_dir, logging_config_file,
-                                                         telemetry_prefix, telemetry_enabled, validate_schema);
+    runtime_settings = std::make_unique<RuntimeSettings>(
+        std::move(create_runtime_settings(prefix, etc_dir, data_dir, modules_dir, logging_config_file, telemetry_prefix,
+                                          telemetry_enabled, validate_schema)));
 }
 
 const RuntimeSettings& ManagerSettings::get_runtime_settings() const {
@@ -402,7 +403,8 @@ int ModuleLoader::initialize() {
     EVLOG_debug << "Module " << fmt::format(TERMINAL_STYLE_OK, "{}", module_id) << " get_config() ["
                 << std::chrono::duration_cast<std::chrono::milliseconds>(get_config_time - start_time).count() << "ms]";
 
-    this->runtime_settings = std::make_unique<RuntimeSettings>(result.at("settings"));
+    RuntimeSettings result_settings = result.at("settings");
+    this->runtime_settings = std::make_unique<RuntimeSettings>(std::move(result_settings));
 
     if (!this->runtime_settings) {
         return 0;
