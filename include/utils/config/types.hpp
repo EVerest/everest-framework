@@ -6,12 +6,27 @@
 #include <cstdint>
 #include <filesystem>
 #include <map>
+#include <nlohmann/json.hpp>
 #include <optional>
 #include <string>
 #include <variant>
 #include <vector>
 
 #include <utils/config/settings.hpp>
+
+class ConfigParseException : public std::exception {
+public:
+    enum ParseErrorType {
+        MISSING_ENTRY,
+        SCHEMA
+    };
+    ConfigParseException(ParseErrorType err_t, const std::string& entry, const std::string& what = "") :
+        err_t(err_t), entry(entry), what(what){};
+
+    const ParseErrorType err_t;
+    const std::string entry;
+    const std::string what;
+};
 
 /// \brief A Mapping that can be used to map a module or implementation to a specific EVSE or optionally to a Connector
 struct Mapping {
@@ -107,6 +122,30 @@ enum class Datatype {
     Path
 };
 
+struct Settings {
+    fs::path prefix;
+    fs::path config_file;
+    fs::path configs_dir;
+    fs::path schemas_dir;
+    fs::path modules_dir;
+    fs::path interfaces_dir;
+    fs::path types_dir;
+    fs::path errors_dir;
+    fs::path www_dir;
+    fs::path logging_config_file;
+    int controller_port;
+    int controller_rpc_timeout_ms;
+    std::string mqtt_broker_socket_path;
+    std::string mqtt_broker_host;
+    int mqtt_broker_port;
+    std::string mqtt_everest_prefix;
+    std::string mqtt_external_prefix;
+    std::string telemetry_prefix;
+    bool telemetry_enabled;
+    bool validate_schema;
+    std::string run_as_user;
+};
+
 /// \brief Struct that contains the characteristics of a configuration parameter including its datatype, mutability and
 /// unit
 struct ConfigurationParameterCharacteristics {
@@ -120,8 +159,13 @@ struct ConfigurationParameter {
     std::string name;
     ConfigEntry value;
     ConfigurationParameterCharacteristics characteristics;
+};
 
-    bool validate_type() const;
+/// \brief Struct that contains the settings for the EVerest framework and all module configurations. It can represent a
+/// full YAML configuration file.
+struct EverestConfig {
+    Settings settings;
+    std::map<ModuleId, ModuleConfig> module_configs;
 };
 
 /// \brief Struct that contains the configuration of an EVerest module
@@ -137,6 +181,8 @@ struct ModuleConfig {
     ModuleConnections connections;
     ModuleTierMappings mapping;
 };
+
+EverestConfig parse_everest_config(const nlohmann::json& config);
 
 Datatype string_to_datatype(const std::string& str);
 std::string datatype_to_string(const Datatype datatype);

@@ -62,6 +62,9 @@ setup_test_directory(missing_config_entry TESTValidManifest test_interface)
 setup_test_directory(invalid_config_entry_type TESTValidManifest test_interface)
 setup_test_directory(missing_impl_config_entry TESTValidManifest test_interface)
 
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/test_configs/valid_complete_config.json
+     DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+
 
 evc_include(CodeCoverage)
 
