@@ -14,6 +14,8 @@
 
 #include <nlohmann/json.hpp>
 
+#include <utils/config/types.hpp>
+
 using json = nlohmann::json;
 using Value = json;
 using Parameters = json;
@@ -25,8 +27,7 @@ using Arguments = std::map<std::string, ArgumentType>;
 using ReturnType = std::vector<std::string>;
 using JsonCallback = std::function<void(json)>;
 using ValueCallback = std::function<void(Value)>;
-using ConfigEntry = std::variant<std::string, bool, int, double>;
-using ConfigMap = std::map<std::string, ConfigEntry>;
+using ConfigMap = std::map<std::string, everest::config::ConfigEntry>;
 using ModuleConfigs = std::map<std::string, ConfigMap>;
 using Array = json::array_t;
 using Object = json::object_t;
