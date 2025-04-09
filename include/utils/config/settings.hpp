@@ -39,6 +39,7 @@ namespace everest::config {
 
 namespace fs = std::filesystem;
 
+// TODO: this could be the source for ManagerSettings (and RuntimeSettins / MQTTSettings) when loaded from db
 struct Settings {
     fs::path prefix;
     fs::path config_file;

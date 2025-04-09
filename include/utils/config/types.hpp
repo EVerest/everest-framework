@@ -72,6 +72,8 @@ struct Fulfillment {
     Requirement requirement;
 };
 
+// TODO: everest-framework uses Everest:: maybe we move towards using the lowercase one everywhere and alias for
+// compatibility
 namespace everest::config {
 
 namespace fs = std::filesystem;
@@ -83,6 +85,7 @@ using ImplementationIdentifier = std::string;
 using ModuleConfigurationParameters =
     std::map<ImplementationIdentifier, std::vector<ConfigurationParameter>>; // typedef for implementation id
 
+// TODO: move Mutability, Datatype and related things into a different file?
 enum class Mutability {
     ReadOnly,
     ReadWrite,
