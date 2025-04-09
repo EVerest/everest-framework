@@ -18,7 +18,7 @@ namespace fs = std::filesystem;
 struct ConfigurationParameter;
 struct ModuleConfig;
 
-using ValueVariant = std::variant<std::string, double, int, bool>;
+using ConfigEntry = std::variant<std::string, bool, int, double>;
 using ImplementationIdentifier = std::string;
 using ModuleConfigurationParameters =
     std::map<ImplementationIdentifier, std::vector<ConfigurationParameter>>; // typedef for implementation id
@@ -72,7 +72,7 @@ struct ConfigurationParameter {
     std::string value;
     ConfigurationParameterCharacteristics characteristics;
 
-    ValueVariant get_typed_value() const;
+    ConfigEntry get_typed_value() const;
 };
 
 struct EverestConfig {

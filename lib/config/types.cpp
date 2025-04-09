@@ -8,7 +8,7 @@ using json = nlohmann::json;
 
 namespace everest::config {
 
-ValueVariant ConfigurationParameter::get_typed_value() const {
+ConfigEntry ConfigurationParameter::get_typed_value() const {
     switch (characteristics.datatype) {
     case Datatype::String:
         return value;

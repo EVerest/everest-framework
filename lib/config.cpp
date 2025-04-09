@@ -1239,7 +1239,7 @@ ModuleConfigs Config::get_module_configs(const std::string& module_id) const {
             for (const auto& entry : conf_map.value().items()) {
                 const auto& entry_value = entry.value();
                 const json entry_type = entry_value.at("type");
-                ConfigEntry value;
+                everest::config::ConfigEntry value;
                 const json& data = entry_value.at("value");
 
                 if (data.is_string()) {
