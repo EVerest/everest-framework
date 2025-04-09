@@ -35,6 +35,35 @@ void populate_runtime_settings(RuntimeSettings& runtime_settings, const fs::path
                                bool telemetry_enabled, bool validate_schema);
 } // namespace Everest
 
+namespace everest::config {
+
+namespace fs = std::filesystem;
+
+struct Settings {
+    fs::path prefix;
+    fs::path config_file;
+    fs::path configs_dir;
+    fs::path schemas_dir;
+    fs::path modules_dir;
+    fs::path interfaces_dir;
+    fs::path types_dir;
+    fs::path errors_dir;
+    fs::path www_dir;
+    fs::path logging_config_file;
+    int controller_port;
+    int controller_rpc_timeout_ms;
+    std::string mqtt_broker_socket_path;
+    std::string mqtt_broker_host;
+    int mqtt_broker_port;
+    std::string mqtt_everest_prefix;
+    std::string mqtt_external_prefix;
+    std::string telemetry_prefix;
+    bool telemetry_enabled;
+    bool validate_schema;
+    std::string run_as_user;
+};
+} // namespace everest::config
+
 NLOHMANN_JSON_NAMESPACE_BEGIN
 template <> struct adl_serializer<Everest::RuntimeSettings> {
     static void to_json(nlohmann::json& j, const Everest::RuntimeSettings& r);
