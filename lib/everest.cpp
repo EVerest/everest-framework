@@ -839,7 +839,7 @@ void Everest::provide_cmd(const std::string& impl_id, const std::string& cmd_nam
     const auto wrapper = [this, cmd_topic, impl_id, cmd_name, handler, cmd_definition](const std::string&, json data) {
         BOOST_LOG_FUNCTION();
 
-        // TODO(ddo) Add here the ready_recieved check once we can report
+        // TODO(ddo) Add here the ready_received / ensure_ready() check once we can report
         // errors from Rpcs. Right now this would lead to a deadlock.
 
         std::set<std::string> arg_names;
