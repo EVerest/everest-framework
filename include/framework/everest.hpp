@@ -15,6 +15,7 @@
 
 #include <utils/config.hpp>
 #include <utils/error.hpp>
+#include <utils/exceptions.hpp>
 #include <utils/mqtt_abstraction.hpp>
 #include <utils/types.hpp>
 
@@ -33,6 +34,10 @@ struct cmd {
 using TelemetryEntry = std::variant<std::string, const char*, bool, int32_t, uint32_t, int64_t, uint64_t, double>;
 using TelemetryMap = std::map<std::string, TelemetryEntry>;
 using UnsubscribeToken = std::function<void()>;
+
+enum class CmdEvent;
+struct CmdResultError;
+struct CmdResult;
 
 namespace error {
 struct ErrorDatabaseMap;
