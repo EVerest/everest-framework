@@ -218,6 +218,9 @@ private:
     bool telemetry_enabled;
     std::optional<ModuleTierMappings> module_tier_mappings;
 
+    /// Blocks until ready is processed;
+    void ensure_ready() const;
+
     void handle_ready(const nlohmann::json& data);
 
     void heartbeat();

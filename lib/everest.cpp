@@ -488,10 +488,7 @@ void Everest::subscribe_var(const Requirement& req, const std::string& var_name,
 
         // A race condition where some other module might received its on-ready
         // and this module not (and calling us).
-        while (!ready_received) { // In C++20 we might mark it as [[unlikely]]
-            EVLOG_warning << "Not yet ready";
-            std::this_thread::sleep_for(std::chrono::seconds(1));
-        }
+        ensure_ready();
 
         if (this->validate_data_with_schema) {
             // check data and ignore it if not matching (publishing it should have been prohibited already)
@@ -563,10 +560,7 @@ void Everest::subscribe_error(const Requirement& req, const error::ErrorType& er
             return;
         }
 
-        while (!ready_received) { // In C++20 we might mark it as [[unlikely]]
-            EVLOG_warning << "Not yet ready";
-            std::this_thread::sleep_for(std::chrono::seconds(1));
-        }
+        ensure_ready();
 
         switch (error.state) {
         case error::State::Active:
@@ -777,6 +771,14 @@ void Everest::signal_ready() {
     const auto ready_topic = fmt::format("{}/ready", this->config.mqtt_module_prefix(this->module_id));
 
     this->mqtt_abstraction->publish(ready_topic, json(true), QOS::QOS2);
+}
+
+inline void Everest::ensure_ready() const {
+    /// When calling this we actually expect that `ready_received` is true.
+    while (!ready_received) { // In C++20 we might mark it as [[unlikely]]
+        EVLOG_warning << "Module is has not processed `ready` yet.";
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
 }
 
 ///
