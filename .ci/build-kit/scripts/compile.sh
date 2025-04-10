@@ -11,6 +11,7 @@ cmake \
     -S "$EXT_MOUNT/source" \
     -G Ninja \
     -DEVC_ENABLE_CCACHE=1 \
+    -DBUILD_TESTING=ON \
     -DCMAKE_BUILD_TYPE=Debug \
     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
     -DEVEREST_ENABLE_RS_SUPPORT=OFF # Turn off rust support until we can properly support Rust.
