@@ -486,8 +486,8 @@ void Everest::subscribe_var(const Requirement& req, const std::string& var_name,
         EVLOG_verbose << fmt::format(
             "Incoming {}->{}", this->config.printable_identifier(requirement_module_id, requirement_impl_id), var_name);
 
-        // A race condition where some other module might received its on-ready
-        // and this module not (and calling us).
+        // Prevent a race condition where some other module might have received its on-ready
+        // already, starts publishing variables and this module is not ready yet
         ensure_ready();
 
         if (this->validate_data_with_schema) {
