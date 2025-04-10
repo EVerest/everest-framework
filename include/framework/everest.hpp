@@ -15,6 +15,7 @@
 
 #include <utils/config.hpp>
 #include <utils/error.hpp>
+#include <utils/exceptions.hpp>
 #include <utils/mqtt_abstraction.hpp>
 #include <utils/types.hpp>
 
