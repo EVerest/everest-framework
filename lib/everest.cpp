@@ -560,8 +560,9 @@ void Everest::subscribe_error(const Requirement& req, const error::ErrorType& er
             return;
         }
 
+        // Prevent a race condition where some other module might have received its on-ready
+        // already, starts publishing errors and this module is not ready yet
         ensure_ready();
-
         switch (error.state) {
         case error::State::Active:
             EVLOG_debug << fmt::format("Incoming error {}->{}",
