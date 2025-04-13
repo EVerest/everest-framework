@@ -1,6 +1,6 @@
 load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_test")
 load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
-load("@python3_10//:defs.bzl", "interpreter")
+# load("@python_3_10//:python.bzl", "interpreter")
 load("//bazel:everest_env.bzl", "everest_test", "everest_env")
 load("//bazel:modules_def.bzl", "rs_everest_module")
 
@@ -58,7 +58,7 @@ everest_env(
         ":RsExample",
     ],
     config_file = "config.yaml",
-    python_interpreter_target = interpreter,
+    #python_interpreter_target = interpreter,
 )
 
 everest_test(
@@ -67,7 +67,7 @@ everest_test(
         ":RsExample",
     ],
     config_file = "config.yaml",
-    python_interpreter_target = interpreter,
+    #python_interpreter_target = interpreter,
     test_script = "test.sh",
     tags = ["exclusive"]
 )
