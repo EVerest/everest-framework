@@ -28,7 +28,7 @@ rust_binary(
     visibility = ["//visibility:public"],
     edition = "2021",
     deps = [
-        "@crate_index//:log",
+        "@everest_framework_crate_index//:log",
         "@everest-framework//everestrs/everestrs",
         "@everest-framework//everestrs/everestrs:everestrs_sys",
         "@everest-framework//everestrs/everestrs:everestrs_bridge",
@@ -39,8 +39,8 @@ rust_binary(
 rust_test(
     name = "RsExampleTest",
     edition="2021",
-    deps = ["@crate_index//:mockall",],
-    proc_macro_deps = ["@crate_index//:mockall_double",],
+    deps = ["@everest_framework_crate_index//:mockall",],
+    proc_macro_deps = ["@everest_framework_crate_index//:mockall_double",],
     srcs = [],
     crate_features = ["mockall", "mockall_double"],
     crate = ":RsExampleBinary",

@@ -89,9 +89,9 @@ python.toolchain(
 # C A R G O   W O R K S P A C E
 ###############################################################################
 
-crate_index = use_extension("@rules_rust//crate_universe:extensions.bzl", "crate")
-crate_index.from_cargo(
-    name = "crate_index",
+everest_framework_crate_index = use_extension("@rules_rust//crate_universe:extensions.bzl", "crate")
+everest_framework_crate_index.from_cargo(
+    name = "everest_framework_crate_index",
     cargo_lockfile = "//everestrs:Cargo.lock",
     manifests = [
         "//everestrs:Cargo.toml",
@@ -101,13 +101,13 @@ crate_index.from_cargo(
 )
 
 use_repo(
-    crate_index,
-    "crate_index",
+    everest_framework_crate_index,
+    "everest_framework_crate_index",
 )
 
-validate_crate_index = use_extension("@rules_rust//crate_universe:extensions.bzl", "crate")
-validate_crate_index.from_cargo(
-    name = "validate_crate_index",
+everest_framework_validate_crate_index = use_extension("@rules_rust//crate_universe:extensions.bzl", "crate")
+everest_framework_validate_crate_index.from_cargo(
+    name = "everest_framework_validate_crate_index",
     cargo_lockfile = "//bazel/validate:Cargo.lock",
     manifests = [
         "//bazel/validate:Cargo.toml",
@@ -115,7 +115,7 @@ validate_crate_index.from_cargo(
 )
 
 use_repo(
-    validate_crate_index,
-    "validate_crate_index",
+    everest_framework_validate_crate_index,
+    "everest_framework_validate_crate_index",
 )
 
