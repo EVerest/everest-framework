@@ -27,6 +27,8 @@ jobs:
       - name: Install mosquitto
         run: >
           sudo apt-get update && sudo apt-get install -y mosquitto
+      - name: Clear Bazel Cache
+        run: bazelisk clean --expunge
       - name: Build all
         run: >
           bazelisk build //...
