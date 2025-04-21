@@ -265,7 +265,6 @@ everest_test(
 )
 
 ```
-Where `interpreter` is a python interpreter, for example a python3.10 resource.
 
 You can run it with `bazel test`.
     """,
@@ -292,7 +291,6 @@ def everest_env(name, **kwargs):
     )
 
     ```
-    Where `interpreter` is a python interpreter, for example a python3.10 resource.
 
     You can either run this target with `bazel run` or pass it for example to a (py)
     test which will run your tests against the environment.

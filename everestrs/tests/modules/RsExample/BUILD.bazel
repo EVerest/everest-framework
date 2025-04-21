@@ -1,6 +1,5 @@
 load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_test")
 load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
-# load("@python_3_10//:python.bzl", "interpreter")
 load("//bazel:everest_env.bzl", "everest_test", "everest_env")
 load("//bazel:modules_def.bzl", "rs_everest_module")
 
