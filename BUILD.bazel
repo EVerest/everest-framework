@@ -24,7 +24,7 @@ cc_library(
     name = "framework",
     srcs = glob(["lib/**/*.cpp"]),
     hdrs = glob(["include/**/*.hpp"]) + [":compile_time_settings", ":version_information"],
-    copts = ["-std=c++17"],
+    cxxopts = ["-std=c++17"],
     strip_include_prefix = "include",
     visibility = ["//visibility:public"],
     deps = [
@@ -52,7 +52,7 @@ cc_library(
     name = "controller-ipc",
     srcs = ["src/controller/ipc.cpp"],
     hdrs = ["src/controller/ipc.hpp"],
-    copts = ["-std=c++17"],
+    cxxopts = ["-std=c++17"],
     strip_include_prefix = "src",
     deps = [
         "@com_github_nlohmann_json//:json",
@@ -71,7 +71,7 @@ cc_binary(
             "src/controller/ipc.hpp",
         ],
     ),
-    copts = ["-std=c++17"],
+    cxxopts = ["-std=c++17"],
     deps = [
         "@com_github_biojppm_rapidyaml//:ryml",
         "@com_github_everest_liblog//:liblog",
@@ -85,7 +85,7 @@ cc_binary(
 
 cc_binary(
     name = "manager",
-    copts = ["-std=c++17"],
+    cxxopts = ["-std=c++17"],
     srcs = glob(
         [
             "src/*.cpp",

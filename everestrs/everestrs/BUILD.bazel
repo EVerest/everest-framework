@@ -45,7 +45,7 @@ cc_library(
         "@everest-framework//everestrs/everestrs:everestrs_bridge/include",
         "@everest-framework//:framework",
     ],
-    copts = ["-std=c++17"],
+    cxxopts = ["-std=c++17"],
     visibility = ["//visibility:public"],
 )
 
@@ -57,7 +57,7 @@ cc_library(
         "@everest-framework//everestrs/everestrs:everestrs_bridge/include",
         "@everest-framework//:framework",
     ],
-    copts = ["-std=c++17"],
+    cxxopts = ["-std=c++17"],
     alwayslink = True,
     visibility = ["//visibility:public"],
 )

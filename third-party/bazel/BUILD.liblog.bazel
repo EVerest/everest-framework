@@ -11,5 +11,5 @@ cc_library(
         "//visibility:public",
     ],
     strip_include_prefix = "include",
-    copts = ["-std=c++17"]
+    cxxopts = ["-std=c++17"]
 )
