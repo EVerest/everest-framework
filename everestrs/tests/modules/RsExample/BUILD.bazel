@@ -58,7 +58,7 @@ everest_env(
         ":RsExample",
     ],
     config_file = "config.yaml",
-    #python_interpreter_target = interpreter,
+    toolchains = ["@rules_python//python:current_py_toolchain"],
 )
 
 everest_test(
@@ -67,7 +67,7 @@ everest_test(
         ":RsExample",
     ],
     config_file = "config.yaml",
-    #python_interpreter_target = interpreter,
     test_script = "test.sh",
-    tags = ["exclusive"]
+    tags = ["exclusive"],
+    toolchains = ["@rules_python//python:current_py_toolchain"],
 )
