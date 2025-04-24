@@ -23,14 +23,14 @@
 #include "js_exec_ctx.hpp"
 #include "utils.hpp"
 
+#include <utils/config/mqtt_settings.hpp>
+#include <utils/config/settings.hpp>
 #include <utils/error/error_factory.hpp>
 #include <utils/error/error_manager_impl.hpp>
 #include <utils/error/error_manager_req.hpp>
 #include <utils/error/error_state_monitor.hpp>
 #include <utils/filesystem.hpp>
 #include <utils/module_config.hpp>
-#include <utils/config/mqtt_settings.hpp>
-#include <utils/config/settings.hpp>
 
 namespace EverestJs {
 

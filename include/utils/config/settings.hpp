@@ -13,7 +13,7 @@ namespace Everest {
 
 namespace fs = std::filesystem;
 
-/// \brief Runtime settings needed to successfully run modules
+/// \brief EVerest framework runtime settings needed to successfully run modules
 struct RuntimeSettings {
     fs::path prefix;      ///< Prefix for EVerest installation
     fs::path etc_dir;     ///< Directory that contains configs, certificates

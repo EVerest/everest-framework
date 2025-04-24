@@ -6,6 +6,16 @@
 
 using json = nlohmann::json;
 
+bool operator<(const Requirement& lhs, const Requirement& rhs) {
+    if (lhs.id < rhs.id) {
+        return true;
+    } else if (lhs.id == rhs.id) {
+        return (lhs.index < rhs.index);
+    } else {
+        return false;
+    }
+}
+
 namespace everest::config {
 
 ConfigEntry ConfigurationParameter::get_typed_value() const {

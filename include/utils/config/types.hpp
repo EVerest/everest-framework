@@ -57,6 +57,7 @@ struct ModuleTierMappings {
         implementations; ///< Mappings for the individual implementations of the module
 };
 
+/// \brief A Requirement of an EVerest module
 struct Requirement {
     std::string id;
     size_t index = 0;
@@ -67,25 +68,21 @@ bool operator<(const Requirement& lhs, const Requirement& rhs);
 /// \brief A Fulfillment relates a Requirement to its connected implementation, identified via its module and
 /// implementation id.
 struct Fulfillment {
-    std::string module_id;
-    std::string implementation_id;
-    Requirement requirement;
+    std::string module_id;         // the id of the module that fulfills the requirement
+    std::string implementation_id; // the id of the implementation that fulfills the requirement
+    Requirement requirement;       // the requirement of the module that is fulfilled
 };
 
-// TODO: everest-framework uses Everest:: maybe we move towards using the lowercase one everywhere and alias for
-// compatibility
 namespace everest::config {
 
 namespace fs = std::filesystem;
 
 struct ConfigurationParameter;
-
 using ConfigEntry = std::variant<std::string, bool, int, double>;
 using ImplementationIdentifier = std::string;
-using ModuleConfigurationParameters =
-    std::map<ImplementationIdentifier, std::vector<ConfigurationParameter>>; // typedef for implementation id
+using ModuleConnections = std::map<std::string, std::vector<Fulfillment>>; // key is the name of the requirement
+using ModuleConfigurationParameters = std::map<ImplementationIdentifier, std::vector<ConfigurationParameter>>;
 
-// TODO: move Mutability, Datatype and related things into a different file?
 enum class Mutability {
     ReadOnly,
     ReadWrite,
@@ -100,33 +97,40 @@ enum class Datatype {
     Path
 };
 
+/// \brief Struct that contains the characteristics of a configuration parameter including its datatype, mutability and
+/// unit
 struct ConfigurationParameterCharacteristics {
     Datatype datatype;
     Mutability mutability;
     std::optional<std::string> unit;
 };
 
+/// \brief Struct that contains the name, value and characteristics of a configuration parameter
 struct ConfigurationParameter {
     std::string name;
     std::string value;
     ConfigurationParameterCharacteristics characteristics;
 
+    /// \brief Converts the value of the configuration parameter to its corresponding type
+    /// \returns the value of the configuration parameter as a variant
     ConfigEntry get_typed_value() const;
 };
 
-// TODO: find a better name for this?
+/// \brief Struct that contains the configuration of an EVerest module
 struct ModuleConfig {
     bool standalone;
     std::string module_name;
     std::string module_id;
-    std::optional<std::string> capabilites;
+    std::optional<std::string> capabilities;
     ModuleConfigurationParameters configuration_parameters; // contains: config_module and config_implementations
                                                             // as well as the upcoming "config" key
-    // TODO: add missing TelemetryConfig
-    std::map<std::string, std::vector<Fulfillment>> connections; // TODO: typedef
+    bool telemetry_enabled;
+    ModuleConnections connections;
     ModuleTierMappings mapping;
 };
 
+/// \brief Struct that contains the settings for the EVerest framework and all module configurations. It can represent a
+/// full legacy EVerest YAML configuration file.
 struct EverestConfig {
     Settings settings;
     std::vector<ModuleConfig> module_configs;
