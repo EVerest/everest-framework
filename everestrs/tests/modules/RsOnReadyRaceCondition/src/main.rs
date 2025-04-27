@@ -47,6 +47,9 @@ impl ExampleClientSubscriber for OneClass {
 
 impl OnReadySubscriber for OneClass {
     fn on_ready(&self, publishers: &ModulePublisher) {
+        // Update the flag.
+        self.on_ready_called.store(true, Ordering::Relaxed);
+
         log::info!("Enter Ready");
         // Call the other module.
         publishers.example.max_current(12.3).unwrap();
@@ -59,8 +62,6 @@ impl OnReadySubscriber for OneClass {
 
         // Sleep here to trigger the race condition.
         std::thread::sleep(std::time::Duration::from_secs(1));
-        // Update the flag.
-        self.on_ready_called.store(true, Ordering::Relaxed);
 
         log::info!("Exit Ready!");
     }

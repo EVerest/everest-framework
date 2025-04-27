@@ -777,7 +777,7 @@ void Everest::signal_ready() {
 inline void Everest::ensure_ready() const {
     /// When calling this we actually expect that `ready_received` is true.
     while (!ready_received) { // In C++20 we might mark it as [[unlikely]]
-        EVLOG_warning << "Module is has not processed `ready` yet.";
+        EVLOG_warning << "Module has not processed `ready` yet.";
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 }
@@ -808,14 +808,14 @@ void Everest::handle_ready(const json& data) {
         return;
     }
 
+    this->ready_received = true;
+
     // call module ready handler
     EVLOG_debug << "Framework now ready to process events, calling module ready handler";
     if (this->on_ready != nullptr) {
         const auto on_ready_handler = *on_ready;
         on_ready_handler();
     }
-
-    this->ready_received = true;
 
     // TODO(kai): make heartbeat interval configurable, disable it completely until then
     // this->heartbeat_thread = std::thread(&Everest::heartbeat, this);
