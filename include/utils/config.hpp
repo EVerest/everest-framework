@@ -317,6 +317,8 @@ private:
 
     void populate_module_config_cache();
 
+    void populate_error_map();
+
 public:
     ///
     /// \brief creates a new Config object form the given \p mqtt_settings and \p config
