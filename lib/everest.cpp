@@ -65,6 +65,7 @@ Everest::Everest(std::string module_id_, const Config& config_, bool validate_da
     this->module_classes = this->config.get_interfaces()[this->module_name];
     this->telemetry_config = this->config.get_telemetry_config();
 
+    this->ensure_module_ready = module_config_it->value("ensure_ready", false);
     this->ready_received = false;
     this->ready_done = false;
     this->on_ready = nullptr;
@@ -776,9 +777,14 @@ void Everest::signal_ready() {
 }
 
 inline void Everest::ensure_ready() const {
-    /// When calling this we actually expect that `ready_received` is true.
-    while (!ready_received) { // In C++20 we might mark it as [[unlikely]]
-        EVLOG_warning << "Module has not processed `ready` yet.";
+    /// When calling this we actually expect that `ready_received` and `ready_done` are true.
+    while (ensure_module_ready and (not ready_received or not ready_done)) { // In C++20 we might mark it as [[unlikely]]
+        // TODO: introduce a timeout and reduce log spamming
+        if (not ready_received) {
+            EVLOG_warning << "Module has not received `ready` yet.";
+        } else if (not ready_done) {
+            EVLOG_warning << "Module has not processed `ready` yet.";
+        }
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 }

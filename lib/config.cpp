@@ -1052,6 +1052,16 @@ void ManagerConfig::parse(json config) {
         load_and_validate_manifest(module_id, module_config);
     }
 
+    // set default for ensure_ready
+    for (auto& element : this->main.items()) {
+        const auto& module_id = element.key();
+        auto& module_config = element.value();
+
+        if (not module_config.contains("ensure_ready")) {
+            module_config["ensure_ready"] = this->ms.ensure_ready;
+        }
+    }
+
     if (probe_module_id) {
         setup_probe_module_manifest(*probe_module_id, this->main, this->manifests);
 

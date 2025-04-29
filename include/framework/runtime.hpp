@@ -136,6 +136,7 @@ struct ManagerSettings {
     int controller_rpc_timeout_ms; ///< RPC timeout for controller commands
 
     std::string run_as_user; ///< Username under which EVerest should run
+    bool ensure_ready;       ///< If a module has to return from ready before its other callbacks are called
 
     std::string version_information; ///< Version information string reported on startup of the manager
 

@@ -67,6 +67,8 @@ properties:
         type: boolean
       run_as_user:
         type: string
+      ensure_ready:
+        type: boolean
     additionalProperties: false
   active_modules:
     type: object
@@ -79,6 +81,12 @@ properties:
         properties:
           standalone:
             description: Indicates to the manager that the module will be started standalone
+            type: boolean
+          ensure_ready:
+            description: >-
+              Ensure that the module has returned from its init and ready functions
+              before any variable subscription callbacks are called.
+              This overwrites the global ensure_ready setting
             type: boolean
           module:
             description: Module name (e.g. directory name in the modules subdirectory)

@@ -343,6 +343,8 @@ ManagerSettings::ManagerSettings(const std::string& prefix_, const std::string& 
 
     run_as_user = settings.value("run_as_user", "");
 
+    ensure_ready = settings.value("ensure_ready", false);
+
     auto version_information_path = data_dir / VERSION_INFORMATION_FILE;
     if (fs::exists(version_information_path)) {
         std::ifstream ifs(version_information_path.string());

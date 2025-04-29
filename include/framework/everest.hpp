@@ -202,6 +202,7 @@ private:
     std::shared_ptr<error::ErrorManagerReqGlobal> global_error_manager;   // nullptr if not enabled in manifest
     std::shared_ptr<error::ErrorStateMonitor> global_error_state_monitor; // nullptr if not enabled in manifest
     std::map<std::string, std::set<std::string>> registered_cmds;
+    std::atomic<bool> ensure_module_ready;
     std::atomic<bool> ready_received;
     std::atomic<bool> ready_done;
     std::chrono::seconds remote_cmd_res_timeout;
