@@ -1326,11 +1326,12 @@ json Config::get_interface_definition(const std::string& interface_name) const {
 void Config::populate_module_config_cache() {
     for (const auto& [module_id, module_name] : this->module_names) {
         this->module_config_cache[module_id] = ConfigCache();
-        const std::set<std::string> provided_impls = Config::keys(this->manifests[module_name]["provides"]);
+        const std::set<std::string> provided_impls = Config::keys(this->manifests.at(module_name).at("provides"));
         this->interfaces[module_name] = json({});
         this->module_config_cache[module_name].provides_impl = provided_impls;
         for (const auto& impl_id : provided_impls) {
-            auto intf_name = this->manifests[module_name]["provides"][impl_id]["interface"].get<std::string>();
+            auto intf_name =
+                this->manifests.at(module_name).at("provides").at(impl_id).at("interface").get<std::string>();
             this->interfaces[module_name][impl_id] = intf_name;
             this->module_config_cache[module_name].cmds[impl_id] = this->interface_definitions.at(intf_name).at("cmds");
         }
