@@ -1181,19 +1181,7 @@ Config::Config(const MQTTSettings& mqtt_settings, json serialized_config) : Conf
     this->types = serialized_config.value("types", json({}));
     this->module_names = serialized_config.at("module_names");
 
-    // FIXME: move this to its own function
-    // create module config cache
-    for (const auto& [module_id, module_name] : this->module_names) {
-        this->module_config_cache[module_id] = ConfigCache();
-        const std::set<std::string> provided_impls = Config::keys(this->manifests[module_name]["provides"]);
-        this->interfaces[module_name] = json({});
-        this->module_config_cache[module_name].provides_impl = provided_impls;
-        for (const auto& impl_id : provided_impls) {
-            auto intf_name = this->manifests[module_name]["provides"][impl_id]["interface"].get<std::string>();
-            this->interfaces[module_name][impl_id] = intf_name;
-            this->module_config_cache[module_name].cmds[impl_id] = this->interface_definitions.at(intf_name).at("cmds");
-        }
-    }
+    this->populate_module_config_cache();
 
     if (serialized_config.contains("mappings") and !serialized_config.at("mappings").is_null()) {
         this->tier_mappings = serialized_config.at("mappings");
@@ -1333,6 +1321,20 @@ std::optional<TelemetryConfig> Config::get_telemetry_config() {
 json Config::get_interface_definition(const std::string& interface_name) const {
     BOOST_LOG_FUNCTION();
     return this->interface_definitions.value(interface_name, json());
+}
+
+void Config::populate_module_config_cache() {
+    for (const auto& [module_id, module_name] : this->module_names) {
+        this->module_config_cache[module_id] = ConfigCache();
+        const std::set<std::string> provided_impls = Config::keys(this->manifests[module_name]["provides"]);
+        this->interfaces[module_name] = json({});
+        this->module_config_cache[module_name].provides_impl = provided_impls;
+        for (const auto& impl_id : provided_impls) {
+            auto intf_name = this->manifests[module_name]["provides"][impl_id]["interface"].get<std::string>();
+            this->interfaces[module_name][impl_id] = intf_name;
+            this->module_config_cache[module_name].cmds[impl_id] = this->interface_definitions.at(intf_name).at("cmds");
+        }
+    }
 }
 
 void Config::ref_loader(const json_uri& uri, json& schema) {

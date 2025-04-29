@@ -315,6 +315,8 @@ private:
     std::optional<TelemetryConfig> telemetry_config;
     std::unordered_map<std::string, ConfigCache> module_config_cache;
 
+    void populate_module_config_cache();
+
 public:
     ///
     /// \brief creates a new Config object form the given \p mqtt_settings and \p config
