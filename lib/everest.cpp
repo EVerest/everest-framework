@@ -66,6 +66,7 @@ Everest::Everest(std::string module_id_, const Config& config_, bool validate_da
     this->telemetry_config = this->config.get_telemetry_config();
 
     this->ready_received = false;
+    this->ready_done = false;
     this->on_ready = nullptr;
 
     // setup error_manager_req_global if enabled + error_database + error_state_monitor
@@ -816,6 +817,8 @@ void Everest::handle_ready(const json& data) {
         const auto on_ready_handler = *on_ready;
         on_ready_handler();
     }
+
+    this->ready_done = true;
 
     // TODO(kai): make heartbeat interval configurable, disable it completely until then
     // this->heartbeat_thread = std::thread(&Everest::heartbeat, this);
