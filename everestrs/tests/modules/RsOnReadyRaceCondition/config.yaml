@@ -1,4 +1,6 @@
 # Test config for regression tests for the framework.
+settings:
+  ensure_ready: true
 active_modules:
   example_0:
     module: RsOnReadyRaceCondition
