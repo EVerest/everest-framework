@@ -778,7 +778,8 @@ void Everest::signal_ready() {
 
 inline void Everest::ensure_ready() const {
     /// When calling this we actually expect that `ready_received` and `ready_done` are true.
-    while (ensure_module_ready and (not ready_received or not ready_done)) { // In C++20 we might mark it as [[unlikely]]
+    while (ensure_module_ready and
+           (not ready_received or not ready_done)) { // In C++20 we might mark it as [[unlikely]]
         // TODO: introduce a timeout and reduce log spamming
         if (not ready_received) {
             EVLOG_warning << "Module has not received `ready` yet.";
