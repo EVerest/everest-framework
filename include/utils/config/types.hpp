@@ -78,9 +78,13 @@ namespace everest::config {
 namespace fs = std::filesystem;
 
 struct ConfigurationParameter;
+struct ModuleConfig;
+using ModuleId = std::string;
+using RequirementId = std::string;
 using ConfigEntry = std::variant<std::string, bool, int, double>;
 using ImplementationIdentifier = std::string;
-using ModuleConnections = std::map<std::string, std::vector<Fulfillment>>; // key is the name of the requirement
+using ModuleConnections = std::map<RequirementId, std::vector<Fulfillment>>;
+using ModuleConfigurations = std::map<ModuleId, ModuleConfig>;
 using ModuleConfigurationParameters = std::map<ImplementationIdentifier, std::vector<ConfigurationParameter>>;
 
 enum class Mutability {
@@ -108,12 +112,10 @@ struct ConfigurationParameterCharacteristics {
 /// \brief Struct that contains the name, value and characteristics of a configuration parameter
 struct ConfigurationParameter {
     std::string name;
-    std::string value;
+    ConfigEntry value;
     ConfigurationParameterCharacteristics characteristics;
 
-    /// \brief Converts the value of the configuration parameter to its corresponding type
-    /// \returns the value of the configuration parameter as a variant
-    ConfigEntry get_typed_value() const;
+    bool validate_type() const;
 };
 
 /// \brief Struct that contains the configuration of an EVerest module
@@ -143,3 +145,27 @@ Mutability string_to_mutability(const std::string& str);
 std::string mutability_to_string(const Mutability mutability);
 
 } // namespace everest::config
+
+NLOHMANN_JSON_NAMESPACE_BEGIN
+
+template <> struct adl_serializer<everest::config::ModuleConfig> {
+    static void to_json(nlohmann::json& j, const everest::config::ModuleConfig& m);
+    static void from_json(const nlohmann::json& j, everest::config::ModuleConfig& m);
+};
+
+template <> struct adl_serializer<everest::config::ConfigurationParameterCharacteristics> {
+    static void to_json(nlohmann::json& j, const everest::config::ConfigurationParameterCharacteristics& c);
+    static void from_json(const nlohmann::json& j, everest::config::ConfigurationParameterCharacteristics& c);
+};
+
+template <> struct adl_serializer<everest::config::ConfigEntry> {
+    static void to_json(nlohmann::json& j, const everest::config::ConfigEntry& entry);
+    static void from_json(const nlohmann::json& j, everest::config::ConfigEntry& entry);
+};
+
+template <> struct adl_serializer<everest::config::ConfigurationParameter> {
+    static void to_json(nlohmann::json& j, const everest::config::ConfigurationParameter& p);
+    static void from_json(const nlohmann::json& j, everest::config::ConfigurationParameter& p);
+};
+
+NLOHMANN_JSON_NAMESPACE_END

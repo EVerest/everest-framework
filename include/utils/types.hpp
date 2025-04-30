@@ -124,6 +124,15 @@ template <> struct adl_serializer<ModuleTierMappings> {
     static void to_json(json& j, const ModuleTierMappings& m);
     static ModuleTierMappings from_json(const json& j);
 };
+template <> struct adl_serializer<Requirement> {
+    static void to_json(json& j, const Requirement& r);
+    static Requirement from_json(const json& j);
+};
+
+template <> struct adl_serializer<Fulfillment> {
+    static void to_json(json& j, const Fulfillment& f);
+    static Fulfillment from_json(const json& j);
+};
 NLOHMANN_JSON_NAMESPACE_END
 
 #define EVCALLBACK(function) [](auto&& PH1) { function(std::forward<decltype(PH1)>(PH1)); }
