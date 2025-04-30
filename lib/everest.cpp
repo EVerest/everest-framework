@@ -768,7 +768,7 @@ void Everest::signal_ready() {
     this->mqtt_abstraction->publish(ready_topic, json(true), QOS::QOS2);
 }
 
-inline void Everest::ensure_ready() const {
+void Everest::ensure_ready() const {
     /// When calling this we actually expect that `ready_processed` is true.
     while (!ready_processed) { // In C++20 we might mark it as [[unlikely]]
         EVLOG_warning << "Module has not processed `ready` yet.";
