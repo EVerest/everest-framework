@@ -162,6 +162,9 @@ void adl_serializer<everest::config::ModuleConfig>::to_json(nlohmann::json& j, c
     if (m.capabilities.has_value()) {
         j["capabilities"] = m.capabilities.value();
     }
+    if (m.telemetry_config.has_value()) {
+        j["telemetry_config"] = m.telemetry_config.value();
+    }
     j["configuration_parameters"] = m.configuration_parameters;
     j["telemetry_enabled"] = m.telemetry_enabled;
     j["connections"] = m.connections;
@@ -175,6 +178,9 @@ void adl_serializer<everest::config::ModuleConfig>::from_json(const nlohmann::js
     m.module_id = j.at("module_id").get<std::string>();
     if (j.contains("capabilities")) {
         m.capabilities = j.at("capabilities").get<std::string>();
+    }
+    if (j.contains("telemetry_config")) {
+        m.telemetry_config = j.at("telemetry_config").get<TelemetryConfig>();
     }
     m.configuration_parameters = j.at("configuration_parameters").get<everest::config::ModuleConfigurationParameters>();
     m.telemetry_enabled = j.at("telemetry_enabled").get<bool>();

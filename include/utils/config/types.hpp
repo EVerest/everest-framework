@@ -127,6 +127,7 @@ struct ModuleConfig {
     ModuleConfigurationParameters configuration_parameters; // contains: config_module and config_implementations
                                                             // as well as the upcoming "config" key
     bool telemetry_enabled;
+    std::optional<TelemetryConfig> telemetry_config;
     ModuleConnections connections;
     ModuleTierMappings mapping;
 };
