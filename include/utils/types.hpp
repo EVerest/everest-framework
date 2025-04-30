@@ -85,12 +85,6 @@ struct ModuleInfo {
     std::optional<Mapping> mapping;
 };
 
-struct TelemetryConfig {
-    int id;
-    explicit TelemetryConfig(int id) : id(id) {
-    }
-};
-
 /// \brief Contains everything that's needed to initialize a requirement in user code
 struct RequirementInitializer {
     Requirement requirement;

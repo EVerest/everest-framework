@@ -106,11 +106,7 @@ Requirement adl_serializer<Requirement>::from_json(const json& j) {
 }
 
 void adl_serializer<Fulfillment>::to_json(json& j, const Fulfillment& f) {
-    j = {
-        {"module_id", f.module_id},
-        {"implementation_id", f.implementation_id},
-        {"requirement", f.requirement}
-    };
+    j = {{"module_id", f.module_id}, {"implementation_id", f.implementation_id}, {"requirement", f.requirement}};
 }
 
 Fulfillment adl_serializer<Fulfillment>::from_json(const json& j) {

@@ -73,6 +73,12 @@ struct Fulfillment {
     Requirement requirement;       // the requirement of the module that is fulfilled
 };
 
+struct TelemetryConfig {
+    int id;
+    explicit TelemetryConfig(int id) : id(id) {
+    }
+};
+
 namespace everest::config {
 
 namespace fs = std::filesystem;
@@ -136,7 +142,7 @@ struct ModuleConfig {
 /// full legacy EVerest YAML configuration file.
 struct EverestConfig {
     Settings settings;
-    std::vector<ModuleConfig> module_configs;
+    std::map<ModuleId, ModuleConfig> module_configs;
 };
 
 Datatype string_to_datatype(const std::string& str);
