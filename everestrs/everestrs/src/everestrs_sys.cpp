@@ -154,8 +154,7 @@ void Module::subscribe_all_errors(const Runtime& rt) const {
     const auto manifest = config_->get_manifests().at(module_name);
     const auto requires = manifest.at("requires");
     for (const Requirement& req : config_->get_requirements(module_id_)) {
-        if (requires.at(req.id).contains("ignore") &&
-            requires.at(req.id).at("ignore").contains("errors") &&
+        if (requires.at(req.id).contains("ignore") && requires.at(req.id).at("ignore").contains("errors") &&
             requires.at(req.id).at("ignore").at("errors").get<bool>()) {
             continue;
         }
