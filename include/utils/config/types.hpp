@@ -138,13 +138,6 @@ struct ModuleConfig {
     ModuleTierMappings mapping;
 };
 
-/// \brief Struct that contains the settings for the EVerest framework and all module configurations. It can represent a
-/// full legacy EVerest YAML configuration file.
-struct EverestConfig {
-    Settings settings;
-    std::map<ModuleId, ModuleConfig> module_configs;
-};
-
 Datatype string_to_datatype(const std::string& str);
 std::string datatype_to_string(const Datatype datatype);
 
