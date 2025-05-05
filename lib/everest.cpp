@@ -167,7 +167,13 @@ Everest::Everest(std::string module_id_, const Config& config_, bool validate_da
         const std::shared_ptr<error::ErrorDatabaseMap> error_database = std::make_shared<error::ErrorDatabaseMap>();
 
         // setup error manager
-        const std::string interface_name = this->module_manifest.at("requires").at(req.id).at("interface");
+        const auto& requires = this->module_manifest.at("requires");
+        if (requires.at(req.id).contains("ignore") && requires.at(req.id).at("ignore").contains("errors") &&
+            requires.at(req.id).at("ignore").at("errors").get<bool>()) {
+            EVLOG_warning << "Ignoring " << req.id;
+            continue;
+        }
+        const std::string interface_name = requires.at(req.id).at("interface");
         const json interface_def = this->config.get_interface_definition(interface_name);
         std::list<std::string> allowed_error_types;
         for (const auto& error_namespace_it : interface_def.at("errors").items()) {
