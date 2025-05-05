@@ -167,13 +167,15 @@ Everest::Everest(std::string module_id_, const Config& config_, bool validate_da
         const std::shared_ptr<error::ErrorDatabaseMap> error_database = std::make_shared<error::ErrorDatabaseMap>();
 
         // setup error manager
+        // clang-format off
         const auto& requires = this->module_manifest.at("requires");
+        const std::string interface_name = requires.at(req.id).at("interface");
+        // clang-format on
         if (requires.at(req.id).contains("ignore") && requires.at(req.id).at("ignore").contains("errors") &&
             requires.at(req.id).at("ignore").at("errors").get<bool>()) {
             EVLOG_warning << "Ignoring " << req.id;
             continue;
         }
-        const std::string interface_name = requires.at(req.id).at("interface");
         const json interface_def = this->config.get_interface_definition(interface_name);
         std::list<std::string> allowed_error_types;
         for (const auto& error_namespace_it : interface_def.at("errors").items()) {
@@ -616,7 +618,7 @@ std::shared_ptr<error::ErrorFactory> Everest::get_error_factory(const std::strin
 
 std::shared_ptr<error::ErrorManagerReq> Everest::get_error_manager_req(const Requirement& req) {
     if (this->req_error_managers.find(req) == this->req_error_managers.end()) {
-        EVLOG_error << fmt::format("Error manager for {} not found!", req.id);
+        EVLOG_info << fmt::format(" manager for {} not found", req.id);
         return nullptr;
     }
     return this->req_error_managers.at(req);

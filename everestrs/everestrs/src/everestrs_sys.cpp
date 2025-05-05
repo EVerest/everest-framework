@@ -152,18 +152,13 @@ void Module::subscribe_variable(const Runtime& rt, rust::String implementation_i
 void Module::subscribe_all_errors(const Runtime& rt) const {
     const std::string& module_name = config_->get_main_config().at(module_id_).at("module");
     const auto manifest = config_->get_manifests().at(module_name);
-    // It seems that the current version of clang-format in our Ci wants to
-    // reformat the line below.
-    // clang-format off
-    const auto& requires = manifest.at("requires");
-    // clang-format on
     for (const Requirement& req : config_->get_requirements(module_id_)) {
-        if (requires.at(req.id).contains("ignore") && requires.at(req.id).at("ignore").contains("errors") &&
-            requires.at(req.id).at("ignore").at("errors").get<bool>()) {
+        const auto error_manager_ptr = handle_->get_error_manager_req(req);
+        if (error_manager_ptr == nullptr) {
             continue;
         }
         const auto handle_ptr = handle_.get();
-        handle_->get_error_manager_req(req)->subscribe_all_errors(
+        error_manager_ptr->subscribe_all_errors(
             [&rt, req, handle_ptr](Everest::error::Error error) {
                 handle_ptr->ensure_ready();
                 const ErrorType rust_error{rust::String(error.type), rust::String(error.description),
