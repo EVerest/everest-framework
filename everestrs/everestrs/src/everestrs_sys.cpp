@@ -152,7 +152,7 @@ void Module::subscribe_variable(const Runtime& rt, rust::String implementation_i
 void Module::subscribe_all_errors(const Runtime& rt) const {
     const std::string& module_name = config_->get_main_config().at(module_id_).at("module");
     const auto manifest = config_->get_manifests().at(module_name);
-    const auto requires = manifest.at("requires");
+    const auto& requires = manifest.at("requires");
     for (const Requirement& req : config_->get_requirements(module_id_)) {
         if (requires.at(req.id).contains("ignore") && requires.at(req.id).at("ignore").contains("errors") &&
             requires.at(req.id).at("ignore").at("errors").get<bool>()) {
