@@ -1307,7 +1307,7 @@ json Config::get_interface_definition(const std::string& interface_name) const {
 
 void Config::populate_module_config_cache() {
     for (const auto& [module_id, module_name] : this->module_names) {
-        this->module_config_cache[module_id] = ConfigCache();
+        this->module_config_cache[module_name] = ConfigCache();
         const std::set<std::string> provided_impls = Config::keys(this->manifests.at(module_name).at("provides"));
         this->interfaces[module_name] = json({});
         this->module_config_cache[module_name].provides_impl = provided_impls;
