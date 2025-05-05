@@ -1,9 +1,9 @@
-//! Integration test for the "ready_received" handling.
+//! Integration test for the "ignore" handling.
 //!
-//! We assume that every module shall recieve first `on_ready` before forwarding
-//! any other call to the user code. The code below recreates the race condition
-//! by making calls to the `other` module from within `on_ready` (and adding a
-//! delay in `on_ready`).
+//! The Rust binding allow you to ignore variables and errors. The variables
+//! are ignored by adding them to the "ignore.vars" list. Errors can only be ignored
+//! at bulk, by setting "ignore.errors" to true. Ignored elements are removed
+//! from the trait and thus don't have to be implemented.
 #![allow(non_snake_case)]
 include!(concat!(env!("OUT_DIR"), "/generated.rs"));
 
