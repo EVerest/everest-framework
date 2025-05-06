@@ -185,40 +185,48 @@ SCENARIO("Check Config Constructor", "[!throws]") {
                             Everest::BootException);
         }
     }
+    GIVEN("A valid config in legacy json format with multiple connected valid modules") {
+        auto ms =
+            Everest::ManagerSettings(bin_dir + "valid_complete_config/", bin_dir + "valid_complete_config/config.json");
+        THEN("It should not throw at all") {
+            CHECK_NOTHROW(Everest::ManagerConfig(ms));
+        }
+    }
 }
 
 SCENARIO("Check everest config parsing", "[!throws]") {
     auto bin_dir = Everest::tests::get_bin_dir().string() + "/";
+    auto valid_complete_config_json = bin_dir + "valid_complete_config/config.json";
     GIVEN("A complete and valid config") {
-        auto config = Everest::load_yaml(bin_dir + "valid_complete_config.json");
+        auto config = Everest::load_yaml(valid_complete_config_json);
         THEN("It should not throw") {
             CHECK_NOTHROW(everest::config::parse_everest_config(config));
         }
     }
     GIVEN("A valid config that misses module connections") {
-        auto config = Everest::load_yaml(bin_dir + "valid_complete_config.json");
-        config["active_modules"]["ocpp"].erase("connections");
+        auto config = Everest::load_yaml(valid_complete_config_json);
+        config["active_modules"]["valid_module_requires"].erase("connections");
         THEN("It should not throw") {
             CHECK_NOTHROW(everest::config::parse_everest_config(config));
         }
     }
     GIVEN("A valid config that misses a mapping") {
-        auto config = Everest::load_yaml(bin_dir + "valid_complete_config.json");
-        config["active_modules"]["ocpp"].erase("mapping");
+        auto config = Everest::load_yaml(valid_complete_config_json);
+        config["active_modules"]["valid_module"].erase("mapping");
         THEN("It should not throw") {
             CHECK_NOTHROW(everest::config::parse_everest_config(config));
         }
     }
     GIVEN("A config where a module is missing the 'module' field") {
-        auto config = Everest::load_yaml(bin_dir + "valid_complete_config.json");
-        config["active_modules"]["ocpp"].erase("module");
+        auto config = Everest::load_yaml(valid_complete_config_json);
+        config["active_modules"]["valid_module"].erase("module");
         THEN("It should throw ConfigParseException for missing 'module'") {
             CHECK_THROWS_AS(everest::config::parse_everest_config(config), ConfigParseException);
         }
     }
     GIVEN("A config with only 'active_modules' and no 'settings'") {
         json config;
-        config["active_modules"] = {{"ocpp", {{"module", "ocpp"}}}};
+        config["active_modules"] = {{"valid_module", {{"module", "TESTValidManifest"}}}};
         THEN("It should not throw and parse default settings") {
             CHECK_NOTHROW(everest::config::parse_everest_config(config));
         }
