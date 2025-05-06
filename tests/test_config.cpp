@@ -209,13 +209,6 @@ SCENARIO("Check everest config parsing", "[!throws]") {
             CHECK_NOTHROW(everest::config::parse_everest_config(config));
         }
     }
-    GIVEN("A config missing 'active_modules'") {
-        json config;
-        config["settings"] = {{"prefix", "test_prefix"}};
-        THEN("It should throw ConfigParseException for missing 'active_modules'") {
-            CHECK_THROWS_AS(everest::config::parse_everest_config(config), ConfigParseException);
-        }
-    }
     GIVEN("A config where a module is missing the 'module' field") {
         auto config = Everest::load_yaml(bin_dir + "valid_complete_config.json");
         config["active_modules"]["ocpp"].erase("module");

@@ -123,27 +123,27 @@ enum class Datatype {
 };
 
 struct Settings {
-    fs::path prefix;
-    fs::path config_file;
-    fs::path configs_dir;
-    fs::path schemas_dir;
-    fs::path modules_dir;
-    fs::path interfaces_dir;
-    fs::path types_dir;
-    fs::path errors_dir;
-    fs::path www_dir;
-    fs::path logging_config_file;
-    int controller_port;
-    int controller_rpc_timeout_ms;
-    std::string mqtt_broker_socket_path;
-    std::string mqtt_broker_host;
-    int mqtt_broker_port;
-    std::string mqtt_everest_prefix;
-    std::string mqtt_external_prefix;
-    std::string telemetry_prefix;
-    bool telemetry_enabled;
-    bool validate_schema;
-    std::string run_as_user;
+    std::optional<fs::path> prefix;
+    std::optional<fs::path> config_file;
+    std::optional<fs::path> configs_dir;
+    std::optional<fs::path> schemas_dir;
+    std::optional<fs::path> modules_dir;
+    std::optional<fs::path> interfaces_dir;
+    std::optional<fs::path> types_dir;
+    std::optional<fs::path> errors_dir;
+    std::optional<fs::path> www_dir;
+    std::optional<fs::path> logging_config_file;
+    std::optional<int> controller_port;
+    std::optional<int> controller_rpc_timeout_ms;
+    std::optional<std::string> mqtt_broker_socket_path;
+    std::optional<std::string> mqtt_broker_host;
+    std::optional<int> mqtt_broker_port;
+    std::optional<std::string> mqtt_everest_prefix;
+    std::optional<std::string> mqtt_external_prefix;
+    std::optional<std::string> telemetry_prefix;
+    std::optional<bool> telemetry_enabled;
+    std::optional<bool> validate_schema;
+    std::optional<std::string> run_as_user;
 };
 
 /// \brief Struct that contains the characteristics of a configuration parameter including its datatype, mutability and
@@ -183,6 +183,7 @@ struct ModuleConfig {
 };
 
 EverestConfig parse_everest_config(const nlohmann::json& config);
+Settings parse_settings(const nlohmann::json& settings_json);
 
 Datatype string_to_datatype(const std::string& str);
 std::string datatype_to_string(const Datatype datatype);

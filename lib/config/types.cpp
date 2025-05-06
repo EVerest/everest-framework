@@ -220,17 +220,12 @@ ModuleConfig parse_module_config(const std::string& module_id, const json& modul
 EverestConfig parse_everest_config(const json& config) {
     EverestConfig everest_config;
 
-    if (!config.contains("active_modules")) {
-        throw ConfigParseException(ConfigParseException::MISSING_ENTRY, "active_modules",
-                                   "Missing 'active_modules' in config");
-    }
-
-    json modules = config.at("active_modules");
+    json modules = config.value("active_modules", json::object());
     for (auto module = modules.begin(); module != modules.end(); ++module) {
         everest_config.module_configs.insert({module.key(), parse_module_config(module.key(), module.value())});
     }
 
-    everest_config.settings = parse_settings(config);
+    everest_config.settings = parse_settings(config.value("settings", json::object()));
     return everest_config;
 }
 
