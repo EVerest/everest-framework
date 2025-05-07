@@ -256,8 +256,7 @@ std::optional<ModuleTierMappings> Everest::get_3_tier_model_mapping() {
 void Everest::check_code() {
     BOOST_LOG_FUNCTION();
 
-    // FIXME(pg): access with .at() instead of []
-    const json module_manifest = this->config.get_manifests()[this->config.get_module_name(this->module_id)];
+    const json module_manifest = this->config.get_manifests().at(this->config.get_module_name(this->module_id));
     for (const auto& element : module_manifest.at("provides").items()) {
         const auto& impl_id = element.key();
         const auto& impl_manifest = element.value();

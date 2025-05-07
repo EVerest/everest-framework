@@ -116,7 +116,7 @@ ModuleConfigurationParameters parse_config_parameters(const json& config_json) {
         ConfigurationParameter param;
         param.name = name;
 
-        // TODO: we cant parse to fs::path here
+        // we cant parse to fs::path here
         if (jval.is_string()) {
             param.value = jval.get<std::string>();
         } else if (jval.is_boolean()) {
