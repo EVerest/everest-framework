@@ -159,13 +159,8 @@ struct ConfigurationParameter {
     std::string name;
     ConfigEntry value;
     ConfigurationParameterCharacteristics characteristics;
-};
 
-/// \brief Struct that contains the settings for the EVerest framework and all module configurations. It can represent a
-/// full YAML configuration file.
-struct EverestConfig {
-    Settings settings;
-    std::map<ModuleId, ModuleConfig> module_configs;
+    bool validate_type() const;
 };
 
 /// \brief Struct that contains the settings for the EVerest framework and all module configurations. It can represent a
