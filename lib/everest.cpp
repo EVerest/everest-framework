@@ -256,6 +256,7 @@ std::optional<ModuleTierMappings> Everest::get_3_tier_model_mapping() {
 void Everest::check_code() {
     BOOST_LOG_FUNCTION();
 
+    // FIXME(pg): access with .at() instead of []
     const json module_manifest = this->config.get_manifests()[this->config.get_module_name(this->module_id)];
     for (const auto& element : module_manifest.at("provides").items()) {
         const auto& impl_id = element.key();
@@ -296,8 +297,8 @@ json Everest::call_cmd(const Requirement& req, const std::string& cmd_name, json
     BOOST_LOG_FUNCTION();
 
     // resolve requirement
-    const auto connections = this->config.resolve_requirement(this->module_id, req.id);
-    auto& connection = connections.at(req.index);
+    const auto& connections = this->config.resolve_requirement(this->module_id, req.id);
+    const auto& connection = connections.at(req.index);
 
     // extract manifest definition of this command
     const json cmd_definition = get_cmd_definition(connection.module_id, connection.implementation_id, cmd_name, true);
@@ -451,8 +452,8 @@ void Everest::subscribe_var(const Requirement& req, const std::string& var_name,
     EVLOG_debug << fmt::format("subscribing to var: {}:{}", req.id, var_name);
 
     // resolve requirement
-    const auto connections = this->config.resolve_requirement(this->module_id, req.id);
-    auto& connection = connections.at(req.index);
+    const auto& connections = this->config.resolve_requirement(this->module_id, req.id);
+    const auto& connection = connections.at(req.index);
 
     const auto requirement_module_id = connection.module_id;
     const auto module_name = this->config.get_module_name(requirement_module_id);
@@ -506,8 +507,8 @@ void Everest::subscribe_error(const Requirement& req, const error::ErrorType& er
     EVLOG_debug << fmt::format("subscribing to error: {}:{}", req.id, error_type);
 
     // resolve requirement
-    const auto connections = this->config.resolve_requirement(this->module_id, req.id);
-    auto& connection = connections.at(req.index);
+    const auto& connections = this->config.resolve_requirement(this->module_id, req.id);
+    const auto& connection = connections.at(req.index);
 
     const std::string requirement_module_id = connection.module_id;
     const std::string module_name = this->config.get_module_name(requirement_module_id);
@@ -1084,7 +1085,6 @@ std::optional<Mapping> get_impl_mapping(std::optional<ModuleTierMappings> module
     if (not module_tier_mappings.has_value()) {
         return std::nullopt;
     }
-
     const auto& mapping = module_tier_mappings.value();
     if (mapping.implementations.find(impl_id) == mapping.implementations.end()) {
         // if no specific implementation mapping is given, use the module mapping

@@ -388,7 +388,7 @@ int ModuleLoader::initialize() {
 
     const auto& rs = this->runtime_settings;
     try {
-        const auto config = Config(this->mqtt_settings, result, this->module_id);
+        const auto config = Config(this->mqtt_settings, result);
         const auto config_instantiation_time = std::chrono::system_clock::now();
         EVLOG_debug
             << "Module " << fmt::format(TERMINAL_STYLE_OK, "{}", module_id) << " after Config() instantiation ["

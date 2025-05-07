@@ -118,8 +118,7 @@ json get_serialized_module_config(const std::string& module_id, const ModuleConf
     const auto module_config = module_configurations.at(module_id);
     const auto module_name = module_config.module_name;
     json serialized_mod_config = json::object();
-    serialized_mod_config["module_config"] = json::object();
-    serialized_mod_config["module_config"][module_id] = module_config; // implicit conversion to json
+    serialized_mod_config["module_config"] = module_config; // implicit conversion to json
     serialized_mod_config["mappings"] = json::object();
     for (const auto& [impl_id, fulfillments] : module_config.connections) {
         for (const auto& fulfillment : fulfillments) {
@@ -324,7 +323,7 @@ static auto get_requirements_for_probe_module(const std::string& probe_module_id
                     EverestConfigError(fmt::format("ProbeModule refers to a non-existent module id '{}'", module_id)));
             }
 
-            const auto& module_manifest = manifests.at(probe_module_config.module_name);
+            const auto& module_manifest = manifests.at(module_configs.at(module_id).module_name);
 
             const auto& module_provides_it = module_manifest.find("provides");
 
@@ -1153,10 +1152,9 @@ ManagerConfig::ManagerConfig(const ManagerSettings& ms) : ConfigBase(ms.mqtt_set
 
 // Config
 
-Config::Config(const MQTTSettings& mqtt_settings, const json& serialized_config, const std::string& module_id) :
-    ConfigBase(mqtt_settings) {
-    this->module_configs[module_id] = serialized_config["module_config"][module_id]; // FIXME(is this required here?)
-    this->module_config = serialized_config["module_config"][module_id];             // implicit conversion from JSON
+Config::Config(const MQTTSettings& mqtt_settings, const json& serialized_config) : ConfigBase(mqtt_settings) {
+    this->module_configs[serialized_config["module_config"]["module_id"]] = serialized_config["module_config"];
+    this->module_config = serialized_config["module_config"]; // implicit conversion from JSON
     this->manifests = serialized_config.value("manifests", json({}));
     this->interface_definitions = serialized_config.value("interface_definitions", json({}));
     this->types = serialized_config.value("types", json({}));

@@ -286,7 +286,7 @@ SCENARIO("Check config constructor and functions", "[!throws]") {
                     Everest::get_serialized_module_config("module_a", mc.get_module_configurations());
                 complete_serialized_mod_config(serialized_mod_config, mc);
                 Everest::MQTTSettings mqtt_settings;
-                const auto config = Everest::Config(mqtt_settings, serialized_mod_config, "module_a");
+                const auto config = Everest::Config(mqtt_settings, serialized_mod_config);
                 config.get_requirement_initialization("module_a");
             }());
         }
@@ -301,7 +301,7 @@ SCENARIO("Config constructor throws on missing required fields in serialized con
         serialized_config["module_config"]["module_a"] = Everest::json::object();
 
         THEN("It should throw an exception") {
-            CHECK_THROWS_AS(Everest::Config(mqtt_settings, serialized_config, "module_a"), json::exception);
+            CHECK_THROWS_AS(Everest::Config(mqtt_settings, serialized_config), json::exception);
         }
     }
 }
@@ -315,7 +315,7 @@ SCENARIO("Config returns correct module info", "[Config]") {
     Everest::MQTTSettings mqtt_settings;
 
     GIVEN("A valid serialized config") {
-        Everest::Config config(mqtt_settings, serialized, "module_a");
+        Everest::Config config(mqtt_settings, serialized);
 
         WHEN("Calling get_module_info") {
             auto info = config.get_module_info("module_a");
@@ -337,7 +337,7 @@ SCENARIO("Config returns parsed module configs", "[Config]") {
     auto serialized = Everest::get_serialized_module_config("module_a", mc.get_module_configurations());
     complete_serialized_mod_config(serialized, mc);
     Everest::MQTTSettings mqtt_settings;
-    Everest::Config config(mqtt_settings, serialized, "module_a");
+    Everest::Config config(mqtt_settings, serialized);
 
     GIVEN("A valid config for module_a") {
         auto configs = config.get_module_configs("module_a");

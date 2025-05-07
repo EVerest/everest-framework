@@ -32,7 +32,7 @@ Module::Module(const std::string& module_id_, const RuntimeSession& session_) :
     Everest::RuntimeSettings result_settings = result.at("settings");
     this->rs = std::make_unique<Everest::RuntimeSettings>(std::move(result_settings));
 
-    this->config_ = std::make_unique<Everest::Config>(session.get_mqtt_settings(), result, this->module_id);
+    this->config_ = std::make_unique<Everest::Config>(session.get_mqtt_settings(), result);
 
     const auto& config = get_config();
 

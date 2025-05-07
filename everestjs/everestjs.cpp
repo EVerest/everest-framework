@@ -613,7 +613,7 @@ static Napi::Value boot_module(const Napi::CallbackInfo& info) {
         Everest::RuntimeSettings result_settings = result.at("settings");
         auto rs = std::make_unique<Everest::RuntimeSettings>(std::move(result_settings));
 
-        auto config = std::make_unique<Everest::Config>(mqtt_settings, result, module_id);
+        auto config = std::make_unique<Everest::Config>(mqtt_settings, result);
 
         if (!config->contains(module_id)) {
             EVTHROW(EVEXCEPTION(Everest::EverestConfigError,

@@ -311,8 +311,9 @@ private:
 
 public:
     ///
-    /// \brief creates a new Config object form the given \p mqtt_settings , \p config and \p module_id
-    explicit Config(const MQTTSettings& mqtt_settings, const nlohmann::json& config, const std::string& module_id);
+    /// \brief creates a new Config object form the given \p mqtt_settings and \p config
+    explicit Config(const MQTTSettings& mqtt_settings, const nlohmann::json& config);
+    // TODO(pg): Do we need the module id here?
 
     ///
     /// \returns object that contains the module config options
