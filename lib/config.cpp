@@ -1047,25 +1047,26 @@ void ManagerConfig::parse(ModuleConfigurations& module_configs) {
         EVLOG_info << "- Errors validated [" << total_time_validation_ms << "ms]";
     }
 
-    ModuleConfig* probe_module_config = nullptr;
+    std::optional<std::string> probe_module_id;
 
     // load manifest files of configured modules
     for (auto& [module_id, module_config] : module_configs) {
         if (module_config.module_name == "ProbeModule") {
-            if (probe_module_config != nullptr) {
+            if (probe_module_id) {
                 EVLOG_AND_THROW(EverestConfigError("Multiple instance of module type ProbeModule not supported yet"));
             }
-            probe_module_config = &module_config;
+            probe_module_id = module_id;
             continue;
         }
 
         load_and_validate_manifest(module_config);
     }
 
-    if (probe_module_config != nullptr) {
-        setup_probe_module_manifest(probe_module_config->module_id, module_configs, this->manifests);
+    if (probe_module_id) {
+        auto& probe_module_config = module_configs.at(probe_module_id.value());
+        setup_probe_module_manifest(probe_module_config.module_id, module_configs, this->manifests);
 
-        load_and_validate_manifest(*probe_module_config);
+        load_and_validate_manifest(probe_module_config);
     }
 
     for (const auto& [module_id, module_config] : module_configs) {
