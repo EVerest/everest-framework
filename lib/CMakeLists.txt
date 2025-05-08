@@ -78,11 +78,9 @@ target_link_libraries(framework
 
 include(${everest-sqlite_SOURCE_DIR}/cmake/CollectMigrationFiles.cmake)
 
-message(${CMAKE_INSTALL_DATADIR}/migrations)
-
 collect_migration_files(
-     LOCATION ${PROJECT_SOURCE_DIR}/cmake/migrations
-     INSTALL_DESTINATION ${CMAKE_INSTALL_PREFIX}/migrations
+     LOCATION ${PROJECT_SOURCE_DIR}/schemas/migrations
+     INSTALL_DESTINATION ${CMAKE_INSTALL_DATADIR}/migrations
 )
 
 target_compile_definitions(framework
