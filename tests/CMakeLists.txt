@@ -76,12 +76,6 @@ setup_test_directory(
     MODULES TESTModuleA TESTModuleB
     INTERFACE_FILES test_interface test_interface_cmd_var
 )
-setup_test_directory(
-    two_module_test 
-    CONFIG two_modules.yaml 
-    MODULES ModuleA ModuleB 
-    INTERFACE_FILES test_interface test_interface_cmd_var
-)
 
 evc_include(CodeCoverage)
 
