@@ -2,7 +2,7 @@ description: ModuleA
 metadata:
   license: https://opensource.org/licenses/Apache-2.0
   authors:
-    - author@test.com
+    - author@example.com
 config:
   valid_module_config_entry:
     description: "This is a valid config entry"

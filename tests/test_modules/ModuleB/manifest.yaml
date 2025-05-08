@@ -2,7 +2,7 @@ description: ModuleB
 metadata:
   license: https://opensource.org/licenses/Apache-2.0
   authors:
-    - author@test.com
+    - author@example.com
 provides:
   impl1:
     description: test description

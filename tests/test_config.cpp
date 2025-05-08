@@ -324,7 +324,7 @@ SCENARIO("Config returns correct module info", "[Config]") {
                 CHECK(info.id == "module_a");
                 CHECK(info.name == "ModuleA");
                 CHECK(info.license == "https://opensource.org/licenses/Apache-2.0");
-                CHECK(info.authors[0] == "author@test.com");
+                CHECK(info.authors.at(0) == "author@example.com");
             }
         }
     }
