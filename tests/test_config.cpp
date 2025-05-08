@@ -271,7 +271,6 @@ json complete_serialized_mod_config(json& serialized_mod_config, Everest::Manage
     serialized_mod_config["module_names"] = mc.get_module_names();
     serialized_mod_config["manifests"] = mc.get_manifests();
     serialized_mod_config["error_map"] = mc.get_error_types();
-    // serialized_mod_config["module_config_cache"] = mc.get_module_config_cache();
     return serialized_mod_config;
 }
 
