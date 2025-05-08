@@ -322,7 +322,7 @@ SCENARIO("Config returns correct module info", "[Config]") {
 
             THEN("It should return the correct name and license") {
                 CHECK(info.id == "module_a");
-                CHECK(info.name == "ModuleA");
+                CHECK(info.name == "TESTModuleA");
                 CHECK(info.license == "https://opensource.org/licenses/Apache-2.0");
                 CHECK(info.authors.at(0) == "author@example.com");
             }

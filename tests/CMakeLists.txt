@@ -72,10 +72,12 @@ setup_test_directory(valid_complete_config TESTValidManifestCmdVar test_interfac
 setup_test_directory(valid_complete_config TESTValidManifestRequires test_interface_cmd_var
     CONFIG valid_complete_config.json
 )
+
+
 setup_test_directory(
     two_module_test 
     CONFIG two_modules.yaml 
-    MODULES ModuleA ModuleB 
+    MODULES TESTModuleA TESTModuleB
     INTERFACE_FILES test_interface test_interface_cmd_var
 )
 
