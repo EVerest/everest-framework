@@ -14,6 +14,7 @@ target_include_directories(${TEST_TARGET_NAME} PRIVATE
 
 target_sources(${TEST_TARGET_NAME} PRIVATE
     test_config.cpp
+    test_config_sqlite.cpp
     test_filesystem_helpers.cpp
     helpers.cpp
 )
@@ -74,6 +75,11 @@ setup_test_directory(
     CONFIG two_modules.yaml 
     MODULES TESTModuleA TESTModuleB
     INTERFACE_FILES test_interface test_interface_cmd_var
+)
+
+collect_migration_files(
+     LOCATION ${PROJECT_SOURCE_DIR}/schemas/migrations
+     INSTALL_DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/migrations
 )
 
 evc_include(CodeCoverage)
