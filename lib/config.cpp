@@ -1154,8 +1154,8 @@ ManagerConfig::ManagerConfig(const ManagerSettings& ms) : ConfigBase(ms.mqtt_set
 // Config
 
 Config::Config(const MQTTSettings& mqtt_settings, const json& serialized_config) : ConfigBase(mqtt_settings) {
-    this->module_configs[serialized_config["module_config"]["module_id"]] = serialized_config["module_config"];
-    this->module_config = serialized_config["module_config"]; // implicit conversion from JSON
+    this->module_config = serialized_config.at("module_config"); // implicit conversion from JSON
+    this->module_configs[this->module_config.module_id] = this->module_config;
     this->manifests = serialized_config.value("manifests", json({}));
     this->interface_definitions = serialized_config.value("interface_definitions", json({}));
     this->types = serialized_config.value("types", json({}));
