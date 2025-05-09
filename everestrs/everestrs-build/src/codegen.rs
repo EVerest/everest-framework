@@ -1,7 +1,7 @@
 use crate::schema::{
     self,
     interface::ErrorReference,
-    manifest::{ConfigEntry, ConfigEnum},
+    manifest::{ConfigEntry, ConfigEnum, Ignore},
     types::{DataTypes, ObjectOptions, StringOptions, Type, TypeBase, TypeEnum},
     ErrorList, Interface, Manifest,
 };
@@ -751,7 +751,22 @@ pub fn emit(manifest_path: PathBuf, everest_core: Vec<PathBuf>) -> Result<String
 
     let mut required_interfaces = HashMap::with_capacity(manifest.requires.len());
     let mut requires = Vec::with_capacity(manifest.requires.len());
+    // We remove the intersection off all ignored interfaces from the trait
+    // signature.
+    let mut ignored = HashMap::with_capacity(manifest.requires.len());
     for (implementation_id, imp) in manifest.requires {
+        ignored
+            .entry(imp.interface.clone())
+            .and_modify(|merged_ignore: &mut Ignore| {
+                merged_ignore.vars = merged_ignore
+                    .vars
+                    .intersection(&imp.ignore.vars)
+                    .cloned()
+                    .collect();
+
+                merged_ignore.errors = merged_ignore.errors & imp.ignore.errors;
+            })
+            .or_insert(imp.ignore);
         if !required_interfaces.contains_key(&imp.interface) {
             let interface_context =
                 InterfaceContext::from_yaml(&mut yaml_repo, &imp.interface, &mut type_refs)?;
@@ -764,6 +779,20 @@ pub fn emit(manifest_path: PathBuf, everest_core: Vec<PathBuf>) -> Result<String
             min_connections: imp.min_connections.unwrap_or(1),
             max_connections: imp.max_connections.unwrap_or(1),
         })
+    }
+
+    // Remove those interfaces which were never used.
+    for (interface, merged_ignore) in ignored.into_iter() {
+        required_interfaces
+            .entry(interface)
+            .and_modify(|interface| {
+                interface
+                    .vars
+                    .retain(|cmd| !merged_ignore.vars.contains(&cmd.name));
+                if merged_ignore.errors {
+                    interface.errors.clear();
+                }
+            });
     }
 
     let mut type_module_root = TypeModuleContext::default();
