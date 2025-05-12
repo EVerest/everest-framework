@@ -56,10 +56,7 @@ function (setup_test_directory)
     endif ()
     file(MAKE_DIRECTORY "${SHARE_EVEREST_DIR}")
 
-    collect_migration_files(
-        LOCATION ${PROJECT_SOURCE_DIR}/schemas/migrations
-        INSTALL_DESTINATION ${DIR}/share/everest/migrations
-    )
+    file(COPY ${PROJECT_SOURCE_DIR}/schemas/migrations DESTINATION ${DIR}/share/everest/)
 
     set (SCHEMAS_DIR "${SHARE_EVEREST_DIR}/schemas")
     file(MAKE_DIRECTORY "${SCHEMAS_DIR}")
