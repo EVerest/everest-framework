@@ -76,10 +76,11 @@ std::map<ModuleId, ModuleConfig> get_example_module_configs() {
 }
 
 SCENARIO("Database initialization", "[db_initialization]") {
-    auto bin_dir = Everest::tests::get_bin_dir().string() + "/";
+    const auto bin_dir = Everest::tests::get_bin_dir().string() + "/";
+    const auto migrations_dir = bin_dir + "migrations";
     GIVEN("A valid migration path") {
         THEN("It should not throw") {
-            CHECK_NOTHROW(SqliteStorage("file::memory:?cache=shared", "migrations"));
+            CHECK_NOTHROW(SqliteStorage("file::memory:?cache=shared", migrations_dir));
         }
     }
     GIVEN("An invalid migration path") {
@@ -92,9 +93,10 @@ SCENARIO("Database initialization", "[db_initialization]") {
 
 TEST_CASE("Database operations", "[db_operation]") {
     auto bin_dir = Everest::tests::get_bin_dir().string() + "/";
+    const auto migrations_dir = bin_dir + "migrations";
     everest::db::sqlite::Connection c("file::memory:?cache=shared");
     c.open_connection(); // keep at least one connection to keep the in-memory database alive
-    SqliteStorage storage("file::memory:?cache=shared", "migrations");
+    SqliteStorage storage("file::memory:?cache=shared", migrations_dir);
 
     const auto module_configs = get_example_module_configs();
     const auto settings = get_example_settings();
