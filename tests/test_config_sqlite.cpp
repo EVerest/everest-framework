@@ -147,9 +147,11 @@ TEST_CASE("Database operations", "[db_operation]") {
     }
     SECTION("Config is not valid if not marked as valid") {
         REQUIRE(storage.contains_valid_config() == false);
+        storage.mark_valid(false, "Test", std::nullopt);
+        REQUIRE(storage.contains_valid_config() == false);
     }
     SECTION("Config is valid if marked as valid") {
-        storage.mark_valid("Test", "Test");
+        storage.mark_valid(true, "Test", "Test");
         REQUIRE(storage.contains_valid_config() == true);
     }
     SECTION("Config can be wiped from the database") {
