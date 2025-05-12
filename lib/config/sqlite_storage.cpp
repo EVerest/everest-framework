@@ -383,6 +383,42 @@ SqliteStorage::write_configuration_parameter(const ConfigurationParameterIdentif
     }
 }
 
+bool SqliteStorage::contains_valid_config() {
+    std::string sql = "SELECT COUNT(*) FROM CONFIG_META WHERE ID = 0 AND LAST_UPDATED IS NOT NULL";
+    auto stmt = this->db->new_statement(sql);
+
+    if (stmt->step() != SQLITE_ROW) {
+        return false;
+    }
+
+    return stmt->column_int(0) > 0;
+}
+
+void SqliteStorage::mark_valid(const std::optional<fs::path>& yaml_file_path,
+                               const std::optional<std::string>& dumped_config) {
+    std::string sql = "INSERT OR REPLACE INTO CONFIG_META (ID, LAST_UPDATED, YAML_FILE_PATH, YAML_FILE) VALUES (0, "
+                      "@last_updated, @yaml_file_path, @yaml_file);";
+    auto stmt = this->db->new_statement(sql);
+
+    const auto last_updated = Everest::Date::to_rfc3339(date::utc_clock::now());
+    stmt->bind_text("@last_updated", last_updated);
+    if (yaml_file_path.has_value()) {
+        stmt->bind_text("@yaml_file_path", yaml_file_path.value().string(), SQLiteString::Transient);
+    } else {
+        stmt->bind_null("@yaml_file_path");
+    }
+    if (dumped_config.has_value()) {
+        stmt->bind_text("@yaml_file", dumped_config.value(), SQLiteString::Transient);
+    } else {
+        stmt->bind_null("@yaml_file");
+    }
+    if (stmt->step() != SQLITE_DONE) {
+        EVLOG_error << "Failed to mark config as valid";
+    } else {
+        EVLOG_debug << "Marked config as valid";
+    }
+}
+
 GetSetResponseStatus SqliteStorage::update_configuration_parameter(const ConfigurationParameterIdentifier& identifier,
                                                                    const std::string& value) {
 

@@ -145,6 +145,13 @@ TEST_CASE("Database operations", "[db_operation]") {
         REQUIRE(response.status == GenericResponseStatus::OK);
         REQUIRE(response.settings.has_value());
     }
+    SECTION("Config is not valid if not marked as valid") {
+        REQUIRE(storage.contains_valid_config() == false);
+    }
+    SECTION("Config is valid if marked as valid") {
+        storage.mark_valid("Test", "Test");
+        REQUIRE(storage.contains_valid_config() == true);
+    }
     SECTION("Config can be wiped from the database") {
         REQUIRE(storage.wipe() == GenericResponseStatus::OK);
     }
