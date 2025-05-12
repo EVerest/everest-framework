@@ -160,7 +160,7 @@ GetModuleConfigsResponse SqliteStorage::get_module_configs() {
 
         auto stmt = this->db->new_statement(sql);
 
-        std::map<ModuleId, ModuleConfig> module_configs;
+        ModuleConfigurations module_configs;
 
         while (stmt->step() == SQLITE_ROW) {
             auto module_config_response = this->get_module_config(stmt->column_text(0));
@@ -671,7 +671,7 @@ GetModuleTierMappingsResponse SqliteStorage::get_module_tier_mappings(const std:
     }
 
     response.module_tier_mappings = module_tier_mappings;
-    response.status = GenericResponseStatus::OK; // FIXME: when to return failed?
+    response.status = GenericResponseStatus::OK;
     return response;
 }
 
