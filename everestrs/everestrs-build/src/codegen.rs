@@ -781,8 +781,19 @@ pub fn emit(manifest_path: PathBuf, everest_core: Vec<PathBuf>) -> Result<String
         })
     }
 
-    // Remove those interfaces which were never used.
     for (interface, merged_ignore) in ignored.into_iter() {
+        // Check if all ignored interfaces are known.
+        if let Some(required_interface) = required_interfaces.get(&interface) {
+            if let Some(unknown_var) = merged_ignore.vars.iter().find(|&ignored_var| {
+                required_interface
+                    .vars
+                    .iter()
+                    .find(|&required_var| &required_var.name == ignored_var).is_none()
+            }) {
+                panic!("The interface `{interface}` cannot ignore unkown variable `{unknown_var}`");
+            }
+        }
+        // Remove those interfaces which were never used.
         required_interfaces
             .entry(interface)
             .and_modify(|interface| {
