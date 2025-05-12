@@ -173,7 +173,7 @@ Everest::Everest(std::string module_id_, const Config& config_, bool validate_da
         // clang-format on
         if (requires.at(req.id).contains("ignore") && requires.at(req.id).at("ignore").contains("errors") &&
             requires.at(req.id).at("ignore").at("errors").get<bool>()) {
-            EVLOG_warning << "Ignoring " << req.id;
+            EVLOG_debug << "Ignoring errors for module " << req.id;
             continue;
         }
         const json interface_def = this->config.get_interface_definition(interface_name);
@@ -618,7 +618,7 @@ std::shared_ptr<error::ErrorFactory> Everest::get_error_factory(const std::strin
 
 std::shared_ptr<error::ErrorManagerReq> Everest::get_error_manager_req(const Requirement& req) {
     if (this->req_error_managers.find(req) == this->req_error_managers.end()) {
-        EVLOG_info << fmt::format(" manager for {} not found", req.id);
+        EVLOG_info << fmt::format("Error manager for {} not found", req.id);
         return nullptr;
     }
     return this->req_error_managers.at(req);

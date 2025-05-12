@@ -150,8 +150,6 @@ void Module::subscribe_variable(const Runtime& rt, rust::String implementation_i
 }
 
 void Module::subscribe_all_errors(const Runtime& rt) const {
-    const std::string& module_name = config_->get_main_config().at(module_id_).at("module");
-    const auto manifest = config_->get_manifests().at(module_name);
     for (const Requirement& req : config_->get_requirements(module_id_)) {
         const auto error_manager_ptr = handle_->get_error_manager_req(req);
         if (error_manager_ptr == nullptr) {
