@@ -35,7 +35,8 @@ void populate_module_info_path_from_runtime_settings(ModuleInfo& mi, const Runti
     mi.paths.share = rs.data_dir / defaults::MODULES_DIR / mi.name;
 }
 
-ManagerSettings::ManagerSettings(const std::string& prefix_, const std::string& config_, const bool boot_from_db) {
+ManagerSettings::ManagerSettings(const std::string& prefix_, const std::string& config_,
+                                 const ConfigSource& user_selected_config_source) {
     // if prefix or config is empty, we assume they have not been set!
     // if they have been set, check their validity, otherwise bail out!
 
@@ -98,19 +99,19 @@ ManagerSettings::ManagerSettings(const std::string& prefix_, const std::string& 
 
     bool config_exists = fs::exists(config_file);
 
-    if (boot_from_db && db_initialized) {
-        config_source = ConfigSource::DATABASE;
+    if (user_selected_config_source == ConfigSource::Database && db_initialized) {
+        config_source = ConfigSource::Database;
     } else if (!config_exists && db_initialized) {
-        config_source = ConfigSource::DATABASE;
+        config_source = ConfigSource::Database;
     } else if (!config_exists && !db_initialized) {
         throw BootException(fmt::format("No config file provided and database not initialized"));
     } else {
-        // Covers: config_exists == true && (!boot_from_db || !db_initialized)
-        config_source = ConfigSource::FILE;
+        // Covers: config_exists == true && (user_selected_config_source != ConfigSource::Database || !db_initialized)
+        config_source = ConfigSource::YamlFile;
     }
 
     everest::config::Settings settings;
-    if (config_source == ConfigSource::FILE) {
+    if (config_source == ConfigSource::YamlFile) {
         EVLOG_info << "Booting and parsing configuration from YAML file: " << config_file;
         storage.wipe();
         config = load_yaml(config_file);

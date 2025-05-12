@@ -1123,7 +1123,7 @@ ManagerConfig::ManagerConfig(const ManagerSettings& ms) : ConfigBase(ms.mqtt_set
     ModuleConfigurations module_configs;
     this->settings = this->ms.runtime_settings;
     try {
-        if (ms.config_source == ConfigSource::FILE) {
+        if (ms.config_source == ConfigSource::YamlFile) {
             // load and process config file
             const fs::path config_path = this->ms.config_file;
             EVLOG_info << fmt::format("Loading config file at: {}", fs::canonical(config_path).string());

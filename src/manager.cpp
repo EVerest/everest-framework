@@ -542,9 +542,10 @@ int boot(const po::variables_map& vm) {
 
     const auto prefix_opt = parse_string_option(vm, "prefix");
     const auto config_opt = parse_string_option(vm, "config");
-    const bool from_db = (vm.count("from-db") != 0);
+    const auto user_selected_config_source =
+        (vm.count("from-db") != 0) ? ConfigSource::Database : ConfigSource::YamlFile;
 
-    const auto ms = ManagerSettings(prefix_opt, config_opt, from_db);
+    const auto ms = ManagerSettings(prefix_opt, config_opt, user_selected_config_source);
 
     Logging::init(ms.runtime_settings.logging_config_file.string());
 
@@ -797,7 +798,8 @@ int boot(const po::variables_map& vm) {
 
                 try {
                     // check the config
-                    auto cfg = ManagerConfig(ManagerSettings(prefix_opt, check_config_file_path, from_db));
+                    auto cfg =
+                        ManagerConfig(ManagerSettings(prefix_opt, check_config_file_path, user_selected_config_source));
                     controller_handle.send_message({{"id", payload.at("id")}});
                 } catch (const std::exception& e) {
                     controller_handle.send_message({{"result", e.what()}, {"id", payload.at("id")}});

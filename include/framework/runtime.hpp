@@ -108,8 +108,8 @@ const auto TERMINAL_STYLE_OK = fmt::emphasis::bold | fg(fmt::terminal_color::gre
 const auto TERMINAL_STYLE_BLUE = fmt::emphasis::bold | fg(fmt::terminal_color::blue);
 
 enum class ConfigSource {
-    FILE = 1,
-    DATABASE = 2,
+    YamlFile = 1,
+    Database = 2,
 };
 
 /// \brief Settings needed by the manager to load and validate a config
@@ -135,7 +135,8 @@ struct ManagerSettings {
 
     ConfigSource config_source; ///< Source of the config (file or database)
 
-    ManagerSettings(const std::string& prefix, const std::string& config, const bool boot_from_db = false);
+    ManagerSettings(const std::string& prefix, const std::string& config,
+                    const ConfigSource& user_selected_config_source = ConfigSource::YamlFile);
 };
 
 // NOTE: this function needs the be called with a pre-initialized ModuleInfo struct
