@@ -384,33 +384,30 @@ SqliteStorage::write_configuration_parameter(const ConfigurationParameterIdentif
 }
 
 bool SqliteStorage::contains_valid_config() {
-    std::string sql = "SELECT COUNT(*) FROM CONFIG_META WHERE ID = 0 AND LAST_UPDATED IS NOT NULL";
+    std::string sql = "SELECT VALID FROM CONFIG_META WHERE ID = 0";
     auto stmt = this->db->new_statement(sql);
-
     if (stmt->step() != SQLITE_ROW) {
         return false;
     }
-
-    return stmt->column_int(0) > 0;
+    const auto is_valid = stmt->column_int(0);
+    return is_valid == 1;
 }
 
-void SqliteStorage::mark_valid(const std::optional<fs::path>& yaml_file_path,
-                               const std::optional<std::string>& dumped_config) {
-    std::string sql = "INSERT OR REPLACE INTO CONFIG_META (ID, LAST_UPDATED, YAML_FILE_PATH, YAML_FILE) VALUES (0, "
-                      "@last_updated, @yaml_file_path, @yaml_file);";
+void SqliteStorage::mark_valid(const bool is_valid, const std::string& config_dump,
+                               const std::optional<fs::path>& config_file_path) {
+    std::string sql =
+        "INSERT OR REPLACE INTO CONFIG_META (ID, LAST_UPDATED, VALID, CONFIG_DUMP, CONFIG_FILE_PATH) VALUES (0, "
+        "@last_updated, @is_valid, @config_dump, @config_file_path);";
     auto stmt = this->db->new_statement(sql);
 
     const auto last_updated = Everest::Date::to_rfc3339(date::utc_clock::now());
     stmt->bind_text("@last_updated", last_updated);
-    if (yaml_file_path.has_value()) {
-        stmt->bind_text("@yaml_file_path", yaml_file_path.value().string(), SQLiteString::Transient);
+    stmt->bind_int("@is_valid", is_valid ? 1 : 0);
+    stmt->bind_text("@config_dump", config_dump, SQLiteString::Transient);
+    if (config_file_path.has_value()) {
+        stmt->bind_text("@config_file_path", config_file_path.value().string(), SQLiteString::Transient);
     } else {
-        stmt->bind_null("@yaml_file_path");
-    }
-    if (dumped_config.has_value()) {
-        stmt->bind_text("@yaml_file", dumped_config.value(), SQLiteString::Transient);
-    } else {
-        stmt->bind_null("@yaml_file");
+        stmt->bind_null("@config_file_path");
     }
     if (stmt->step() != SQLITE_DONE) {
         EVLOG_error << "Failed to mark config as valid";
