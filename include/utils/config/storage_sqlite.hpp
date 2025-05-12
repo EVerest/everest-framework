@@ -33,6 +33,14 @@ public:
                                                        const ConfigurationParameterCharacteristics characteristics,
                                                        const std::string& value) override;
 
+    /// \brief Checks if the database contains a valid configuration
+    bool contains_valid_config();
+
+    /// \brief Marks the current configuration as valid
+    /// \param yaml_file_path Path to the YAML file that was used to create the configuration
+    /// \param dumped_config JSON dump of the YAML file that was used to create the configuration
+    void mark_valid(const std::optional<fs::path>& yaml_file_path, const std::optional<std::string>& dumped_config);
+
 private:
     std::unique_ptr<everest::db::sqlite::ConnectionInterface> db;
     GenericResponseStatus write_module_data(const ModuleData& module_info);
