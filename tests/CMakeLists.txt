@@ -77,9 +77,8 @@ setup_test_directory(
     INTERFACE_FILES test_interface test_interface_cmd_var
 )
 
-collect_migration_files(
-     LOCATION ${PROJECT_SOURCE_DIR}/schemas/migrations
-     INSTALL_DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/migrations
+file(COPY ${PROJECT_SOURCE_DIR}/schemas/migrations
+     DESTINATION ${CMAKE_CURRENT_BINARY_DIR}
 )
 
 evc_include(CodeCoverage)
