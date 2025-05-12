@@ -174,8 +174,8 @@ def main() -> int:
         set_cargo_toml_version(everestrs_cargo_toml_path, new_version)
         set_cargo_toml_version(everestrs_build_cargo_toml_path, new_version)
 
-    cpp_version = get_cmake_project_version(cmakelists_txt_path)
-    print(f'C++ version: {cpp_version}')
+    everest_framework_version = get_cmake_project_version(cmakelists_txt_path)
+    print(f'everest-framework version: {everest_framework_version}')
 
     everestjs_version = get_js_package_version(package_json_path)
     print(f'everestjs version: {everestjs_version}')
@@ -192,9 +192,10 @@ def main() -> int:
     everestrs_build_version = get_cargo_toml_version(everestrs_build_cargo_toml_path)
     print(f'everestrs-build version: {everestrs_build_version}')
 
-    if all(value == cpp_version for value in [everestjs_version, everestpy_python_version, everestpy_cpp_version, everestrs_version, everestrs_build_version]):
+    if all(value == everest_framework_version for value in [everestjs_version, everestpy_python_version, everestpy_cpp_version, everestrs_version, everestrs_build_version]):
         return 0
-    print('Version mismatch, you can fix this by calling this script with --fix which will apply the version defined in the toplevel CMakeLists.txt')
+    print('Version mismatch, you can fix this by calling this script with "--fix" which will apply the "everest-framework version" defined in the toplevel CMakeLists.txt')
+    print('Alternatively you can apply a new version by calling this script with "--update-version x.y.z" where x, y and z are positive integers')
     return 1
 
 
