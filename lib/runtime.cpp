@@ -93,17 +93,16 @@ ManagerSettings::ManagerSettings(const std::string& prefix_, const std::string& 
     const auto db_file = data_dir / defaults::DATABASE_FILE;
     const auto migrations_dir = data_dir / "migrations";
     everest::config::SqliteStorage storage(db_file);
-    storage.open_connection();
-    bool db_initialized = storage.is_initialized();
     storage.apply_migrations(migrations_dir);
+    bool storage_marked_valid = storage.contains_valid_config();
 
     bool config_exists = fs::exists(config_file);
 
-    if (user_selected_config_source == ConfigSource::Database && db_initialized) {
+    if (user_selected_config_source == ConfigSource::Database && storage_marked_valid) {
         config_source = ConfigSource::Database;
-    } else if (!config_exists && db_initialized) {
+    } else if (!config_exists && storage_marked_valid) {
         config_source = ConfigSource::Database;
-    } else if (!config_exists && !db_initialized) {
+    } else if (!config_exists && !storage_marked_valid) {
         throw BootException(fmt::format("No config file provided and database not initialized"));
     } else {
         // Covers: config_exists == true && (user_selected_config_source != ConfigSource::Database || !db_initialized)

@@ -41,6 +41,12 @@ ConfigEntry parse_config_value(Datatype datatype, const std::string& value_str) 
 
 SqliteStorage::SqliteStorage(const fs::path& db_path) {
     db = std::make_unique<Connection>(db_path);
+
+    if (!db->open_connection()) {
+        throw std::runtime_error("Could not open database at provided path: " + db_path.string());
+    } else {
+        EVLOG_info << "Established connection to database successfully: " << db_path;
+    }
 }
 
 void SqliteStorage::apply_migrations(const fs::path& migration_files_path) {
@@ -49,22 +55,6 @@ void SqliteStorage::apply_migrations(const fs::path& migration_files_path) {
     if (!updater.apply_migration_files(migration_files_path, TARGET_MIGRATION_FILE_VERSION)) {
         throw MigrationException("SQL migration failed");
     }
-}
-
-void SqliteStorage::open_connection() {
-    if (!db->open_connection()) {
-        throw std::runtime_error("Could not open database at provided path");
-    } else {
-        EVLOG_info << "Established connection to database successfully";
-    }
-}
-
-void SqliteStorage::close_connection() {
-    db->close_connection();
-}
-
-bool SqliteStorage::is_initialized() const {
-    return this->db->get_user_version() != 0;
 }
 
 GenericResponseStatus SqliteStorage::write_module_configs(const ModuleConfigurations& module_configs) {

@@ -1118,7 +1118,6 @@ ManagerConfig::ManagerConfig(const ManagerSettings& ms) : ConfigBase(ms.mqtt_set
 
     const auto db_file = ms.runtime_settings.data_dir / defaults::DATABASE_FILE;
     everest::config::SqliteStorage storage(db_file);
-    storage.open_connection();
 
     ModuleConfigurations module_configs;
     this->settings = this->ms.runtime_settings;
@@ -1154,13 +1153,23 @@ ManagerConfig::ManagerConfig(const ManagerSettings& ms) : ConfigBase(ms.mqtt_set
         } else {
             const auto module_configs_response = storage.get_module_configs();
             if (module_configs_response.status == GenericResponseStatus::Failed) {
-                EVLOG_AND_THROW(EverestConfigError(fmt::format("Failed to load config from database: {}")));
+                EVLOG_AND_THROW(EverestConfigError("Failed to load config from database"));
             }
             module_configs = module_configs_response.module_configs;
         }
 
         this->parse(module_configs);
-        storage.write_module_configs(module_configs);
+
+        if (storage.write_module_configs(module_configs) != GenericResponseStatus::Failed) {
+            if (this->ms.config_source == ConfigSource::YamlFile) {
+                storage.mark_valid(true, json(module_configs).dump(), this->ms.config_file.string());
+            } else {
+                storage.mark_valid(true, json(module_configs).dump(), std::nullopt);
+            }
+        } else {
+            storage.mark_valid(false, this->ms.config_file.string(), json(module_configs).dump());
+            EVLOG_AND_THROW(EverestConfigError("Failed to write config to database"));
+        }
     } catch (const std::exception& e) {
         EVLOG_AND_THROW(EverestConfigError(fmt::format("Failed to load and parse config file: {}", e.what())));
     }

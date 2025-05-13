@@ -98,7 +98,6 @@ TEST_CASE("Database operations", "[db_operation]") {
     c.open_connection(); // keep at least one connection to keep the in-memory database alive
     SqliteStorage storage("file::memory:?cache=shared");
     storage.apply_migrations(migrations_dir);
-    storage.open_connection();
 
     const auto module_configs = get_example_module_configs();
     const auto settings = get_example_settings();
