@@ -80,12 +80,12 @@ SCENARIO("Database initialization", "[db_initialization]") {
     const auto migrations_dir = bin_dir + "migrations";
     GIVEN("A valid migration path") {
         THEN("It should not throw") {
-            CHECK_NOTHROW(SqliteStorage("file::memory:?cache=shared", migrations_dir));
+            CHECK_NOTHROW(SqliteStorage("file::memory:?cache=shared").apply_migrations(migrations_dir));
         }
     }
     GIVEN("An invalid migration path") {
         THEN("It should throw") {
-            CHECK_THROWS_AS(SqliteStorage("file::memory:?cache=shared", "invalid_migrations"),
+            CHECK_THROWS_AS(SqliteStorage("file::memory:?cache=shared").apply_migrations("invalid_migrations"),
                             everest::db::MigrationException);
         }
     }
@@ -96,7 +96,8 @@ TEST_CASE("Database operations", "[db_operation]") {
     const auto migrations_dir = bin_dir + "migrations";
     everest::db::sqlite::Connection c("file::memory:?cache=shared");
     c.open_connection(); // keep at least one connection to keep the in-memory database alive
-    SqliteStorage storage("file::memory:?cache=shared", migrations_dir);
+    SqliteStorage storage("file::memory:?cache=shared");
+    storage.apply_migrations(migrations_dir);
 
     const auto module_configs = get_example_module_configs();
     const auto settings = get_example_settings();

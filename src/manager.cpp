@@ -542,8 +542,10 @@ int boot(const po::variables_map& vm) {
 
     const auto prefix_opt = parse_string_option(vm, "prefix");
     const auto config_opt = parse_string_option(vm, "config");
+    const auto user_selected_config_source =
+        (vm.count("from-db") != 0) ? ConfigSource::Database : ConfigSource::YamlFile;
 
-    const auto ms = ManagerSettings(prefix_opt, config_opt);
+    const auto ms = ManagerSettings(prefix_opt, config_opt, user_selected_config_source);
 
     Logging::init(ms.runtime_settings.logging_config_file.string());
 
@@ -796,7 +798,8 @@ int boot(const po::variables_map& vm) {
 
                 try {
                     // check the config
-                    auto cfg = ManagerConfig(ManagerSettings(prefix_opt, check_config_file_path));
+                    auto cfg =
+                        ManagerConfig(ManagerSettings(prefix_opt, check_config_file_path, user_selected_config_source));
                     controller_handle.send_message({{"id", payload.at("id")}});
                 } catch (const std::exception& e) {
                     controller_handle.send_message({{"result", e.what()}, {"id", payload.at("id")}});
@@ -842,6 +845,12 @@ int main(int argc, char* argv[]) {
                        "Path to a named pipe, that shall be used for status updates from the manager");
     desc.add_options()("retain-topics", "Retain configuration MQTT topics setup by manager for inspection, by default "
                                         "these will be cleared after startup");
+    desc.add_options()("from-db",
+                       "Indicates that the config shall be loaded from the database. If set and the --config option is "
+                       "set and the database is initialized, the config option is ignored. If the --config "
+                       "option is set and the database is not initialized, the config file is used to load the "
+                       "configuration. If the --config option is not set, the database is used to load the "
+                       "configuration, if the database is not initialized, an exception is thrown.");
 
     po::variables_map vm;
 

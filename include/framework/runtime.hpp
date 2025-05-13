@@ -97,6 +97,8 @@ inline constexpr auto TELEMETRY_PREFIX = "everest-telemetry";
 inline constexpr auto TELEMETRY_ENABLED = false;
 inline constexpr auto VALIDATE_SCHEMA = false;
 
+inline constexpr auto DATABASE_FILE = "everest_config.db";
+
 } // namespace defaults
 
 std::string parse_string_option(const boost::program_options::variables_map& vm, const char* option);
@@ -104,6 +106,11 @@ std::string parse_string_option(const boost::program_options::variables_map& vm,
 const auto TERMINAL_STYLE_ERROR = fmt::emphasis::bold | fg(fmt::terminal_color::red);
 const auto TERMINAL_STYLE_OK = fmt::emphasis::bold | fg(fmt::terminal_color::green);
 const auto TERMINAL_STYLE_BLUE = fmt::emphasis::bold | fg(fmt::terminal_color::blue);
+
+enum class ConfigSource {
+    YamlFile = 1,
+    Database = 2,
+};
 
 /// \brief Settings needed by the manager to load and validate a config
 struct ManagerSettings {
@@ -126,7 +133,10 @@ struct ManagerSettings {
     MQTTSettings mqtt_settings;       ///< MQTT connection settings
     RuntimeSettings runtime_settings; ///< Runtime settings needed to successfully run modules
 
-    ManagerSettings(const std::string& prefix, const std::string& config);
+    ConfigSource config_source; ///< Source of the config (file or database)
+
+    ManagerSettings(const std::string& prefix, const std::string& config,
+                    const ConfigSource& user_selected_config_source = ConfigSource::YamlFile);
 };
 
 // NOTE: this function needs the be called with a pre-initialized ModuleInfo struct
