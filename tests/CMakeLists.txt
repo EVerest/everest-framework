@@ -25,6 +25,7 @@ target_link_libraries(${TEST_TARGET_NAME}
     PRIVATE
         everest::framework
         everest::log
+        everest::sqlite
         Catch2::Catch2WithMain
 )
 
