@@ -601,8 +601,7 @@ std::shared_ptr<error::ErrorFactory> Everest::get_error_factory(const std::strin
 
 std::shared_ptr<error::ErrorManagerReq> Everest::get_error_manager_req(const Requirement& req) {
     if (this->req_error_managers.find(req) == this->req_error_managers.end()) {
-        EVLOG_info << fmt::format("Error manager for {} not found", req.id);
-        return nullptr;
+        throw std::runtime_error(fmt::format("Error manager for {} not found", req.id));
     }
     return this->req_error_managers.at(req);
 }

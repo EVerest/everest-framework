@@ -109,6 +109,7 @@ properties:
             type: integer
             minimum: 1
             default: 1
+          # Used for now for the Rust bindings.
           ignore:
             type: object
             properties:

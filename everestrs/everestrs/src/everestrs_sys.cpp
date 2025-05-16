@@ -151,8 +151,12 @@ void Module::subscribe_variable(const Runtime& rt, rust::String implementation_i
 
 void Module::subscribe_all_errors(const Runtime& rt) const {
     for (const Requirement& req : config_->get_requirements(module_id_)) {
-        const auto error_manager_ptr = handle_->get_error_manager_req(req);
-        if (error_manager_ptr == nullptr) {
+        std::shared_ptr<Everest::error::ErrorManagerReq> error_manager_ptr = nullptr;
+        try {
+            error_manager_ptr = handle_->get_error_manager_req(req);
+        } catch (const std::runtime_error& ex) {
+            // This is expected if the manifest has `irgnore.errors=true`
+            // configured.
             continue;
         }
         const auto handle_ptr = handle_.get();
