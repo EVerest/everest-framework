@@ -341,7 +341,7 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
 
         const std::string config_topic = fmt::format("{}/config", config.mqtt_module_prefix(module_id));
         const Handler module_get_config_handler = [module_id, config_topic, serialized_mod_config,
-                                                   &mqtt_abstraction](const std::string&, const nlohmann::json& json) {
+                                                   &mqtt_abstraction](const std::string&, const nlohmann::json&) {
             mqtt_abstraction.publish(config_topic, serialized_mod_config.dump(), QOS::QOS2);
         };
 
