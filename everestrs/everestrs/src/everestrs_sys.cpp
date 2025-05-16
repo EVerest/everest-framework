@@ -155,7 +155,7 @@ void Module::subscribe_all_errors(const Runtime& rt) const {
         try {
             error_manager_ptr = handle_->get_error_manager_req(req);
         } catch (const std::runtime_error& ex) {
-            // This is expected if the manifest has `irgnore.errors=true`
+            // This is expected if the manifest has `ignore.errors=true`
             // configured.
             continue;
         }
