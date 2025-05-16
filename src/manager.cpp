@@ -493,7 +493,7 @@ static ControllerHandle start_controller(const ManagerSettings& ms) {
     int socket_pair[2];
 
     // FIXME (aw): destroy this socketpair somewhere
-    auto retval = socketpair(AF_UNIX, SOCK_DGRAM, 0, socket_pair);
+    socketpair(AF_UNIX, SOCK_DGRAM, 0, socket_pair);
     const int manager_socket = socket_pair[0];
     const int controller_socket = socket_pair[1];
 
