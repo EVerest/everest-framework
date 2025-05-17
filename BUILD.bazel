@@ -79,7 +79,7 @@ cc_binary(
         "@com_github_warmcatt_libwebsockets//:libwebsockets",
         "@everest-framework//:controller-ipc",
         "@everest-framework//:framework",
-        "@libcap//:libcap",
+        "@libcap",
     ],
 )
 
