@@ -310,6 +310,8 @@
     "https://bcr.bazel.build/modules/rules_shell/0.2.0/MODULE.bazel": "fda8a652ab3c7d8fee214de05e7a9916d8b28082234e8d2c0094505c5268ed3c",
     "https://bcr.bazel.build/modules/rules_shell/0.3.0/MODULE.bazel": "de4402cd12f4cc8fda2354fce179fdb068c0b9ca1ec2d2b17b3e21b24c1a937b",
     "https://bcr.bazel.build/modules/rules_shell/0.3.0/source.json": "c55ed591aa5009401ddf80ded9762ac32c358d2517ee7820be981e2de9756cf3",
+    "https://bcr.bazel.build/modules/sqlite3/3.49.1/MODULE.bazel": "d162b602a16810ef2eb76ad15a32d7809a10b9831082e55ad35d82cbf59860da",
+    "https://bcr.bazel.build/modules/sqlite3/3.49.1/source.json": "7adca38f64362cc70081167b7e9f7066381e1a63151c6c82eae111487dbbbe07",
     "https://bcr.bazel.build/modules/stardoc/0.5.1/MODULE.bazel": "1a05d92974d0c122f5ccf09291442580317cdd859f07a8655f1db9a60374f9f8",
     "https://bcr.bazel.build/modules/stardoc/0.5.3/MODULE.bazel": "c7f6948dae6999bf0db32c1858ae345f112cacf98f174c7a8bb707e41b974f1c",
     "https://bcr.bazel.build/modules/stardoc/0.5.6/MODULE.bazel": "c43dabc564990eeab55e25ed61c07a1aadafe9ece96a4efabb3f8bf9063b71ef",
@@ -328,8 +330,8 @@
   "moduleExtensions": {
     "//third-party/bazel:extension.bzl%deps": {
       "general": {
-        "bzlTransitiveDigest": "vVLZwTf3fVw/a7QFe30j+W7rllzRHvwUlzal7jEJTzI=",
-        "usagesDigest": "xrXEX+uAKiy5CNRdcCtVopiFPrw7UL9EZGrkgPu975Q=",
+        "bzlTransitiveDigest": "pFkcrVXBqlZcOtKIyE0iYM3f7wDInJ/8tl8VepyYUJo=",
+        "usagesDigest": "kK9EcgyAE1nJxR9wPn9FkGonndq44tZcckNUUbmaqVw=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
         "envVariables": {},
@@ -341,6 +343,15 @@
               "sha256": "6d1f4238f8984cbe0dea9d7bc2c3771ca803387b5215a2b42df0c850bd561770",
               "strip_prefix": "liblog-763a56a4bf194e7cf1cab7446e993c376ce933fa",
               "build_file": "@@//third-party/bazel:BUILD.liblog.bazel"
+            }
+          },
+          "com_github_everest_everest-sqlite": {
+            "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_archive",
+            "attributes": {
+              "url": "https://github.com/EVerest/everest-sqlite/archive/80f374bde3adafb9c946654e9e803749c7c2d9ca.tar.gz",
+              "sha256": "9ee74458627f5aa581e5d735d54ea602abf012a4b78cfe2c60e275f1a1c9f3dc",
+              "strip_prefix": "everest-sqlite-80f374bde3adafb9c946654e9e803749c7c2d9ca",
+              "build_file": "@@//third-party/bazel:BUILD.everest-sqlite.bazel"
             }
           },
           "com_github_pboettch_json-schema-validator": {
@@ -994,7 +1005,7 @@
     "@@rules_rust+//crate_universe:extensions.bzl%crate": {
       "general": {
         "bzlTransitiveDigest": "0aE92G9z87P2ty8Ik4pXnKVoBMGz3DvWx6vFWObtqeo=",
-        "usagesDigest": "NFXIh50zc+QFBQ561iNoDjfB46AhT7Rh05hCuITi0H4=",
+        "usagesDigest": "0O/tS05rlibETgQLNbXSKA6vPOux34GCasvJQuMmXhA=",
         "recordedFileInputs": {
           "@@//bazel/validate/Cargo.lock": "7f68ca2d7d57e72c7f3ba32d7d02aa6262fbd7c0776e5dfbb9daf125c04ab9fa",
           "@@//bazel/validate/Cargo.toml": "93a46feee9a01a4cde7991e23dbed02970e7e0d2141dc3faa91a3a1112b27b46",
