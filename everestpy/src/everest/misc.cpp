@@ -96,8 +96,8 @@ ModuleSetup create_setup_from_config(const std::string& module_id, Everest::Conf
         for (size_t ii = 0; ii != fulfillments.size(); ++ii) {
             Fulfillment indexed_fulfillment = fulfillments.at(ii);
             indexed_fulfillment.requirement.index = ii;
-            EVLOG_debug << "Setting up " << ii << " implementation_id=" << indexed_fulfillment.implementation_id
-                        << ", module_id=" << indexed_fulfillment.module_id;
+            EVLOG_verbose << "Setting up " << ii << " implementation_id=" << indexed_fulfillment.implementation_id
+                          << ", module_id=" << indexed_fulfillment.module_id;
             indexed_fulfillments.emplace_back(indexed_fulfillment);
         }
 
