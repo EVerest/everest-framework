@@ -1,1 +1,1 @@
-build  --cxxopt='-std=c++17'
+build  --cxxopt='-std=c++17' --@rules_rust//:extra_rustc_flags=--codegen=link-arg=-fuse-ld=gold
