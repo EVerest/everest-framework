@@ -89,7 +89,7 @@ ModuleSetup create_setup_from_config(const std::string& module_id, Everest::Conf
     for (const auto& requirement : module_manifest.at("requires").items()) {
         const auto& requirement_id = requirement.key();
         const auto fulfillments = config.resolve_requirement(module_id, requirement_id);
-        
+
         // Make sure we store the index information in our Fulfillment structures
         std::vector<Fulfillment> indexed_fulfillments;
         indexed_fulfillments.reserve(fulfillments.size());
@@ -97,10 +97,10 @@ ModuleSetup create_setup_from_config(const std::string& module_id, Everest::Conf
             Fulfillment indexed_fulfillment = fulfillments.at(ii);
             indexed_fulfillment.requirement.index = ii;
             EVLOG_debug << "Setting up " << ii << " implementation_id=" << indexed_fulfillment.implementation_id
-                       << ", module_id=" << indexed_fulfillment.module_id;
+                        << ", module_id=" << indexed_fulfillment.module_id;
             indexed_fulfillments.emplace_back(indexed_fulfillment);
         }
-        
+
         setup.connections[requirement_id] = indexed_fulfillments;
     }
 
