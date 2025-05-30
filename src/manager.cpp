@@ -365,7 +365,14 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
             EVLOG_debug << fmt::format("received module ready signal for module: {}({})", module_id, json.dump());
             const std::unique_lock<std::mutex> lock(modules_ready_mutex);
             // FIXME (aw): here are race conditions, if the ready handler gets called while modules are shut down!
-            modules_ready.at(module_id).ready = json.get<bool>();
+            try {
+                modules_ready.at(module_id).ready = json.get<bool>();
+            } catch (const std::out_of_range& ex) {
+                // This can happen if we're shutting down and a module becomes
+                // ready.
+                EVLOG_error << "The module " << module_id << " is not in `modules_ready`: " << ex.what();
+                return;
+            }
             std::size_t modules_spawned = 0;
             for (const auto& mod : modules_ready) {
                 const std::string text_ready =
