@@ -153,6 +153,14 @@ struct CmdResult {
     std::optional<json> result;
     std::optional<CmdResultError> error;
 };
+
+struct MQTTRequest {
+    std::string response_topic;
+    QOS qos = QOS::QOS2;
+    std::chrono::milliseconds timeout = std::chrono::milliseconds(5000); // FIXME: default?
+    std::optional<std::string> request_topic;
+    std::optional<std::string> request_data;
+};
 } // namespace Everest
 
 #endif // UTILS_TYPES_HPP
