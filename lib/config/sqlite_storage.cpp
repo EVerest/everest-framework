@@ -19,28 +19,6 @@ namespace everest::config {
 
 const std::string DEFAULT_MODULE_IMPLEMENTATION_ID = "!module";
 
-ConfigEntry parse_config_value(Datatype datatype, const std::string& value_str) {
-    try {
-        switch (datatype) {
-        case Datatype::String:
-            return value_str;
-        case Datatype::Decimal:
-            return std::stod(value_str);
-        case Datatype::Integer:
-            return std::stoi(value_str);
-        case Datatype::Boolean:
-            return value_str == "true" || value_str == "1";
-        case Datatype::Path:
-            return std::filesystem::path(value_str);
-        default:
-            throw std::out_of_range("Unsupported datatype: " + datatype_to_string(datatype));
-        }
-    } catch (const std::exception& e) {
-        throw std::runtime_error("Failed to parse config value '" + value_str + "' as type " +
-                                 datatype_to_string(datatype) + ": " + e.what());
-    }
-}
-
 SqliteStorage::SqliteStorage(const fs::path& db_path, const std::filesystem::path& migration_files_path) {
     db = std::make_unique<Connection>(db_path);
 

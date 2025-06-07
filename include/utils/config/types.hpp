@@ -176,6 +176,7 @@ struct ModuleConfig {
     ModuleTierMappings mapping;
 };
 
+ConfigEntry parse_config_value(Datatype datatype, const std::string& value_str);
 ModuleConfigurations parse_module_configs(const nlohmann::json& config);
 Settings parse_settings(const nlohmann::json& settings_json);
 
