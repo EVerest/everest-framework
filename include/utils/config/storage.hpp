@@ -10,7 +10,7 @@
 
 #include <nlohmann/json.hpp>
 
-#include <framework/runtime.hpp>
+#include <utils/config/settings.hpp>
 #include <utils/config/storage_types.hpp>
 
 namespace everest::config {
