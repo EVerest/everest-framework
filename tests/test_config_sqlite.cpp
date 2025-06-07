@@ -51,6 +51,14 @@ std::map<ModuleId, ModuleConfig> get_example_module_configs() {
     characteristics3.datatype = Datatype::Path;
     characteristics3.mutability = Mutability::ReadWrite;
 
+    ConfigurationParameterCharacteristics characteristics4;
+    characteristics4.datatype = Datatype::Decimal;
+    characteristics4.mutability = Mutability::ReadWrite;
+
+    ConfigurationParameterCharacteristics characteristics5;
+    characteristics5.datatype = Datatype::Boolean;
+    characteristics5.mutability = Mutability::ReadWrite;
+
     ConfigurationParameter param1;
     param1.name = "integer_param";
     param1.value = 10;
@@ -66,11 +74,29 @@ std::map<ModuleId, ModuleConfig> get_example_module_configs() {
     param3.value = fs::path("/example/path");
     param3.characteristics = characteristics3;
 
+    ConfigurationParameter param4;
+    param4.name = "decimal_param";
+    param4.value = 42.23;
+    param4.characteristics = characteristics4;
+
+    ConfigurationParameter param5;
+    param5.name = "boolean_param";
+    param5.value = true;
+    param5.characteristics = characteristics5;
+
     module_config.configuration_parameters["!module"].push_back({param1});
     module_config.configuration_parameters["implementation_id1"].push_back({param2});
     module_config.configuration_parameters["!module"].push_back({param3});
+    module_config.configuration_parameters["!module"].push_back({param4});
+    module_config.configuration_parameters["!module"].push_back({param5});
 
     module_configs["example_module"] = module_config;
+
+    ModuleConfig module_config2;
+    module_config2.module_name = "Module1";
+    module_config2.standalone = false;
+    module_config2.telemetry_enabled = false;
+    module_configs["module1"] = module_config2;
 
     return module_configs;
 }
@@ -98,6 +124,17 @@ TEST_CASE("Database operations", "[db_operation]") {
     c.open_connection(); // keep at least one connection to keep the in-memory database alive
     SqliteStorage storage("file::memory:?cache=shared", migrations_dir);
 
+    SECTION("Empty settings can not be retrieved") {
+        auto response = storage.get_settings();
+        REQUIRE(response.status == GenericResponseStatus::Failed);
+    }
+
+    SECTION("Empty module config can be retrieved") {
+        auto response = storage.get_module_configs();
+        REQUIRE(response.status == GenericResponseStatus::OK);
+        REQUIRE(response.module_configs.size() == 0);
+    }
+
     const auto module_configs = get_example_module_configs();
     const auto settings = get_example_settings();
 
@@ -108,7 +145,7 @@ TEST_CASE("Database operations", "[db_operation]") {
     SECTION("Module configurations can be written and correctly retrieved") {
         auto response = storage.get_module_configs();
         REQUIRE(response.status == GenericResponseStatus::OK);
-        REQUIRE(response.module_configs.size() == 1);
+        REQUIRE(response.module_configs.size() == 2);
     }
     SECTION("Configuration parameters can be retrieved") {
         auto response1 = storage.get_configuration_parameter({"example_module", "integer_param"});
@@ -125,6 +162,16 @@ TEST_CASE("Database operations", "[db_operation]") {
         REQUIRE(response3.status == GetSetResponseStatus::OK);
         REQUIRE(response3.configuration_parameter.has_value());
         REQUIRE(std::get<fs::path>(response3.configuration_parameter.value().value) == fs::path("/example/path"));
+
+        auto response4 = storage.get_configuration_parameter({"example_module", "decimal_param"});
+        REQUIRE(response4.status == GetSetResponseStatus::OK);
+        REQUIRE(response4.configuration_parameter.has_value());
+        REQUIRE(std::get<double>(response4.configuration_parameter.value().value) == 42.23);
+
+        auto response5 = storage.get_configuration_parameter({"example_module", "boolean_param"});
+        REQUIRE(response5.status == GetSetResponseStatus::OK);
+        REQUIRE(response5.configuration_parameter.has_value());
+        REQUIRE(std::get<bool>(response5.configuration_parameter.value().value) == true);
     }
     SECTION("Unknown configuration can not be found") {
         auto response =
@@ -144,6 +191,38 @@ TEST_CASE("Database operations", "[db_operation]") {
         auto response = storage.get_settings();
         REQUIRE(response.status == GenericResponseStatus::OK);
         REQUIRE(response.settings.has_value());
+    }
+    SECTION("Unknown module config can not be retrieved") {
+        auto response = storage.get_module_config("unknown_module_id");
+        REQUIRE(response.status == GenericResponseStatus::Failed);
+    }
+    SECTION("Configuration parameter for unknown configuration parameter identifier can not be retrieved") {
+        ConfigurationParameterIdentifier id;
+        id.module_id = "unknown_module_id";
+        auto response = storage.get_configuration_parameter(id);
+        REQUIRE(response.status == GetSetResponseStatus::NotFound);
+    }
+    SECTION("Configuration parameter for unknown configuration parameter identifier can not be written") {
+        ConfigurationParameterIdentifier id;
+        id.module_id = "unknown_module_id";
+        ConfigurationParameterCharacteristics characteristics;
+        characteristics.datatype = Datatype::String;
+        characteristics.mutability = Mutability::ReadWrite;
+        auto response = storage.write_configuration_parameter(id, characteristics, "value");
+        REQUIRE(response == GetSetResponseStatus::NotFound);
+    }
+    SECTION("Configuration parameter for wrong type can not be retrieved") {
+        ConfigurationParameterIdentifier id;
+        id.module_id = "example_module";
+        id.configuration_parameter_name = "integer_param";
+        id.module_implementation_id = "!module";
+        ConfigurationParameterCharacteristics characteristics;
+        characteristics.datatype = Datatype::Integer;
+        characteristics.mutability = Mutability::ReadWrite;
+        auto write_response = storage.write_configuration_parameter(id, characteristics, "value");
+        REQUIRE(write_response == GetSetResponseStatus::OK);
+        auto get_response = storage.get_configuration_parameter(id);
+        REQUIRE(get_response.status == GetSetResponseStatus::Failed);
     }
     SECTION("Config is not valid if not marked as valid") {
         REQUIRE(storage.contains_valid_config() == false);
