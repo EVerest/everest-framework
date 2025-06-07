@@ -525,9 +525,10 @@ GenericResponseStatus SqliteStorage::write_settings(const Everest::ManagerSettin
 
     std::string sql = "INSERT INTO SETTING (";
     for (size_t i = 0; i < keys.size(); ++i) {
-        sql += keys[i];
-        if (i < keys.size() - 1)
+        sql += keys.at(i);
+        if (i < keys.size() - 1) {
             sql += ", ";
+        }
     }
     sql += ") VALUES (";
     for (size_t i = 0; i < keys.size(); ++i) {
@@ -535,9 +536,10 @@ GenericResponseStatus SqliteStorage::write_settings(const Everest::ManagerSettin
     }
     sql += ") ON CONFLICT(ID) DO UPDATE SET ";
     for (size_t i = 1; i < keys.size(); ++i) {
-        sql += keys[i] + " = excluded." + keys[i];
-        if (i < keys.size() - 1)
+        sql += keys.at(i) + " = excluded." + keys.at(i);
+        if (i < keys.size() - 1) {
             sql += ", ";
+        }
     }
     sql += ";";
 
