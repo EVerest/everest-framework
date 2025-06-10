@@ -633,6 +633,7 @@ GetModuleDataResponse SqliteStorage::get_module_data(const std::string& module_i
         ModuleData module_data;
         module_data.module_id = module_id;
         module_data.module_name = stmt->column_text(0);
+        response.status = GenericResponseStatus::OK;
         response.module_data = module_data;
     }
 
