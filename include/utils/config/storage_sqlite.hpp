@@ -51,7 +51,7 @@ private:
                                                     const int32_t evse_id, const std::optional<int32_t> connector_id);
     GenericResponseStatus write_setting(const std::string& setting_name, const std::string& value);
     GetModuleFulfillmentsResponse get_module_fulfillments(const std::string& module_id);
-    GetModuleDataResponse get_module_data(const std::string module_id);
+    GetModuleDataResponse get_module_data(const std::string& module_id);
     GetModuleTierMappingsResponse get_module_tier_mappings(const std::string& module_id);
 };
 

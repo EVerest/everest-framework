@@ -614,7 +614,7 @@ GenericResponseStatus SqliteStorage::write_settings(const Everest::ManagerSettin
     return GenericResponseStatus::OK;
 }
 
-GetModuleDataResponse SqliteStorage::get_module_data(const std::string module_id) {
+GetModuleDataResponse SqliteStorage::get_module_data(const std::string& module_id) {
 
     GetModuleDataResponse response;
 
