@@ -2,7 +2,6 @@
 // Copyright Pionix GmbH and Contributors to EVerest
 
 #include <catch2/catch_all.hpp>
-#include <iostream>
 
 #include <everest/database/exceptions.hpp>
 #include <everest/database/sqlite/connection.hpp>
