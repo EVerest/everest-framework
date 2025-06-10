@@ -642,8 +642,9 @@ GetModuleDataResponse SqliteStorage::get_module_data(const std::string& module_i
 GetModuleFulfillmentsResponse SqliteStorage::get_module_fulfillments(const std::string& module_id) {
     GetModuleFulfillmentsResponse response;
 
-    const std::string sql = "SELECT REQUIREMENT_NAME, IMPLEMENTATION_ID, IMPLEMENTATION_MODULE_ID FROM MODULE_FULFILLMENT "
-                      "WHERE MODULE_ID = @module_id";
+    const std::string sql =
+        "SELECT REQUIREMENT_NAME, IMPLEMENTATION_ID, IMPLEMENTATION_MODULE_ID FROM MODULE_FULFILLMENT "
+        "WHERE MODULE_ID = @module_id";
 
     auto stmt = this->db->new_statement(sql);
     stmt->bind_text("@module_id", module_id);
@@ -666,7 +667,7 @@ GetModuleTierMappingsResponse SqliteStorage::get_module_tier_mappings(const std:
     GetModuleTierMappingsResponse response;
 
     const std::string sql = "SELECT IMPLEMENTATION_ID, EVSE_ID, CONNECTOR_ID FROM MODULE_TIER_MAPPING "
-                      "WHERE MODULE_ID = @module_id";
+                            "WHERE MODULE_ID = @module_id";
 
     auto stmt = this->db->new_statement(sql);
     stmt->bind_text("@module_id", module_id);
