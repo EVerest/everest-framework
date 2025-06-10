@@ -100,7 +100,7 @@ GenericResponseStatus SqliteStorage::write_module_configs(const ModuleConfigurat
                     } else if (std::holds_alternative<fs::path>(param.value)) {
                         value = std::get<fs::path>(param.value).string();
                     } else {
-                        nlohmann::json temp = param.value;
+                        const nlohmann::json temp = param.value;
                         value = temp.dump();
                     }
                     if (this->write_configuration_parameter(identifier, param.characteristics, value) !=
@@ -121,7 +121,7 @@ GenericResponseStatus SqliteStorage::write_module_configs(const ModuleConfigurat
 }
 
 GenericResponseStatus SqliteStorage::wipe() {
-    std::string sql = "PRAGMA FOREIGN_KEYS = ON; DELETE FROM MODULE; PRAGMA FOREIGN_KEYS = OFF;";
+    const std::string sql = "PRAGMA FOREIGN_KEYS = ON; DELETE FROM MODULE; PRAGMA FOREIGN_KEYS = OFF;";
     try {
         if (this->db->execute_statement(sql)) {
             return GenericResponseStatus::OK;
@@ -137,11 +137,9 @@ GetModuleConfigsResponse SqliteStorage::get_module_configs() {
     GetModuleConfigsResponse response;
 
     try {
-        std::string sql = "SELECT ID FROM MODULE";
+        const std::string sql = "SELECT ID FROM MODULE";
 
         auto stmt = this->db->new_statement(sql);
-
-        ModuleConfigurations module_configs;
 
         while (stmt->step() == SQLITE_ROW) {
             auto module_config_response = this->get_module_config(stmt->column_text(0));
@@ -165,7 +163,7 @@ GetModuleConfigsResponse SqliteStorage::get_module_configs() {
 }
 
 GetSettingsResponse SqliteStorage::get_settings() {
-    std::string sql = "SELECT * FROM SETTING WHERE ID = 0";
+    const std::string sql = "SELECT * FROM SETTING WHERE ID = 0";
     auto stmt = this->db->new_statement(sql);
 
     if (stmt->step() != SQLITE_ROW) {
@@ -233,9 +231,10 @@ GetModuleConfigurationResponse SqliteStorage::get_module_config(const std::strin
 
     try {
 
-        std::string sql = "SELECT PARAMETER_NAME, VALUE, MODULE_IMPLEMENTATION_ID, MUTABILITY_ID, DATATYPE_ID, UNIT "
-                          "FROM CONFIGURATION WHERE MODULE_ID = "
-                          "@module_id";
+        const std::string sql =
+            "SELECT PARAMETER_NAME, VALUE, MODULE_IMPLEMENTATION_ID, MUTABILITY_ID, DATATYPE_ID, UNIT "
+            "FROM CONFIGURATION WHERE MODULE_ID = "
+            "@module_id";
         auto stmt = this->db->new_statement(sql);
 
         stmt->bind_text(1, module_id);
@@ -245,7 +244,7 @@ GetModuleConfigurationResponse SqliteStorage::get_module_config(const std::strin
         module_config.module_id = module_data.module_id;
         module_config.module_name = module_data.module_name;
         module_config.standalone = module_data.standalone;
-        for (const auto fulfillment : module_fulfillments) {
+        for (const auto& fulfillment : module_fulfillments) {
             module_config.connections[fulfillment.requirement.id].push_back(fulfillment);
         }
         module_config.mapping = module_tier_mappings;
@@ -280,10 +279,10 @@ SqliteStorage::get_configuration_parameter(const ConfigurationParameterIdentifie
     GetConfigurationParameterResponse response;
 
     try {
-        std::string sql = "SELECT VALUE, MUTABILITY_ID, DATATYPE_ID, UNIT FROM "
-                          "CONFIGURATION WHERE MODULE_ID = "
-                          "@module_id AND PARAMETER_NAME = @config_param_name AND MODULE_IMPLEMENTATION_ID = "
-                          "@module_implementation_id";
+        const std::string sql = "SELECT VALUE, MUTABILITY_ID, DATATYPE_ID, UNIT FROM "
+                                "CONFIGURATION WHERE MODULE_ID = "
+                                "@module_id AND PARAMETER_NAME = @config_param_name AND MODULE_IMPLEMENTATION_ID = "
+                                "@module_implementation_id";
         auto stmt = this->db->new_statement(sql);
 
         stmt->bind_text("@module_id", identifier.module_id);
@@ -329,10 +328,10 @@ SqliteStorage::write_configuration_parameter(const ConfigurationParameterIdentif
                                              const ConfigurationParameterCharacteristics characteristics,
                                              const std::string& value) {
     try {
-        std::string insert_query = "INSERT OR REPLACE INTO CONFIGURATION (MODULE_ID, PARAMETER_NAME, "
-                                   "VALUE, "
-                                   "MUTABILITY_ID, DATATYPE_ID, UNIT, MODULE_IMPLEMENTATION_ID) VALUES "
-                                   "(?, ?, ?, ?, ?, ?, ?);";
+        const std::string insert_query = "INSERT OR REPLACE INTO CONFIGURATION (MODULE_ID, PARAMETER_NAME, "
+                                         "VALUE, "
+                                         "MUTABILITY_ID, DATATYPE_ID, UNIT, MODULE_IMPLEMENTATION_ID) VALUES "
+                                         "(?, ?, ?, ?, ?, ?, ?);";
 
         auto stmt = this->db->new_statement(insert_query);
         stmt->bind_text(1, identifier.module_id);
@@ -365,7 +364,7 @@ SqliteStorage::write_configuration_parameter(const ConfigurationParameterIdentif
 }
 
 bool SqliteStorage::contains_valid_config() {
-    std::string sql = "SELECT VALID FROM CONFIG_META WHERE ID = 0";
+    const std::string sql = "SELECT VALID FROM CONFIG_META WHERE ID = 0";
     auto stmt = this->db->new_statement(sql);
     if (stmt->step() != SQLITE_ROW) {
         return false;
@@ -376,7 +375,7 @@ bool SqliteStorage::contains_valid_config() {
 
 void SqliteStorage::mark_valid(const bool is_valid, const std::string& config_dump,
                                const std::optional<fs::path>& config_file_path) {
-    std::string sql =
+    const std::string sql =
         "INSERT OR REPLACE INTO CONFIG_META (ID, LAST_UPDATED, VALID, CONFIG_DUMP, CONFIG_FILE_PATH) VALUES (0, "
         "@last_updated, @is_valid, @config_dump, @config_file_path);";
     auto stmt = this->db->new_statement(sql);
@@ -401,10 +400,10 @@ GetSetResponseStatus SqliteStorage::update_configuration_parameter(const Configu
                                                                    const std::string& value) {
 
     try {
-        std::string update_query = "UPDATE CONFIGURATION SET VALUE = @value "
-                                   "WHERE MODULE_ID = @module_id AND "
-                                   "PARAMETER_NAME = @parameter_name AND "
-                                   "MODULE_IMPLEMENTATION_ID = @module_implementation_id;";
+        const std::string update_query = "UPDATE CONFIGURATION SET VALUE = @value "
+                                         "WHERE MODULE_ID = @module_id AND "
+                                         "PARAMETER_NAME = @parameter_name AND "
+                                         "MODULE_IMPLEMENTATION_ID = @module_implementation_id;";
 
         auto stmt = this->db->new_statement(update_query);
         stmt->bind_text("@value", value);
@@ -431,7 +430,7 @@ GetSetResponseStatus SqliteStorage::update_configuration_parameter(const Configu
 
 GenericResponseStatus SqliteStorage::write_module_data(const ModuleData& module_data) {
 
-    std::string insert_query =
+    const std::string insert_query =
         "INSERT OR REPLACE INTO MODULE (ID, NAME, STANDALONE, CAPABILITIES) VALUES (?, ?, ?, ?);";
 
     auto stmt = this->db->new_statement(insert_query);
@@ -455,8 +454,9 @@ GenericResponseStatus SqliteStorage::write_module_data(const ModuleData& module_
 
 GenericResponseStatus SqliteStorage::write_module_fulfillment(const std::string& module_id,
                                                               const Fulfillment& fulfillment) {
-    std::string sql = "INSERT OR REPLACE INTO MODULE_FULFILLMENT (MODULE_ID, REQUIREMENT_NAME, IMPLEMENTATION_ID, "
-                      "IMPLEMENTATION_MODULE_ID) VALUES (?,?,?,?)";
+    const std::string sql =
+        "INSERT OR REPLACE INTO MODULE_FULFILLMENT (MODULE_ID, REQUIREMENT_NAME, IMPLEMENTATION_ID, "
+        "IMPLEMENTATION_MODULE_ID) VALUES (?,?,?,?)";
 
     auto stmt = this->db->new_statement(sql);
 
@@ -476,8 +476,8 @@ GenericResponseStatus SqliteStorage::write_module_tier_mapping(const std::string
                                                                const std::string& implementation_id,
                                                                const int32_t evse_id,
                                                                const std::optional<int32_t> connector_id) {
-    std::string sql = "INSERT OR REPLACE INTO MODULE_TIER_MAPPING (MODULE_ID, IMPLEMENTATION_ID, "
-                      "EVSE_ID, CONNECTOR_ID) VALUES (?,?,?,?)";
+    const std::string sql = "INSERT OR REPLACE INTO MODULE_TIER_MAPPING (MODULE_ID, IMPLEMENTATION_ID, "
+                            "EVSE_ID, CONNECTOR_ID) VALUES (?,?,?,?)";
 
     auto stmt = this->db->new_statement(sql);
 
@@ -618,7 +618,7 @@ GetModuleDataResponse SqliteStorage::get_module_data(const std::string& module_i
 
     GetModuleDataResponse response;
 
-    std::string sql = "SELECT NAME FROM MODULE WHERE ID = @module_id";
+    const std::string sql = "SELECT NAME FROM MODULE WHERE ID = @module_id";
 
     auto stmt = this->db->new_statement(sql);
     stmt->bind_text("@module_id", module_id);
@@ -642,7 +642,7 @@ GetModuleDataResponse SqliteStorage::get_module_data(const std::string& module_i
 GetModuleFulfillmentsResponse SqliteStorage::get_module_fulfillments(const std::string& module_id) {
     GetModuleFulfillmentsResponse response;
 
-    std::string sql = "SELECT REQUIREMENT_NAME, IMPLEMENTATION_ID, IMPLEMENTATION_MODULE_ID FROM MODULE_FULFILLMENT "
+    const std::string sql = "SELECT REQUIREMENT_NAME, IMPLEMENTATION_ID, IMPLEMENTATION_MODULE_ID FROM MODULE_FULFILLMENT "
                       "WHERE MODULE_ID = @module_id";
 
     auto stmt = this->db->new_statement(sql);
@@ -665,7 +665,7 @@ GetModuleFulfillmentsResponse SqliteStorage::get_module_fulfillments(const std::
 GetModuleTierMappingsResponse SqliteStorage::get_module_tier_mappings(const std::string& module_id) {
     GetModuleTierMappingsResponse response;
 
-    std::string sql = "SELECT IMPLEMENTATION_ID, EVSE_ID, CONNECTOR_ID FROM MODULE_TIER_MAPPING "
+    const std::string sql = "SELECT IMPLEMENTATION_ID, EVSE_ID, CONNECTOR_ID FROM MODULE_TIER_MAPPING "
                       "WHERE MODULE_ID = @module_id";
 
     auto stmt = this->db->new_statement(sql);
