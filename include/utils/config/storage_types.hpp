@@ -30,37 +30,37 @@ struct ModuleData {
 };
 
 struct GetConfigurationParameterResponse {
-    GetSetResponseStatus status;
+    GetSetResponseStatus status = GetSetResponseStatus::Failed;
     std::optional<ConfigurationParameter> configuration_parameter;
 };
 
 struct GetModuleConfigsResponse {
-    GenericResponseStatus status;
+    GenericResponseStatus status = GenericResponseStatus::Failed;
     ModuleConfigurations module_configs;
 };
 
 struct GetSettingsResponse {
-    GenericResponseStatus status;
+    GenericResponseStatus status = GenericResponseStatus::Failed;
     std::optional<Settings> settings;
 };
 
 struct GetModuleFulfillmentsResponse {
-    GenericResponseStatus status;
+    GenericResponseStatus status = GenericResponseStatus::Failed;
     std::vector<Fulfillment> module_fulfillments;
 };
 
 struct GetModuleTierMappingsResponse {
-    GenericResponseStatus status;
+    GenericResponseStatus status = GenericResponseStatus::Failed;
     ModuleTierMappings module_tier_mappings;
 };
 
 struct GetModuleConfigurationResponse {
-    GenericResponseStatus status;
+    GenericResponseStatus status = GenericResponseStatus::Failed;
     std::optional<ModuleConfig> config;
 };
 
 struct GetModuleDataResponse {
-    GenericResponseStatus status;
+    GenericResponseStatus status = GenericResponseStatus::Failed;
     std::optional<ModuleData> module_data;
 };
 
