@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Pionix GmbH and Contributors to EVerest
 
+#include <utility>
 #include <utils/error/error_manager_impl.hpp>
 
 #include <utils/error.hpp>
@@ -24,9 +25,9 @@ ErrorManagerImpl::ErrorManagerImpl(std::shared_ptr<ErrorTypeMap> error_type_map_
                                    const bool validate_error_types_) :
     error_type_map(error_type_map_),
     database(error_database_),
-    allowed_error_types(allowed_error_types_),
-    publish_raised_error(publish_raised_error_),
-    publish_cleared_error(publish_cleared_error_),
+    allowed_error_types(std::move(allowed_error_types_)),
+    publish_raised_error(std::move(publish_raised_error_)),
+    publish_cleared_error(std::move(publish_cleared_error_)),
     validate_error_types(validate_error_types_) {
     if (validate_error_types) {
         for (const ErrorType& type : allowed_error_types) {

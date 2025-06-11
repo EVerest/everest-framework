@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Pionix GmbH and Contributors to EVerest
 
+#include <utility>
 #include <utils/error/error_manager_req_global.hpp>
 
 #include <everest/logging.hpp>
@@ -16,7 +17,7 @@ ErrorManagerReqGlobal::ErrorManagerReqGlobal(std::shared_ptr<ErrorTypeMap> error
                                              SubscribeGlobalAllErrorsFunc subscribe_global_all_errors_func_) :
     error_type_map(error_type_map_),
     database(error_database_),
-    subscribe_global_all_errors_func(subscribe_global_all_errors_func_),
+    subscribe_global_all_errors_func(std::move(subscribe_global_all_errors_func_)),
     subscriptions({}) {
     this->subscribe_global_all_errors_func([this](const Error& error) { this->on_error_raised(error); },
                                            [this](const Error& error) { this->on_error_cleared(error); });

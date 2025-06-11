@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Pionix GmbH and Contributors to EVerest
+#include <utility>
 
 #include <utils/error/error_factory.hpp>
-
 #include <utils/error/error_type_map.hpp>
 
 namespace Everest {
@@ -30,13 +30,13 @@ ErrorFactory::ErrorFactory(std::shared_ptr<ErrorTypeMap> error_type_map_,
                            std::optional<ErrorType> default_type_, std::optional<ErrorSubType> default_sub_type_,
                            std::optional<std::string> default_message_, std::optional<std::string> default_vendor_id_) :
     error_type_map(error_type_map_),
-    default_origin(default_origin_),
+    default_origin(std::move(default_origin_)),
     default_severity(default_severity_),
     default_state(default_state_),
-    default_type(default_type_),
-    default_sub_type(default_sub_type_),
-    default_message(default_message_),
-    default_vendor_id(default_vendor_id_) {
+    default_type(std::move(default_type_)),
+    default_sub_type(std::move(default_sub_type_)),
+    default_message(std::move(default_message_)),
+    default_vendor_id(std::move(default_vendor_id_)) {
 }
 
 Error ErrorFactory::create_error() const {

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Pionix GmbH and Contributors to EVerest
 
+#include <utility>
 #include <utils/error/error_type_map.hpp>
 
 #include <utils/error.hpp>
@@ -67,7 +68,7 @@ void ErrorTypeMap::load_error_types(const std::filesystem::path& error_types_dir
 }
 
 void ErrorTypeMap::load_error_types_map(std::map<ErrorType, std::string> error_types_map) {
-    this->error_types = error_types_map;
+    this->error_types = std::move(error_types_map);
 }
 
 std::string ErrorTypeMap::get_description(const ErrorType& error_type) const {

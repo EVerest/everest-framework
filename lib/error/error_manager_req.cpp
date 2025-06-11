@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Pionix GmbH and Contributors to EVerest
 
+#include <utility>
 #include <utils/error/error_manager_req.hpp>
 
 #include <utils/error.hpp>
@@ -19,8 +20,8 @@ ErrorManagerReq::ErrorManagerReq(std::shared_ptr<ErrorTypeMap> error_type_map_,
                                  std::list<ErrorType> allowed_error_types_, SubscribeErrorFunc subscribe_error_func_) :
     error_type_map(error_type_map_),
     database(error_database_),
-    allowed_error_types(allowed_error_types_),
-    subscribe_error_func(subscribe_error_func_) {
+    allowed_error_types(std::move(allowed_error_types_)),
+    subscribe_error_func(std::move(subscribe_error_func_)) {
 
     for (const ErrorType& type : allowed_error_types) {
         if (!error_type_map->has(type)) {
