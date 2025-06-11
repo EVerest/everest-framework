@@ -114,7 +114,7 @@ namespace Everest {
 
 nlohmann::ordered_json load_yaml(const std::filesystem::path& path) {
     // FIXME (aw): using the static here this isn't a perfect solution
-    static RymlCallbackInitializer ryml_callback_initializer;
+    const static RymlCallbackInitializer ryml_callback_initializer;
 
     const auto content = load_yaml_content(path);
     // FIXME (aw): using parse_in_place would be faster but that will need the file as a whole char buffer
