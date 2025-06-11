@@ -817,7 +817,6 @@ int boot(const po::variables_map& vm) {
                 EVLOG_critical << fmt::format("Module {} (pid: {}) exited with status: {}. Terminating all modules.",
                                               module_name, pid, wstatus);
                 shutdown_modules(module_handles, *config, mqtt_abstraction);
-                modules_started = false;
 
                 mqtt_abstraction.clear_retained_topics();
 
