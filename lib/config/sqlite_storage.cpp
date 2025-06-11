@@ -16,6 +16,32 @@ namespace everest::config {
 
 const std::string DEFAULT_MODULE_IMPLEMENTATION_ID = "!module";
 
+/// \brief Helper for accessing the column indices of the SETTING table
+enum SettingColumnIndex {
+    COL_ID = 0,
+    COL_PREFIX,
+    COL_CONFIG_FILE,
+    COL_CONFIGS_DIR,
+    COL_SCHEMAS_DIR,
+    COL_MODULES_DIR,
+    COL_INTERFACES_DIR,
+    COL_TYPES_DIR,
+    COL_ERRORS_DIR,
+    COL_WWW_DIR,
+    COL_LOGGING_CONFIG_FILE,
+    COL_CONTROLLER_PORT,
+    COL_CONTROLLER_RPC_TIMEOUT_MS,
+    COL_MQTT_BROKER_SOCKET_PATH,
+    COL_MQTT_BROKER_HOST,
+    COL_MQTT_BROKER_PORT,
+    COL_MQTT_EVEREST_PREFIX,
+    COL_MQTT_EXTERNAL_PREFIX,
+    COL_TELEMETRY_PREFIX,
+    COL_TELEMETRY_ENABLED,
+    COL_VALIDATE_SCHEMA,
+    COL_RUN_AS_USER,
+};
+
 SqliteStorage::SqliteStorage(const fs::path& db_path, const std::filesystem::path& migration_files_path) {
     db = std::make_unique<Connection>(db_path);
 
@@ -167,34 +193,34 @@ GetSettingsResponse SqliteStorage::get_settings() {
     }
 
     Settings settings;
-    const auto id = stmt->column_int(0); // ID is required and always present
+    const auto id = stmt->column_int(COL_ID); // ID is required and always present
 
     // text
-    settings.prefix = stmt->column_text(1);
-    settings.config_file = stmt->column_text(2);
-    settings.configs_dir = stmt->column_text(3);
-    settings.schemas_dir = stmt->column_text(4);
-    settings.modules_dir = stmt->column_text(5);
-    settings.interfaces_dir = stmt->column_text(6);
-    settings.types_dir = stmt->column_text(7);
-    settings.errors_dir = stmt->column_text(8);
-    settings.www_dir = stmt->column_text(9);
-    settings.logging_config_file = stmt->column_text(10);
-    settings.mqtt_broker_socket_path = stmt->column_text(13);
-    settings.mqtt_broker_host = stmt->column_text(14);
-    settings.mqtt_everest_prefix = stmt->column_text(16);
-    settings.mqtt_external_prefix = stmt->column_text(17);
-    settings.telemetry_prefix = stmt->column_text(18);
-    settings.run_as_user = stmt->column_text(21);
+    settings.prefix = stmt->column_text(COL_PREFIX);
+    settings.config_file = stmt->column_text(COL_CONFIG_FILE);
+    settings.configs_dir = stmt->column_text(COL_CONFIGS_DIR);
+    settings.schemas_dir = stmt->column_text(COL_SCHEMAS_DIR);
+    settings.modules_dir = stmt->column_text(COL_MODULES_DIR);
+    settings.interfaces_dir = stmt->column_text(COL_INTERFACES_DIR);
+    settings.types_dir = stmt->column_text(COL_TYPES_DIR);
+    settings.errors_dir = stmt->column_text(COL_ERRORS_DIR);
+    settings.www_dir = stmt->column_text(COL_WWW_DIR);
+    settings.logging_config_file = stmt->column_text(COL_LOGGING_CONFIG_FILE);
+    settings.mqtt_broker_socket_path = stmt->column_text(COL_MQTT_BROKER_SOCKET_PATH);
+    settings.mqtt_broker_host = stmt->column_text(COL_MQTT_BROKER_HOST);
+    settings.mqtt_everest_prefix = stmt->column_text(COL_MQTT_EVEREST_PREFIX);
+    settings.mqtt_external_prefix = stmt->column_text(COL_MQTT_EXTERNAL_PREFIX);
+    settings.telemetry_prefix = stmt->column_text(COL_TELEMETRY_PREFIX);
+    settings.run_as_user = stmt->column_text(COL_RUN_AS_USER);
 
     // integer
-    settings.controller_port = stmt->column_int(11);
-    settings.controller_rpc_timeout_ms = stmt->column_int(12);
-    settings.mqtt_broker_port = stmt->column_int(15);
+    settings.controller_port = stmt->column_int(COL_CONTROLLER_PORT);
+    settings.controller_rpc_timeout_ms = stmt->column_int(COL_CONTROLLER_RPC_TIMEOUT_MS);
+    settings.mqtt_broker_port = stmt->column_int(COL_MQTT_BROKER_PORT);
 
     // boolean
-    settings.telemetry_enabled = stmt->column_int(19) != 0;
-    settings.validate_schema = stmt->column_int(20) != 0;
+    settings.telemetry_enabled = stmt->column_int(COL_TELEMETRY_ENABLED) != 0;
+    settings.validate_schema = stmt->column_int(COL_VALIDATE_SCHEMA) != 0;
 
     return GetSettingsResponse{GenericResponseStatus::OK, settings};
 }
@@ -543,7 +569,7 @@ GenericResponseStatus SqliteStorage::write_settings(const Everest::ManagerSettin
     auto stmt = this->db->new_statement(sql);
 
     // ID is always 0
-    stmt->bind_int(1, 0);
+    stmt->bind_int(COL_ID + 1, 0);
 
     auto bind_text_opt = [&](int index, const std::optional<std::string>& opt) {
         if (opt.has_value()) {
@@ -577,30 +603,30 @@ GenericResponseStatus SqliteStorage::write_settings(const Everest::ManagerSettin
         }
     };
 
-    bind_path_opt(2, manager_settings.runtime_settings.prefix);
-    bind_path_opt(3, manager_settings.config_file);
-    bind_path_opt(4, manager_settings.configs_dir);
-    bind_path_opt(5, manager_settings.schemas_dir);
-    bind_path_opt(6, manager_settings.runtime_settings.modules_dir);
-    bind_path_opt(7, manager_settings.interfaces_dir);
-    bind_path_opt(8, manager_settings.types_dir);
-    bind_path_opt(9, manager_settings.errors_dir);
-    bind_path_opt(10, manager_settings.www_dir);
-    bind_path_opt(11, manager_settings.runtime_settings.logging_config_file);
+    bind_path_opt(COL_PREFIX + 1, manager_settings.runtime_settings.prefix);
+    bind_path_opt(COL_CONFIG_FILE + 1, manager_settings.config_file);
+    bind_path_opt(COL_CONFIGS_DIR + 1, manager_settings.configs_dir);
+    bind_path_opt(COL_SCHEMAS_DIR + 1, manager_settings.schemas_dir);
+    bind_path_opt(COL_MODULES_DIR + 1, manager_settings.runtime_settings.modules_dir);
+    bind_path_opt(COL_INTERFACES_DIR + 1, manager_settings.interfaces_dir);
+    bind_path_opt(COL_TYPES_DIR + 1, manager_settings.types_dir);
+    bind_path_opt(COL_ERRORS_DIR + 1, manager_settings.errors_dir);
+    bind_path_opt(COL_WWW_DIR + 1, manager_settings.www_dir);
+    bind_path_opt(COL_LOGGING_CONFIG_FILE + 1, manager_settings.runtime_settings.logging_config_file);
 
-    bind_int_opt(12, manager_settings.controller_port);
-    bind_int_opt(13, manager_settings.controller_rpc_timeout_ms);
+    bind_int_opt(COL_CONTROLLER_PORT + 1, manager_settings.controller_port);
+    bind_int_opt(COL_CONTROLLER_RPC_TIMEOUT_MS + 1, manager_settings.controller_rpc_timeout_ms);
 
-    bind_text_opt(14, manager_settings.mqtt_settings.broker_socket_path);
-    bind_text_opt(15, manager_settings.mqtt_settings.broker_host);
-    bind_int_opt(16, manager_settings.mqtt_settings.broker_port);
-    bind_text_opt(17, manager_settings.mqtt_settings.everest_prefix);
-    bind_text_opt(18, manager_settings.mqtt_settings.external_prefix);
-    bind_text_opt(19, manager_settings.runtime_settings.telemetry_prefix);
+    bind_text_opt(COL_MQTT_BROKER_SOCKET_PATH + 1, manager_settings.mqtt_settings.broker_socket_path);
+    bind_text_opt(COL_MQTT_BROKER_HOST + 1, manager_settings.mqtt_settings.broker_host);
+    bind_int_opt(COL_MQTT_BROKER_PORT + 1, manager_settings.mqtt_settings.broker_port);
+    bind_text_opt(COL_MQTT_EVEREST_PREFIX + 1, manager_settings.mqtt_settings.everest_prefix);
+    bind_text_opt(COL_MQTT_EXTERNAL_PREFIX + 1, manager_settings.mqtt_settings.external_prefix);
+    bind_text_opt(COL_TELEMETRY_PREFIX + 1, manager_settings.runtime_settings.telemetry_prefix);
 
-    bind_bool_opt(20, manager_settings.runtime_settings.telemetry_enabled);
-    bind_bool_opt(21, manager_settings.runtime_settings.validate_schema);
-    bind_text_opt(22, manager_settings.run_as_user);
+    bind_bool_opt(COL_TELEMETRY_ENABLED + 1, manager_settings.runtime_settings.telemetry_enabled);
+    bind_bool_opt(COL_VALIDATE_SCHEMA + 1, manager_settings.runtime_settings.validate_schema);
+    bind_text_opt(COL_RUN_AS_USER + 1, manager_settings.run_as_user);
 
     if (stmt->step() != SQLITE_DONE) {
         return GenericResponseStatus::Failed;
