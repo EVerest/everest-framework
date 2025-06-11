@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-// Copyright 2020 - 2023 Pionix GmbH and Contributors to EVerest
+// Copyright Pionix GmbH and Contributors to EVerest
 
 #include "system_unix.hpp"
 
@@ -16,6 +16,8 @@
 #include <unistd.h>
 
 #include <fmt/core.h>
+
+#include <utils/helpers.hpp>
 
 namespace Everest::system {
 
@@ -53,7 +55,7 @@ static GetPasswdEntryResult get_passwd_entry(const std::string& user_name) {
     int max_ngroups = max_supplementary_groups;
     gid_t groups[max_supplementary_groups];
 
-    int ngroups = getgrouplist(user_name.c_str(), entry->pw_gid, groups, &max_ngroups);
+    const int ngroups = getgrouplist(user_name.c_str(), entry->pw_gid, groups, &max_ngroups);
     if (ngroups < 0) {
         return GetPasswdEntryResult("Could not get supplementary groups for user name: " + user_name);
     }
@@ -80,7 +82,8 @@ std::string set_caps(const std::vector<std::string>& capabilities) {
     }
 
     auto cap_ctx = cap_get_proc();
-    if (cap_set_flag(cap_ctx, CAP_INHERITABLE, capability_values.size(), capability_values.data(), CAP_SET) != 0) {
+    if (cap_set_flag(cap_ctx, CAP_INHERITABLE, Everest::helpers::clamp_to<int>(capability_values.size()),
+                     capability_values.data(), CAP_SET) != 0) {
         return "Failed to add capability flags to CAP_INHERITABLE";
     }
 
