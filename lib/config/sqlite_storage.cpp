@@ -14,7 +14,7 @@ using namespace everest::db::sqlite;
 
 namespace everest::config {
 
-const std::string DEFAULT_MODULE_IMPLEMENTATION_ID = "!module";
+static constexpr auto DEFAULT_MODULE_IMPLEMENTATION_ID = "!module";
 
 /// \brief Helper for accessing the column indices of the SETTING table
 enum SettingColumnIndex {

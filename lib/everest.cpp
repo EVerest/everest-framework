@@ -5,6 +5,7 @@
 #include <map>
 #include <memory>
 #include <set>
+#include <string_view>
 
 #include <boost/any.hpp>
 #include <boost/uuid/uuid.hpp>
@@ -37,7 +38,7 @@ using json_uri = nlohmann::json_uri;
 using json_validator = nlohmann::json_schema::json_validator;
 
 const auto remote_cmd_res_timeout_seconds = 300;
-const std::array<std::string, 3> TELEMETRY_RESERVED_KEYS = {{"connector_id"}};
+const std::array<std::string_view, 3> TELEMETRY_RESERVED_KEYS = {{"connector_id"}};
 
 Everest::Everest(std::string module_id_, const Config& config_, bool validate_data_with_schema,
                  std::shared_ptr<MQTTAbstraction> mqtt_abstraction, const std::string& telemetry_prefix,

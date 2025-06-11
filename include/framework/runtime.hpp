@@ -101,9 +101,9 @@ inline constexpr auto VALIDATE_SCHEMA = false;
 
 std::string parse_string_option(const boost::program_options::variables_map& vm, const char* option);
 
-const auto TERMINAL_STYLE_ERROR = fmt::emphasis::bold | fg(fmt::terminal_color::red);
-const auto TERMINAL_STYLE_OK = fmt::emphasis::bold | fg(fmt::terminal_color::green);
-const auto TERMINAL_STYLE_BLUE = fmt::emphasis::bold | fg(fmt::terminal_color::blue);
+inline constexpr auto TERMINAL_STYLE_ERROR = fmt::emphasis::bold | fg(fmt::terminal_color::red);
+inline constexpr auto TERMINAL_STYLE_OK = fmt::emphasis::bold | fg(fmt::terminal_color::green);
+inline constexpr auto TERMINAL_STYLE_BLUE = fmt::emphasis::bold | fg(fmt::terminal_color::blue);
 
 // NOTE: this function needs the be called with a pre-initialized ModuleInfo struct
 void populate_module_info_path_from_runtime_settings(ModuleInfo&, const RuntimeSettings& rs);

@@ -2,10 +2,9 @@
 // Copyright Pionix GmbH and Contributors to EVerest
 #include <algorithm>
 #include <cstddef>
-#include <fstream>
 #include <list>
+#include <regex>
 #include <set>
-#include <sstream>
 
 #include <fmt/format.h>
 #include <fmt/ranges.h>
@@ -25,13 +24,6 @@ namespace Everest {
 using json = nlohmann::json;
 using json_uri = nlohmann::json_uri;
 using json_validator = nlohmann::json_schema::json_validator;
-
-static json draft07 = R"(
-{
-    "$ref": "http://json-schema.org/draft-07/schema#"
-}
-
-)"_json;
 
 struct ParsedConfigMap {
     std::vector<ConfigurationParameter> parsed_config_parameters;
@@ -58,6 +50,8 @@ void format_checker(const std::string& format, const std::string& value) {
             EVTHROW(std::invalid_argument("URI does not contain :// - invalid"));
         }
     } else if (format == "uri-reference") {
+        /// \brief Allowed format of a type URI, which are of a format like this /type_file_name#/TypeName
+        const static std::regex type_uri_regex{R"(^((?:\/[a-zA-Z0-9\-\_]+)+#\/[a-zA-Z0-9\-\_]+)$)"};
         if (!std::regex_match(value, type_uri_regex)) {
             EVTHROW(std::invalid_argument("Type URI is malformed."));
         }
@@ -1120,6 +1114,12 @@ ManagerConfig::ManagerConfig(const ManagerSettings& ms) : ConfigBase(ms.mqtt_set
     this->validators = std::move(schema_validation.validators);
     this->error_map = error::ErrorTypeMap(this->ms.errors_dir);
     this->draft7_validator = std::make_unique<json_validator>(loader, format_checker);
+    const static json draft07 = R"(
+        {
+            "$ref": "http://json-schema.org/draft-07/schema#"
+        }
+        
+        )"_json;
     this->draft7_validator->set_root_schema(draft07);
 
     // load and process config file
