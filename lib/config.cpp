@@ -117,8 +117,7 @@ SchemaValidation load_schemas(const fs::path& schemas_dir) {
 }
 
 json get_serialized_module_config(const std::string& module_id, const ModuleConfigurations& module_configurations) {
-    const auto module_config = module_configurations.at(module_id);
-    const auto module_name = module_config.module_name;
+    const auto& module_config = module_configurations.at(module_id);
     json serialized_mod_config = json::object();
     serialized_mod_config["module_config"] = module_config; // implicit conversion to json
     serialized_mod_config["mappings"] = json::object();
@@ -168,7 +167,7 @@ static void validate_config_schema(const json& config_map_schema) {
 /// \throws ConfigParseException if a required configuration entry is missing, type validation
 ///         fails against the schema or an unsupported data type is encountered in the schema.
 static ParsedConfigMap parse_config_map(const json& config_map_schema,
-                                        const std::vector<ConfigurationParameter> configuration_parameters) {
+                                        const std::vector<ConfigurationParameter>& configuration_parameters) {
     std::vector<ConfigurationParameter> patched_config_parameters; // this is going to be returned
     std::map<std::string, ConfigurationParameter> config_parameter_map;
     std::set<std::string> config_map_keys;
@@ -523,7 +522,6 @@ std::vector<Fulfillment> ConfigBase::resolve_requirement(const std::string& modu
 
     // check for connections for this requirement
     const auto& module_config = this->module_configs.at(module_id);
-    const auto module_name = module_config.module_name;
     if (module_config.connections.find(requirement_id) == module_config.connections.end()) {
         return {}; // return an empty array if our config does not contain any connections for this
                    // requirement id
@@ -1175,8 +1173,8 @@ Config::Config(const MQTTSettings& mqtt_settings, const json& serialized_config)
     if (serialized_config.contains("mappings") and !serialized_config.at("mappings").is_null()) {
         auto mapping_json = serialized_config.at("mappings");
         for (auto mapping = mapping_json.begin(); mapping != mapping_json.end(); ++mapping) {
-            auto mapping_name = mapping.key();
-            auto mapping_value = mapping.value();
+            const auto& mapping_name = mapping.key();
+            const auto& mapping_value = mapping.value();
             if (!mapping_value.is_null()) {
                 this->tier_mappings.emplace(mapping_name, mapping_value.get<ModuleTierMappings>());
             }
@@ -1226,7 +1224,6 @@ ModuleConfigs Config::get_module_configs(const std::string& module_id) const {
 
     // FIXME (aw): throw exception if module_id does not exist
     if (contains(module_id)) {
-        const auto module_type = this->module_config.module_name;
         for (const auto& [impl_id, config_parameters] : this->module_config.configuration_parameters) {
             ConfigMap processed_conf_map;
             for (const auto& config_parameter : config_parameters) {

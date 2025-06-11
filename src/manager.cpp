@@ -331,8 +331,9 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
     mqtt_abstraction.publish(fmt::format("{}module_names", ms.mqtt_settings.everest_prefix), module_names, QOS::QOS2,
                              true);
 
-    for (const auto& [module_id, module_config] : module_configurations) {
+    for (const auto& [module_id_, module_config] : module_configurations) {
         const auto& module_name = module_config.module_name;
+        const auto& module_id = module_id_;
         if (std::any_of(ignored_modules.begin(), ignored_modules.end(),
                         [module_id](const auto& element) { return element == module_id; })) {
             EVLOG_info << fmt::format("Ignoring module: {}", module_id);
@@ -355,8 +356,9 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
         mqtt_abstraction.register_handler(get_config_topic, module_it->second.get_config_token, QOS::QOS2);
 
         std::vector<std::string> capabilities;
-        if (module_configurations.at(module_id).capabilities.has_value()) {
-            capabilities.push_back(module_configurations.at(module_id).capabilities.value());
+        const auto& module_capabilities = module_configurations.at(module_id).capabilities;
+        if (module_capabilities.has_value()) {
+            capabilities.push_back(module_capabilities.value());
         }
 
         const Handler module_ready_handler = [module_id, &mqtt_abstraction, &config, standalone_modules,
