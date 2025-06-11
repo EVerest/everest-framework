@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
-// Copyright 2020 - 2023 Pionix GmbH and Contributors to EVerest
+// Copyright Pionix GmbH and Contributors to EVerest
 
+#include <cstdlib>
 #include <filesystem>
 #include <thread>
 
@@ -16,13 +17,7 @@
 
 using json = nlohmann::json;
 
-int main([[maybe_unused]] int argc, char* argv[]) {
-
-    if (strcmp(argv[0], MAGIC_CONTROLLER_ARG0) != 0) {
-        fmt::print(stderr, "This binary does not yet support to be started manually\n");
-        return EXIT_FAILURE;
-    }
-
+int run_controller() {
     auto socket_fd = STDIN_FILENO;
 
     const auto message = Everest::controller_ipc::receive_message(socket_fd);
@@ -60,4 +55,17 @@ int main([[maybe_unused]] int argc, char* argv[]) {
     }
 
     return 0;
+}
+
+int main([[maybe_unused]] int argc, char* argv[]) {
+    if (strcmp(argv[0], MAGIC_CONTROLLER_ARG0) != 0) {
+        fmt::print(stderr, "This binary does not yet support to be started manually\n");
+        return EXIT_FAILURE;
+    }
+
+    try {
+        return run_controller();
+    } catch(...) {
+        return EXIT_FAILURE;
+    }
 }
