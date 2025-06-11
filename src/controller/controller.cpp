@@ -18,7 +18,7 @@ using json = nlohmann::json;
 
 int main([[maybe_unused]] int argc, char* argv[]) {
 
-    if (strcmp(argv[0], MAGIC_CONTROLLER_ARG0)) {
+    if (strcmp(argv[0], MAGIC_CONTROLLER_ARG0) != 0) {
         fmt::print(stderr, "This binary does not yet support to be started manually\n");
         return EXIT_FAILURE;
     }
