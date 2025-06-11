@@ -146,7 +146,7 @@ Error ErrorFactory::create_error(const ErrorType& type, const ErrorSubType& sub_
     return error;
 }
 
-void ErrorFactory::set_default_origin(ImplementationIdentifier origin) {
+void ErrorFactory::set_default_origin(const ImplementationIdentifier& origin) {
     default_origin = origin;
 }
 
@@ -158,19 +158,19 @@ void ErrorFactory::set_default_state(State state) {
     default_state = state;
 }
 
-void ErrorFactory::set_default_type(ErrorType type) {
+void ErrorFactory::set_default_type(const ErrorType& type) {
     default_type = type;
 }
 
-void ErrorFactory::set_default_sub_type(ErrorSubType sub_type) {
+void ErrorFactory::set_default_sub_type(const ErrorSubType& sub_type) {
     default_sub_type = sub_type;
 }
 
-void ErrorFactory::set_default_message(std::string message) {
+void ErrorFactory::set_default_message(const std::string& message) {
     default_message = message;
 }
 
-void ErrorFactory::set_default_vendor_id(std::string vendor_id) {
+void ErrorFactory::set_default_vendor_id(const std::string& vendor_id) {
     default_vendor_id = vendor_id;
 }
 

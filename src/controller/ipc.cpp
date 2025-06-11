@@ -32,7 +32,7 @@ void send_message(int fd, const nlohmann::json& msg) {
     size_t already_sent = 0;
 
     while (already_sent < raw.size()) {
-        ssize_t c = write(fd, &p[already_sent], raw.size() - already_sent);
+        const ssize_t c = write(fd, &p[already_sent], raw.size() - already_sent);
 
         if (c == -1) {
             throw std::system_error(errno, std::system_category(), "Error while sending message");

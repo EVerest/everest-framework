@@ -11,11 +11,11 @@
 namespace Everest {
 namespace error {
 
-ErrorTypeMap::ErrorTypeMap(std::filesystem::path error_types_dir) {
+ErrorTypeMap::ErrorTypeMap(const std::filesystem::path& error_types_dir) {
     load_error_types(error_types_dir);
 }
 
-void ErrorTypeMap::load_error_types(std::filesystem::path error_types_dir) {
+void ErrorTypeMap::load_error_types(const std::filesystem::path& error_types_dir) {
     BOOST_LOG_FUNCTION();
 
     if (!std::filesystem::is_directory(error_types_dir) || !std::filesystem::exists(error_types_dir)) {
@@ -30,7 +30,7 @@ void ErrorTypeMap::load_error_types(std::filesystem::path error_types_dir) {
         if (entry.path().extension() != ".yaml") {
             continue;
         }
-        std::string prefix = entry.path().stem().string();
+        const std::string prefix = entry.path().stem().string();
         json error_type_file = Everest::load_yaml(entry.path());
         if (!error_type_file.contains("errors")) {
             EVLOG_warning << "Error type file '" << entry.path().string() << "' does not contain 'errors' key.";

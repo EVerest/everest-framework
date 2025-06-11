@@ -27,8 +27,8 @@ ErrorManagerReq::ErrorManagerReq(std::shared_ptr<ErrorTypeMap> error_type_map_,
             EVLOG_error << "Error type '" << type << "' in allowed_error_types is not defined, ignored.";
         }
     }
-    ErrorCallback on_raise = [this](const Error& error) { this->on_error_raised(error); };
-    ErrorCallback on_clear = [this](const Error& error) { this->on_error_cleared(error); };
+    const ErrorCallback on_raise = [this](const Error& error) { this->on_error_raised(error); };
+    const ErrorCallback on_clear = [this](const Error& error) { this->on_error_cleared(error); };
     for (const ErrorType& type : allowed_error_types) {
         subscribe_error_func(type, on_raise, on_clear);
         error_subscriptions[type] = {};
@@ -46,13 +46,13 @@ void ErrorManagerReq::subscribe_error(const ErrorType& type, const ErrorCallback
         EVLOG_error << "Tpye " << type << " is not known, ignore subscription";
         return;
     }
-    Subscription sub(type, callback, clear_callback);
+    const Subscription sub(type, callback, clear_callback);
     error_subscriptions.at(type).push_back(sub);
 }
 
 void ErrorManagerReq::subscribe_all_errors(const ErrorCallback& callback, const ErrorCallback& clear_callback) {
     for (const ErrorType& type : allowed_error_types) {
-        Subscription sub(type, callback, clear_callback);
+        const Subscription sub(type, callback, clear_callback);
         error_subscriptions.at(type).push_back(sub);
     }
 }
@@ -78,8 +78,8 @@ void ErrorManagerReq::on_error_raised(const Error& error) {
 }
 
 void ErrorManagerReq::on_error_cleared(const Error& error) {
-    std::list<ErrorFilter> filters = {ErrorFilter(TypeFilter(error.type)), ErrorFilter(SubTypeFilter(error.sub_type))};
-    std::list<ErrorPtr> res = database->remove_errors(filters);
+    const std::list<ErrorFilter> filters = {ErrorFilter(TypeFilter(error.type)), ErrorFilter(SubTypeFilter(error.sub_type))};
+    const std::list<ErrorPtr> res = database->remove_errors(filters);
     if (res.size() < 1) {
         std::stringstream ss;
         ss << "Error wasn't raised, type: " << error.type << ", sub_type: " << error.sub_type << ", ignored.";

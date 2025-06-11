@@ -38,7 +38,7 @@ int main([[maybe_unused]] int argc, char* argv[]) {
 
     EVLOG_debug << "everest controller process started ...";
 
-    CommandApi::Config config{
+    const CommandApi::Config config{
         config_params.at("module_dir"),
         config_params.at("interface_dir"),
         config_params.at("configs_dir"),
@@ -47,7 +47,7 @@ int main([[maybe_unused]] int argc, char* argv[]) {
 
     RPC rpc(socket_fd, config);
     Server backend;
-    int controller_port = config_params.at("controller_port").get<int>();
+    const int controller_port = config_params.at("controller_port").get<int>();
 
     // FIXME (aw): don't use hard-coded path!
     std::thread(

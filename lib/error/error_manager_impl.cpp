@@ -73,7 +73,7 @@ std::list<ErrorPtr> ErrorManagerImpl::clear_error(const ErrorType& type, const E
                     << " is not active.";
         return {};
     }
-    std::list<ErrorFilter> filters = {ErrorFilter(TypeFilter(type)), ErrorFilter(SubTypeFilter(sub_type))};
+    const std::list<ErrorFilter> filters = {ErrorFilter(TypeFilter(type)), ErrorFilter(SubTypeFilter(sub_type))};
     std::list<ErrorPtr> res = database->remove_errors(filters);
     if (res.size() > 1) {
         std::stringstream ss;
@@ -92,7 +92,7 @@ std::list<ErrorPtr> ErrorManagerImpl::clear_error(const ErrorType& type, const E
 }
 
 std::list<ErrorPtr> ErrorManagerImpl::clear_all_errors() {
-    std::list<ErrorFilter> filters = {};
+    const std::list<ErrorFilter> filters = {};
     std::list<ErrorPtr> res = database->remove_errors(filters);
     std::stringstream ss;
     ss << "Cleared " << res.size() << " errors:" << std::endl;
@@ -110,7 +110,7 @@ std::list<ErrorPtr> ErrorManagerImpl::clear_all_errors(const ErrorType& error_ty
         EVLOG_debug << "Errors can't be cleared, because type " << error_type << " is not active.";
         return {};
     }
-    std::list<ErrorFilter> filters = {ErrorFilter(TypeFilter(error_type))};
+    const std::list<ErrorFilter> filters = {ErrorFilter(TypeFilter(error_type))};
     std::list<ErrorPtr> res = database->remove_errors(filters);
     std::stringstream ss;
     ss << "Cleared " << res.size() << " errors of type " << error_type << " with sub_types:" << std::endl;
@@ -124,17 +124,17 @@ std::list<ErrorPtr> ErrorManagerImpl::clear_all_errors(const ErrorType& error_ty
 }
 
 bool ErrorManagerImpl::can_be_raised(const ErrorType& type, const ErrorSubType& sub_type) const {
-    std::list<ErrorFilter> filters = {ErrorFilter(TypeFilter(type)), ErrorFilter(SubTypeFilter(sub_type))};
+    const std::list<ErrorFilter> filters = {ErrorFilter(TypeFilter(type)), ErrorFilter(SubTypeFilter(sub_type))};
     return database->get_errors(filters).empty();
 }
 
 bool ErrorManagerImpl::can_be_cleared(const ErrorType& type, const ErrorSubType& sub_type) const {
-    std::list<ErrorFilter> filters = {ErrorFilter(TypeFilter(type)), ErrorFilter(SubTypeFilter(sub_type))};
+    const std::list<ErrorFilter> filters = {ErrorFilter(TypeFilter(type)), ErrorFilter(SubTypeFilter(sub_type))};
     return !database->get_errors(filters).empty();
 }
 
 bool ErrorManagerImpl::can_be_cleared(const ErrorType& type) const {
-    std::list<ErrorFilter> filters = {ErrorFilter(TypeFilter(type))};
+    const std::list<ErrorFilter> filters = {ErrorFilter(TypeFilter(type))};
     return !database->get_errors(filters).empty();
 }
 

@@ -19,7 +19,7 @@ ErrorStateMonitor::ErrorStateMonitor(std::shared_ptr<ErrorDatabase> error_databa
 }
 
 bool ErrorStateMonitor::is_error_active(const ErrorType& type, const ErrorSubType& sub_type) const {
-    std::list<ErrorFilter> filters = {ErrorFilter(TypeFilter(type)), ErrorFilter(SubTypeFilter(sub_type))};
+    const std::list<ErrorFilter> filters = {ErrorFilter(TypeFilter(type)), ErrorFilter(SubTypeFilter(sub_type))};
     return database->get_errors(filters).size() > 0;
 }
 
@@ -28,7 +28,7 @@ std::list<ErrorPtr> ErrorStateMonitor::get_active_errors() const {
 }
 
 bool ErrorStateMonitor::is_condition_satisfied(const StateCondition& condition) const {
-    bool res = is_error_active(condition.type, condition.sub_type);
+    const bool res = is_error_active(condition.type, condition.sub_type);
     return res == condition.active;
 }
 
