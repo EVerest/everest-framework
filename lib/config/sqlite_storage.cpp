@@ -191,7 +191,7 @@ GetSettingsResponse SqliteStorage::get_settings() {
     }
 
     Settings settings;
-    const auto id = stmt->column_int(COL_ID); // ID is required and always present
+    [[maybe_unused]] const auto id = stmt->column_int(COL_ID); // ID is required and always present
 
     // text
     settings.prefix = stmt->column_text(COL_PREFIX);
