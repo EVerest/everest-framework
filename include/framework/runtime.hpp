@@ -97,6 +97,8 @@ inline constexpr auto TELEMETRY_PREFIX = "everest-telemetry";
 inline constexpr auto TELEMETRY_ENABLED = false;
 inline constexpr auto VALIDATE_SCHEMA = false;
 
+inline constexpr auto DEFAULT_DATABASE_FILE_NAME = "everest.db";
+
 } // namespace defaults
 
 std::string parse_string_option(const boost::program_options::variables_map& vm, const char* option);

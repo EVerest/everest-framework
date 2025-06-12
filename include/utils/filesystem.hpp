@@ -10,6 +10,11 @@
 namespace Everest {
 namespace fs = std::filesystem;
 
+enum class MissingFilePolicy {
+    Throw,
+    Create
+};
+
 /// \brief Check if the provided \p path is a directory
 /// \returns The canonical version of the provided path
 /// \throws BootException if the path doesn't exist or isn't a directory
@@ -18,7 +23,8 @@ fs::path assert_dir(const std::string& path, const std::string& path_alias = "Th
 /// \brief Check if the provided \p path is a file
 /// \returns The canonical version of the provided path
 /// \throws BootException if the path doesn't exist or isn't a regular file
-fs::path assert_file(const std::string& path, const std::string& file_alias = "The");
+fs::path assert_file(const std::string& path, const std::string& file_alias = "The",
+                     MissingFilePolicy policy = MissingFilePolicy::Throw);
 
 /// \returns true if the file at the provided \p path has an extensions \p ext
 bool has_extension(const std::string& path, const std::string& ext);

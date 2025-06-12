@@ -56,6 +56,12 @@ SCENARIO("Check ManagerSettings Constructor", "[!throws]") {
                             Everest::BootException);
         }
     }
+    GIVEN("A non-exsiting database file") {
+        THEN("It should not throw and create the file") {
+            CHECK_NOTHROW(Everest::ManagerSettings(bin_dir + "valid_config/", bin_dir + "valid_config/config.yaml",
+                                                   "non_existing.db"));
+        }
+    }
 }
 SCENARIO("Check ManagerConfig Constructor", "[!throws]") {
     auto bin_dir = Everest::tests::get_bin_dir().string() + "/";
@@ -202,6 +208,24 @@ SCENARIO("Check ManagerConfig Constructor", "[!throws]") {
             Everest::ManagerSettings(bin_dir + "valid_complete_config/", bin_dir + "valid_complete_config/config.json");
         THEN("It should not throw at all") {
             CHECK_NOTHROW(Everest::ManagerConfig(ms));
+        }
+    }
+    GIVEN("ManagerSettings are instantiated two times - first with config file, second with database") {
+        auto db_path = bin_dir + "valid_config/everest.db";
+
+        // Clean up before test
+        if (fs::exists(db_path)) {
+            fs::remove(db_path);
+        }
+        auto ms = Everest::ManagerSettings(bin_dir + "valid_config/", bin_dir + "valid_config/config.yaml", db_path);
+        THEN("In the first intstantiation the database is not initialized so boot source is YamlFile") {
+            CHECK_NOTHROW(Everest::ManagerConfig(ms));
+            CHECK(ms.boot_source == Everest::ConfigBootSource::YamlFile);
+
+            THEN("In the second instantiation the database is initialized so boot source is Database") {
+                ms = Everest::ManagerSettings(bin_dir + "valid_config/", bin_dir + "valid_config/config.yaml", db_path);
+                CHECK(ms.boot_source == Everest::ConfigBootSource::Database);
+            }
         }
     }
 }

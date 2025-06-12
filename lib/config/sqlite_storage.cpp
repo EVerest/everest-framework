@@ -42,19 +42,21 @@ enum SettingColumnIndex {
     COL_RUN_AS_USER,
 };
 
-SqliteStorage::SqliteStorage(const fs::path& db_path, const std::filesystem::path& migration_files_path) {
+SqliteStorage::SqliteStorage(const fs::path& db_path) {
     db = std::make_unique<Connection>(db_path);
-
-    SchemaUpdater updater{db.get()};
-
-    if (!updater.apply_migration_files(migration_files_path, TARGET_MIGRATION_FILE_VERSION)) {
-        throw MigrationException("SQL migration failed");
-    }
 
     if (!db->open_connection()) {
         throw std::runtime_error("Could not open database at provided path: " + db_path.string());
     } else {
-        EVLOG_info << "Established connection to database successfully: " << db_path;
+        EVLOG_debug << "Established connection to database successfully: " << db_path;
+    }
+}
+
+void SqliteStorage::apply_migrations(const fs::path& migration_files_path) {
+    SchemaUpdater updater{db.get()};
+
+    if (!updater.apply_migration_files(migration_files_path, TARGET_MIGRATION_FILE_VERSION)) {
+        throw MigrationException("SQL migration failed");
     }
 }
 
@@ -640,7 +642,7 @@ GetModuleDataResponse SqliteStorage::get_module_data(const std::string& module_i
 
     GetModuleDataResponse response;
 
-    const std::string sql = "SELECT NAME FROM MODULE WHERE ID = @module_id";
+    std::string sql = "SELECT NAME, STANDALONE, CAPABILITIES FROM MODULE WHERE ID = @module_id";
 
     auto stmt = this->db->new_statement(sql);
     stmt->bind_text("@module_id", module_id);
@@ -655,8 +657,10 @@ GetModuleDataResponse SqliteStorage::get_module_data(const std::string& module_i
         ModuleData module_data;
         module_data.module_id = module_id;
         module_data.module_name = stmt->column_text(0);
-        response.status = GenericResponseStatus::OK;
+        module_data.standalone = stmt->column_int(1);
+        module_data.capabilities = stmt->column_text_nullable(2);
         response.module_data = module_data;
+        response.status = GenericResponseStatus::OK;
     }
 
     return response;
