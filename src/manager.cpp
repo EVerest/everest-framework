@@ -906,7 +906,7 @@ int main(int argc, char* argv[]) {
                        "looked up in the default config directory");
     desc.add_options()("db", po::value<std::string>(), "Full path to the configuration database file");
     desc.add_options()("source", po::value<std::string>(),
-                       "Source from which the configuration shall be loaded, either 'config' or 'db'");
+                       "Source from which the configuration shall be loaded: 'yaml', 'db' or 'db_fallback_yaml'");
     desc.add_options()("status-fifo", po::value<std::string>()->default_value(""),
                        "Path to a named pipe, that shall be used for status updates from the manager");
     desc.add_options()("retain-topics", "Retain configuration MQTT topics setup by manager for inspection, by default "
