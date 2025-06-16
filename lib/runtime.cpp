@@ -38,6 +38,8 @@ ManagerSettings::ManagerSettings(const std::string& prefix_, const std::string& 
     // if prefix or config is empty, we assume they have not been set!
     // if they have been set, check their validity, otherwise bail out!
 
+    this->boot_source = ConfigBootSource::YamlFile;
+
     if (config_.length() != 0) {
         try {
             config_file = assert_file(config_, "User profided config");
@@ -109,7 +111,20 @@ ManagerSettings::ManagerSettings(const std::string& prefix_, const std::string& 
             prefix = assert_dir(defaults::PREFIX, "Default prefix");
         }
     }
+    init_settings(settings, prefix);
+}
 
+ManagerSettings::ManagerSettings(const std::string& db) {
+    this->boot_source = ConfigBootSource::Database;
+    throw BootException("Database boot source is not supported in this version of EVerest");
+}
+
+ManagerSettings::ManagerSettings(const std::string& prefix, const std::string& config, const std::string& db) {
+    this->boot_source = ConfigBootSource::DatabaseFallbackYaml;
+    throw BootException("Database fallback YAML boot source is not supported in this version of EVerest");
+}
+
+void ManagerSettings::init_settings(const everest::config::Settings& settings, const fs::path& prefix) {
     fs::path etc_dir;
     {
         // etc directory

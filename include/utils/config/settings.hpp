@@ -9,10 +9,17 @@
 #include <nlohmann/json.hpp>
 
 #include <utils/config/mqtt_settings.hpp>
+#include <utils/config/types.hpp>
 
 namespace Everest {
 
 namespace fs = std::filesystem;
+
+enum class ConfigBootSource {
+    YamlFile = 1,
+    Database = 2,
+    DatabaseFallbackYaml = 3
+};
 
 /// \brief EVerest framework runtime settings needed to successfully run modules
 struct RuntimeSettings {
@@ -55,8 +62,24 @@ struct ManagerSettings {
 
     MQTTSettings mqtt_settings;       ///< MQTT connection settings
     RuntimeSettings runtime_settings; ///< Runtime settings needed to successfully run modules
+    ConfigBootSource boot_source;
 
+    ManagerSettings() = default;
+
+    /// \brief Constructor that initializes the ManagerSettings with the given prefix and config file. Boot source is
+    /// set to YamlFile.
     ManagerSettings(const std::string& prefix, const std::string& config);
+
+    /// \brief Constructor that initializes the ManagerSettings with the given database path. Boot source is set to
+    /// Database.
+    ManagerSettings(const std::string& db);
+
+    /// \brief Constructor that initializes the ManagerSettings with the given prefix, config file and database path.
+    /// Boot Source is set to DatabaseFallbackYaml.
+    ManagerSettings(const std::string& prefix, const std::string& config, const std::string& db);
+
+    /// \brief Initializes the ManagerSettings with the given settings and prefix.
+    void init_settings(const everest::config::Settings& settings, const fs::path& prefix);
 };
 } // namespace Everest
 
