@@ -583,6 +583,7 @@ ConfigBootSource parse_config_boot_source(const std::string& config_opt, const s
         // only db option given, use database
         return ConfigBootSource::Database;
     }
+    throw std::logic_error("Could not parse config boot source, this should never happen.");
 }
 
 int boot(const po::variables_map& vm) {
@@ -601,7 +602,7 @@ int boot(const po::variables_map& vm) {
         ms = ManagerSettings(prefix_opt, config_opt);
         break;
     case ConfigBootSource::Database:
-        ms = ManagerSettings(db_opt);
+        ms = ManagerSettings(prefix_opt, db_opt, DatabaseTag{});
         break;
     case ConfigBootSource::DatabaseFallbackYaml:
         ms = ManagerSettings(prefix_opt, config_opt, db_opt);

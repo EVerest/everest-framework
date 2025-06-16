@@ -42,6 +42,8 @@ void populate_runtime_settings(RuntimeSettings& runtime_settings, const fs::path
                                const fs::path& logging_config_file, const std::string& telemetry_prefix,
                                bool telemetry_enabled, bool validate_schema);
 
+struct DatabaseTag {};
+
 /// \brief Settings needed by the manager to load and validate a config
 struct ManagerSettings {
     fs::path configs_dir;          ///< Directory that contains EVerest configs
@@ -72,14 +74,21 @@ struct ManagerSettings {
 
     /// \brief Constructor that initializes the ManagerSettings with the given database path. Boot source is set to
     /// Database.
-    ManagerSettings(const std::string& db);
+    ManagerSettings(const std::string& prefix, const std::string& db, DatabaseTag);
 
     /// \brief Constructor that initializes the ManagerSettings with the given prefix, config file and database path.
     /// Boot Source is set to DatabaseFallbackYaml.
     ManagerSettings(const std::string& prefix, const std::string& config, const std::string& db);
 
     /// \brief Initializes the ManagerSettings with the given settings and prefix.
-    void init_settings(const everest::config::Settings& settings, const fs::path& prefix);
+    void init_settings(const everest::config::Settings& settings);
+
+    /// \brief Initializes the ManagerSettings based on the user provided \p config file or fallback options
+    void init_config_file(const std::string& config);
+
+    /// \brief Initializes the ManagerSettings prefix and data_dir base on user provided \p prefix or the default
+    /// prefix.
+    void init_prefix_and_data_dir(const std::string& prefix);
 };
 } // namespace Everest
 
