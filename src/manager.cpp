@@ -768,8 +768,6 @@ int boot(const po::variables_map& vm) {
     bool modules_started = true;
     bool restart_modules = false;
 
-    int wstatus;
-
 #ifndef ENABLE_ADMIN_PANEL
     // switch to low privilege user if configured
     if (not ms.run_as_user.empty()) {
@@ -780,6 +778,8 @@ int boot(const po::variables_map& vm) {
         }
     }
 #endif
+
+    int wstatus; // NOLINT(cppcoreguidelines-init-variables): this is always initialized in the following waitpid call
 
     while (true) {
 // check if anyone died
@@ -913,7 +913,11 @@ int main(int argc, char* argv[]) {
         }
 
         if (vm.count("version") != 0) {
-            std::cout << argv[0] << " (" << PROJECT_NAME << " " << PROJECT_VERSION << " " << GIT_VERSION << ") "
+            std::string argv0;
+            if (argc > 0) {
+                argv0 = *argv;
+            }
+            std::cout << argv0 << " (" << PROJECT_NAME << " " << PROJECT_VERSION << " " << GIT_VERSION << ") "
                       << std::endl;
             return EXIT_SUCCESS;
         }

@@ -383,6 +383,7 @@ ModuleCallbacks::ModuleCallbacks(
     register_module_adapter(register_module_adapter), everest_register(everest_register), init(init), ready(ready) {
 }
 
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays): pass-through of argc and argv from main()
 ModuleLoader::ModuleLoader(int argc, char* argv[], ModuleCallbacks callbacks, VersionInformation version_information) :
     runtime_settings(nullptr), callbacks(std::move(callbacks)), version_information(std::move(version_information)) {
     try {
@@ -573,6 +574,7 @@ int ModuleLoader::initialize() {
     return 0;
 }
 
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays): pass-through of argc and argv from main()
 bool ModuleLoader::parse_command_line(int argc, char* argv[]) {
     po::options_description desc("EVerest");
     desc.add_options()("version", "Print version and exit");
@@ -592,9 +594,10 @@ bool ModuleLoader::parse_command_line(int argc, char* argv[]) {
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
     po::notify(vm);
-
+    std::string argv0;
     if (argc > 0) {
-        const std::string argv0 = argv[0];
+        std::string argv0;
+        argv0 = *argv;
         if (not argv0.empty()) {
             this->application_name = fs::path(argv0).stem().string();
         }
@@ -606,7 +609,7 @@ bool ModuleLoader::parse_command_line(int argc, char* argv[]) {
     }
 
     if (vm.count("version") != 0) {
-        std::cout << argv[0] << " (" << this->version_information.project_name << " "
+        std::cout << argv0 << " (" << this->version_information.project_name << " "
                   << this->version_information.project_version << " " << this->version_information.git_version << ")"
                   << std::endl;
         return false;
@@ -713,7 +716,7 @@ bool ModuleLoader::parse_command_line(int argc, char* argv[]) {
         this->logging_config_file = assert_file(default_logging_config_file, "Default logging config");
     }
 
-    this->original_process_name = argv[0];
+    this->original_process_name = argv0;
 
     if (vm.count("module") != 0) {
         this->module_id = vm["module"].as<std::string>();
