@@ -505,10 +505,11 @@ static void shutdown_modules(const std::map<pid_t, std::string>& modules, Manage
 
 #ifdef ENABLE_ADMIN_PANEL
 static ControllerHandle start_controller(const ManagerSettings& ms) {
-    int socket_pair[2];
+    std::array<int, 2> socket_pair; // NOLINT(cppcoreguidelines-pro-type-member-init): this is always initialized in the
+                                    // following socketpair call
 
     // FIXME (aw): destroy this socketpair somewhere
-    socketpair(AF_UNIX, SOCK_DGRAM, 0, socket_pair);
+    socketpair(AF_UNIX, SOCK_DGRAM, 0, socket_pair.data());
     const int manager_socket = socket_pair[0];
     const int controller_socket = socket_pair[1];
 
