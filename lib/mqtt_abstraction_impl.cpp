@@ -558,8 +558,8 @@ bool MQTTAbstractionImpl::connectBroker(std::string& socket_path) {
         return false;
     }
 
-    mqtt_init(&this->mqtt_client, mqtt_socket_fd, static_cast<uint8_t*>(this->sendbuf), sizeof(this->sendbuf),
-              static_cast<uint8_t*>(this->recvbuf), sizeof(this->recvbuf), MQTTAbstractionImpl::publish_callback);
+    mqtt_init(&this->mqtt_client, mqtt_socket_fd, this->sendbuf.data(), sizeof(this->sendbuf), this->recvbuf.data(),
+              sizeof(this->recvbuf), MQTTAbstractionImpl::publish_callback);
     const uint8_t connect_flags = MQTT_CONNECT_CLEAN_SESSION;
     /* Send connection request to the broker. */
     if (mqtt_connect(&this->mqtt_client, nullptr, nullptr, nullptr, 0, nullptr, nullptr, connect_flags,
@@ -600,8 +600,8 @@ bool MQTTAbstractionImpl::connectBroker(const char* host, const char* port) {
     int enable = 1;
     setsockopt(mqtt_socket_fd, IPPROTO_TCP, TCP_NODELAY, &enable, sizeof(enable));
 
-    mqtt_init(&this->mqtt_client, mqtt_socket_fd, static_cast<uint8_t*>(this->sendbuf), sizeof(this->sendbuf),
-              static_cast<uint8_t*>(this->recvbuf), sizeof(this->recvbuf), MQTTAbstractionImpl::publish_callback);
+    mqtt_init(&this->mqtt_client, mqtt_socket_fd, this->sendbuf.data(), sizeof(this->sendbuf), this->recvbuf.data(),
+              sizeof(this->recvbuf), MQTTAbstractionImpl::publish_callback);
     const uint8_t connect_flags = MQTT_CONNECT_CLEAN_SESSION;
     /* Send connection request to the broker. */
     if (mqtt_connect(&this->mqtt_client, nullptr, nullptr, nullptr, 0, nullptr, nullptr, connect_flags,
