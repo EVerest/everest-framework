@@ -826,7 +826,7 @@ std::list<json> ManagerConfig::resolve_error_ref(const std::string& reference) {
     const auto result = err_ref.find("#/");
     std::string err_namespace;
     std::string err_name;
-    bool is_error_list;
+    bool is_error_list = false;
     if (result == std::string::npos) {
         err_namespace = err_ref;
         err_name = "";

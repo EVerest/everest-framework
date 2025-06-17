@@ -242,7 +242,7 @@ json MQTTAbstractionImpl::get(const std::string& topic, QOS qos) {
     // wait for result future
     const std::chrono::time_point<std::chrono::steady_clock> res_wait =
         std::chrono::steady_clock::now() + std::chrono::milliseconds(mqtt_get_timeout_ms);
-    std::future_status res_future_status;
+    std::future_status res_future_status = std::future_status::deferred;
     do {
         res_future_status = res_future.wait_until(res_wait);
     } while (res_future_status == std::future_status::deferred);

@@ -397,7 +397,7 @@ json Everest::call_cmd(const Requirement& req, const std::string& cmd_name, json
     // wait for result future
     const std::chrono::time_point<std::chrono::steady_clock> res_wait =
         std::chrono::steady_clock::now() + this->remote_cmd_res_timeout;
-    std::future_status res_future_status;
+    std::future_status res_future_status = std::future_status::deferred;
     do {
         res_future_status = res_future.wait_until(res_wait);
     } while (res_future_status == std::future_status::deferred);
