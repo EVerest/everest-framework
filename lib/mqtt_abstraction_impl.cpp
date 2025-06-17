@@ -272,12 +272,11 @@ std::shared_future<void> MQTTAbstractionImpl::spawn_main_loop_thread() {
         try {
             while (this->mqtt_is_connected) {
 
-                eventfd_t eventfd_buffer;
-                const int nfds = 3;
-                struct pollfd pollfds[nfds] = {{this->mqtt_socket_fd, POLLIN, 0},
-                                               {this->event_fd, POLLIN, 0},
-                                               {this->disconnect_event_fd, POLLIN, 0}};
-                auto retval = ::poll(pollfds, nfds, mqtt_poll_timeout_ms);
+                eventfd_t eventfd_buffer; // NOLINT(cppcoreguidelines-init-variables) initialized by eventfd_read
+                std::array<struct pollfd, 3> pollfds = {{{this->mqtt_socket_fd, POLLIN, 0},
+                                                         {this->event_fd, POLLIN, 0},
+                                                         {this->disconnect_event_fd, POLLIN, 0}}};
+                auto retval = ::poll(pollfds.data(), pollfds.size(), mqtt_poll_timeout_ms);
 
                 if (retval >= 0) {
                     // data available to send (the notifier writes, we should be ready to read)
