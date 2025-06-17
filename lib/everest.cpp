@@ -39,6 +39,7 @@ using json_validator = nlohmann::json_schema::json_validator;
 
 const auto remote_cmd_res_timeout_seconds = 300;
 const std::array<std::string_view, 3> TELEMETRY_RESERVED_KEYS = {{"connector_id"}};
+constexpr auto ensure_ready_timeout_ms = 100;
 
 Everest::Everest(std::string module_id_, const Config& config_, bool validate_data_with_schema,
                  std::shared_ptr<MQTTAbstraction> mqtt_abstraction, const std::string& telemetry_prefix,
@@ -765,7 +766,7 @@ void Everest::ensure_ready() const {
     /// When calling this we actually expect that `ready_processed` is true.
     while (!ready_processed) { // In C++20 we might mark it as [[unlikely]]
         EVLOG_warning << "Module has not processed `ready` yet.";
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        std::this_thread::sleep_for(std::chrono::milliseconds(ensure_ready_timeout_ms));
     }
 }
 
