@@ -596,7 +596,6 @@ bool ModuleLoader::parse_command_line(int argc, char* argv[]) {
     po::notify(vm);
     std::string argv0;
     if (argc > 0) {
-        std::string argv0;
         argv0 = *argv;
         if (not argv0.empty()) {
             this->application_name = fs::path(argv0).stem().string();
