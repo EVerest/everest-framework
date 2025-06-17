@@ -65,7 +65,7 @@ struct ManagerSettings {
 
     MQTTSettings mqtt_settings;       ///< MQTT connection settings
     RuntimeSettings runtime_settings; ///< Runtime settings needed to successfully run modules
-    ConfigBootMode boot_mode;
+    ConfigBootMode boot_mode = ConfigBootMode::YamlFile;
 
     ManagerSettings() = default;
 
