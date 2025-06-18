@@ -231,7 +231,7 @@ json MQTTAbstractionImpl::get(const std::string& topic, QOS qos) {
     std::promise<json> res_promise;
     std::future<json> res_future = res_promise.get_future();
 
-    const auto res_handler = [this, &res_promise](const std::string& topic, json data) {
+    const auto res_handler = [this, &res_promise](const std::string& /*topic*/, json data) {
         res_promise.set_value(std::move(data));
     };
 

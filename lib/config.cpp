@@ -409,7 +409,7 @@ ImplementationInfo extract_implementation_info(const std::unordered_map<std::str
     return info;
 }
 
-std::string create_printable_identifier(const ImplementationInfo& info, const std::string& module_id,
+std::string create_printable_identifier(const ImplementationInfo& info, const std::string& /*module_id*/,
                                         const std::string& impl_id) {
     BOOST_LOG_FUNCTION();
 
