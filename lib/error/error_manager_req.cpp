@@ -79,7 +79,8 @@ void ErrorManagerReq::on_error_raised(const Error& error) {
 }
 
 void ErrorManagerReq::on_error_cleared(const Error& error) {
-    const std::list<ErrorFilter> filters = {ErrorFilter(TypeFilter(error.type)), ErrorFilter(SubTypeFilter(error.sub_type))};
+    const std::list<ErrorFilter> filters = {ErrorFilter(TypeFilter(error.type)),
+                                            ErrorFilter(SubTypeFilter(error.sub_type))};
     const std::list<ErrorPtr> res = database->remove_errors(filters);
     if (res.size() < 1) {
         std::stringstream ss;

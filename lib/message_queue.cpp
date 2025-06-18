@@ -10,8 +10,7 @@
 
 namespace Everest {
 
-MessageQueue::MessageQueue(MessageCallback message_callback_) :
-    message_callback(std::move(message_callback_)) {
+MessageQueue::MessageQueue(MessageCallback message_callback_) : message_callback(std::move(message_callback_)) {
     this->worker_thread = std::thread([this]() {
         while (true) {
             std::unique_lock<std::mutex> lock(this->queue_ctrl_mutex);

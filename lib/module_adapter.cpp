@@ -5,7 +5,7 @@
 namespace Everest {
 constexpr auto mqtt_provider_default_precision = 5;
 
-ModuleBase::ModuleBase(const ModuleInfo& info) : info(info) {};
+ModuleBase::ModuleBase(const ModuleInfo& info) : info(info){};
 
 void ModuleBase::invoke_init(ImplementationBase& impl) {
     impl.init();
@@ -24,7 +24,7 @@ void ModuleAdapter::gather_cmds(ImplementationBase& impl) {
     impl._gather_cmds(registered_commands);
 }
 
-MqttProvider::MqttProvider(ModuleAdapter& ev) : ev(ev) {};
+MqttProvider::MqttProvider(ModuleAdapter& ev) : ev(ev){};
 
 void MqttProvider::publish(const std::string& topic, const std::string& data) {
     ev.ext_mqtt_publish(topic, data);
@@ -64,7 +64,7 @@ UnsubscribeToken MqttProvider::subscribe(const std::string& topic, StringPairHan
     return ev.ext_mqtt_subscribe_pair(topic, std::move(handler));
 }
 
-TelemetryProvider::TelemetryProvider(ModuleAdapter& ev) : ev(ev) {};
+TelemetryProvider::TelemetryProvider(ModuleAdapter& ev) : ev(ev){};
 
 void TelemetryProvider::publish(const std::string& category, const std::string& subcategory, const std::string& type,
                                 const TelemetryMap& telemetry) {

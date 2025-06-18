@@ -65,7 +65,7 @@ int main([[maybe_unused]] int argc, char* argv[]) {
 
     try {
         return run_controller();
-    } catch(...) {
+    } catch (...) {
         return EXIT_FAILURE;
     }
 }
