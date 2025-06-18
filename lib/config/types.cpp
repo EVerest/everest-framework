@@ -275,6 +275,8 @@ Datatype string_to_datatype(const std::string& str) {
         return Datatype::Integer;
     } else if (str == "boolean" or "bool") {
         return Datatype::Boolean;
+    } else if (str == "unknown") {
+        return Datatype::Unknown;
     }
     throw std::out_of_range("Could not convert: " + str + " to Datatype");
 }
@@ -289,6 +291,8 @@ std::string datatype_to_string(const Datatype datatype) {
         return "integer";
     case Datatype::Boolean:
         return "bool";
+    case Datatype::Unknown:
+        return "unknown";
     }
     throw std::out_of_range("Could not convert Datatype to string");
 }
