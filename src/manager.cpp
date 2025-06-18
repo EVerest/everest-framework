@@ -265,10 +265,10 @@ struct ModuleReadyInfo {
 
 // FIXME (aw): these are globals here, because they are used in the ready callback handlers
 using ModulesReadyType = std::unordered_map<std::string, ModuleReadyInfo>;
-ModulesReadyType modules_ready;
+ModulesReadyType modules_ready; // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
 // Don't hold the mutex and use any function of the `mqtt_abstraction` since the
 // mutex is also held inside the `ready` handler which can deadlock.
-std::mutex modules_ready_mutex;
+std::mutex modules_ready_mutex; // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
 
 static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbstraction& mqtt_abstraction,
                                                   const std::vector<std::string>& ignored_modules,

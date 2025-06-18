@@ -35,7 +35,8 @@ void populate_module_info_path_from_runtime_settings(ModuleInfo& mi, const Runti
 }
 
 ManagerSettings::ManagerSettings(const std::string& prefix_, const std::string& config_) :
-    boot_mode(ConfigBootMode::YamlFile) {
+    boot_mode(ConfigBootMode::YamlFile) { // NOLINT(cppcoreguidelines-use-default-member-init): already default
+                                          // initialized, but repeated for clarity
     // if prefix or config is empty, we assume they have not been set!
     // if they have been set, check their validity, otherwise bail out!
 

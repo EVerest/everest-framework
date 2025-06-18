@@ -523,7 +523,7 @@ bool MQTTAbstractionImpl::connectBroker(std::string& socket_path) {
     }
 
     // Initialize the address structure
-    struct sockaddr_un addr;
+    struct sockaddr_un addr; // NOLINT(cppcoreguidelines-pro-type-member-init): initialized with memset
     memset(&addr, 0, sizeof(struct sockaddr_un));
     addr.sun_family = AF_UNIX;
     if (socket_path.size() > (sizeof(addr.sun_path) - 1)) {
@@ -532,9 +532,11 @@ bool MQTTAbstractionImpl::connectBroker(std::string& socket_path) {
         return false;
     }
     // no need to set the terminating null due to memset
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     std::strncpy(addr.sun_path, socket_path.c_str(), sizeof(addr.sun_path) - 1);
 
     // make non-blocking
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg): We have no good alternative to fcntl
     auto retval = fcntl(mqtt_socket_fd, F_SETFL,
                         fcntl(mqtt_socket_fd, F_GETFL) | O_NONBLOCK); // NOLINT: We have no good alternative to fcntl
     if (retval != 0) {
@@ -543,7 +545,8 @@ bool MQTTAbstractionImpl::connectBroker(std::string& socket_path) {
         return false;
     }
 
-    // conect the socket
+    // connect the socket
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast): we have no good alterative to reinterpret_cast here
     if (::connect(mqtt_socket_fd, reinterpret_cast<struct sockaddr*>(&addr), sizeof(struct sockaddr_un)) == -1) {
         EVLOG_error << fmt::format("Failed to connect to unix domain socket: {}", socket_path);
         close(mqtt_socket_fd);
