@@ -116,7 +116,6 @@ ModuleConfigurationParameters parse_config_parameters(const json& config_json) {
         ConfigurationParameter param;
         param.name = name;
 
-        // we cant parse to fs::path
         if (jval.is_string()) {
             param.value = jval.get<std::string>();
         } else if (jval.is_boolean()) {
@@ -211,8 +210,6 @@ ConfigEntry parse_config_value(Datatype datatype, const std::string& value_str) 
             return std::stoi(value_str);
         case Datatype::Boolean:
             return value_str == "true" || value_str == "1";
-        case Datatype::Path:
-            return std::filesystem::path(value_str);
         default:
             throw std::out_of_range("Unsupported datatype: " + datatype_to_string(datatype));
         }
@@ -273,8 +270,6 @@ Datatype string_to_datatype(const std::string& str) {
         return Datatype::Integer;
     } else if (str == "boolean" or "bool") {
         return Datatype::Boolean;
-    } else if (str == "path") {
-        return Datatype::Path;
     }
     throw std::out_of_range("Could not convert: " + str + " to Datatype");
 }
@@ -289,8 +284,6 @@ std::string datatype_to_string(const Datatype datatype) {
         return "integer";
     case Datatype::Boolean:
         return "bool";
-    case Datatype::Path:
-        return "path";
     }
     throw std::out_of_range("Could not convert Datatype to string");
 }

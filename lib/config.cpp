@@ -239,9 +239,6 @@ static ParsedConfigMap parse_config_map(const json& config_map_schema,
         case Datatype::Boolean:
             config_param.value = config_entry_value.get<bool>();
             break;
-        case Datatype::Path:
-            config_param.value = std::filesystem::path(config_entry_value.get<std::string>());
-            break;
         default:
             throw ConfigParseException(ConfigParseException::SCHEMA, config_entry_name,
                                        "Unsupported datatype in config: " + config_entry.at("type").get<std::string>());

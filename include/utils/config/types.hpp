@@ -100,7 +100,7 @@ struct ConfigurationParameter;
 struct ModuleConfig;
 using ModuleId = std::string;
 using RequirementId = std::string;
-using ConfigEntry = std::variant<std::string, bool, int, double, fs::path>;
+using ConfigEntry = std::variant<std::string, bool, int, double>;
 using ImplementationIdentifier = std::string;
 using ModuleConnections = std::map<RequirementId, std::vector<Fulfillment>>;
 using ModuleConfigurations = std::map<ModuleId, ModuleConfig>;
@@ -116,8 +116,7 @@ enum class Datatype {
     String,
     Decimal,
     Integer,
-    Boolean,
-    Path
+    Boolean
 };
 
 struct Settings {
