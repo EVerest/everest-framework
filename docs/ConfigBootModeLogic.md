@@ -15,32 +15,19 @@ Based on these options, there are three possible boot modes:
 - **DatabaseInit Boot Mode**: The configuration is preferably loaded from an SQLite database. If the database does not exist or does not contain a valid EVerest configuration, the YAML file specified by `--config` is used instead, and the configuration is then written to the database. This mode requires all three options: `--config`, `--db`, and `--db-init`. In a subsequent start of the application, the database can be used to retrieve
 the configuration.
 
-```plantuml
-@startuml
-title EVerest Boot Mode Application Logic
-start
-:Parse CLI arguments;
-if ("--config provided") then (yes)
-  if ("--db provided") then (yes)
-    if ("--db-init provided") then (yes)
-      :Boot Mode: DatabaseInit;
-      stop
-    else (no)
-      :Invalid combination;
-      stop
-    endif
-  else (no)
-    :Boot Mode: YAML;
-    stop
-  endif
-else (no)
-  if ("--db provided") then (yes)
-    :Boot Mode: Database;
-    stop
-  else (no)
-    :Invalid combination;
-    stop
-  endif
-endif
-@enduml
+## Boot Mode Application Logic Flow Chart
+
+```mermaid
+flowchart TD
+    A[Start] --> B[Parse CLI arguments]
+
+    B --> C{--config provided}
+    C -->|yes| D{--db provided}
+    D -->|yes| E{--db-init provided}
+    E -->|yes| F[Boot Mode: DatabaseInit]
+    E -->|no| H[Invalid combination]
+    D -->|no| J[Boot Mode: YAML]
+    C -->|no| L{--db provided}
+    L -->|yes| M[Boot Mode: Database]
+    L -->|no| O[Invalid combination]
 ```
