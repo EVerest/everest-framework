@@ -115,15 +115,20 @@ ModuleConfigurationParameters parse_config_parameters(const json& config_json) {
     auto parse_entry = [](const std::string& name, const json& jval) -> ConfigurationParameter {
         ConfigurationParameter param;
         param.name = name;
+        param.characteristics.mutability = Mutability::ReadOnly;
 
         if (jval.is_string()) {
             param.value = jval.get<std::string>();
+            param.characteristics.datatype = Datatype::String;
         } else if (jval.is_boolean()) {
             param.value = jval.get<bool>();
+            param.characteristics.datatype = Datatype::Boolean;
         } else if (jval.is_number_integer()) {
             param.value = jval.get<int>();
+            param.characteristics.datatype = Datatype::Integer;
         } else if (jval.is_number_float()) {
             param.value = jval.get<double>();
+            param.characteristics.datatype = Datatype::Decimal;
         } else {
             throw std::runtime_error("Unsupported JSON type for config parameter: " + name);
         }
