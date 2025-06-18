@@ -61,6 +61,20 @@ int to_int(ConfigurationColumnIndex configuration_column_index) {
     return static_cast<int>(configuration_column_index);
 }
 
+/// \brief Helper for accessing the column indices of the CONFIGURATION table of a specific MODULE_ID
+enum class ConfigurationColumnModuleIdIndex {
+    COL_PARAMETER_NAME = 0,
+    COL_VALUE,
+    COL_MODULE_IMPLEMENTATION_ID,
+    COL_MUTABILITY_ID,
+    COL_DATATYPE_ID,
+    COL_UNIT,
+};
+
+int to_int(ConfigurationColumnModuleIdIndex configuration_column_module_id_index) {
+    return static_cast<int>(configuration_column_module_id_index);
+}
+
 SqliteStorage::SqliteStorage(const fs::path& db_path, const std::filesystem::path& migration_files_path) {
     db = std::make_unique<Connection>(db_path);
 
@@ -291,13 +305,17 @@ GetModuleConfigurationResponse SqliteStorage::get_module_config(const std::strin
 
         while (stmt->step() == SQLITE_ROW) {
             ConfigurationParameter configuration_parameter;
-            configuration_parameter.name = stmt->column_text(0);
-            const auto value_str = stmt->column_text(1);
-            auto implementation_id = stmt->column_text(2);
+            configuration_parameter.name =
+                stmt->column_text(to_int(ConfigurationColumnModuleIdIndex::COL_PARAMETER_NAME));
+            const auto value_str = stmt->column_text(to_int(ConfigurationColumnModuleIdIndex::COL_VALUE));
+            auto implementation_id =
+                stmt->column_text(to_int(ConfigurationColumnModuleIdIndex::COL_MODULE_IMPLEMENTATION_ID));
             ConfigurationParameterCharacteristics characteristics;
-            characteristics.mutability = static_cast<Mutability>(stmt->column_int(3));
-            characteristics.datatype = static_cast<Datatype>(stmt->column_int(4));
-            characteristics.unit = stmt->column_text_nullable(5);
+            characteristics.mutability =
+                static_cast<Mutability>(stmt->column_int(to_int(ConfigurationColumnModuleIdIndex::COL_MUTABILITY_ID)));
+            characteristics.datatype =
+                static_cast<Datatype>(stmt->column_int(to_int(ConfigurationColumnModuleIdIndex::COL_DATATYPE_ID)));
+            characteristics.unit = stmt->column_text_nullable(to_int(ConfigurationColumnModuleIdIndex::COL_UNIT));
             configuration_parameter.characteristics = characteristics;
             configuration_parameter.value = parse_config_value(characteristics.datatype, value_str);
 
