@@ -147,8 +147,8 @@ struct Settings {
 /// \brief Struct that contains the characteristics of a configuration parameter including its datatype, mutability and
 /// unit
 struct ConfigurationParameterCharacteristics {
-    Datatype datatype;
-    Mutability mutability;
+    Datatype datatype = Datatype::Unknown;
+    Mutability mutability = Mutability::ReadOnly;
     std::optional<std::string> unit;
 };
 
