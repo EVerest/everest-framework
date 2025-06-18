@@ -42,10 +42,6 @@ enum class SettingColumnIndex : int {
     COL_RUN_AS_USER,
 };
 
-int to_int(SettingColumnIndex setting_column_index) {
-    return static_cast<int>(setting_column_index);
-}
-
 /// \brief Helper for accessing the column indices of the CONFIGURATION table
 enum class ConfigurationColumnIndex {
     COL_MODULE_ID = 1,
@@ -57,10 +53,6 @@ enum class ConfigurationColumnIndex {
     COL_MODULE_IMPLEMENTATION_ID,
 };
 
-int to_int(ConfigurationColumnIndex configuration_column_index) {
-    return static_cast<int>(configuration_column_index);
-}
-
 /// \brief Helper for accessing the column indices of the CONFIGURATION table of a specific MODULE_ID
 enum class ConfigurationColumnModuleIdIndex {
     COL_PARAMETER_NAME = 0,
@@ -71,9 +63,19 @@ enum class ConfigurationColumnModuleIdIndex {
     COL_UNIT,
 };
 
+namespace {
+int to_int(SettingColumnIndex setting_column_index) {
+    return static_cast<int>(setting_column_index);
+}
+
+int to_int(ConfigurationColumnIndex configuration_column_index) {
+    return static_cast<int>(configuration_column_index);
+}
+
 int to_int(ConfigurationColumnModuleIdIndex configuration_column_module_id_index) {
     return static_cast<int>(configuration_column_module_id_index);
 }
+} // namespace
 
 SqliteStorage::SqliteStorage(const fs::path& db_path, const std::filesystem::path& migration_files_path) {
     db = std::make_unique<Connection>(db_path);

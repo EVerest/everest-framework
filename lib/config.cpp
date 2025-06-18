@@ -130,7 +130,8 @@ json get_serialized_module_config(const std::string& module_id, const ModuleConf
     return serialized_mod_config;
 }
 
-static void validate_config_schema(const json& config_map_schema) {
+namespace {
+void validate_config_schema(const json& config_map_schema) {
     // iterate over every config entry
     json_validator validator(loader, format_checker);
     for (const auto& config_item : config_map_schema.items()) {
@@ -160,8 +161,8 @@ static void validate_config_schema(const json& config_map_schema) {
 ///         - a set of unknown configuration keys not present in the schema.
 /// \throws ConfigParseException if a required configuration entry is missing, type validation
 ///         fails against the schema or an unsupported data type is encountered in the schema.
-static ParsedConfigMap parse_config_map(const json& config_map_schema,
-                                        const std::vector<ConfigurationParameter>& configuration_parameters) {
+ParsedConfigMap parse_config_map(const json& config_map_schema,
+                                 const std::vector<ConfigurationParameter>& configuration_parameters) {
     std::vector<ConfigurationParameter> patched_config_parameters; // this is going to be returned
     std::map<std::string, ConfigurationParameter> config_parameter_map;
     std::set<std::string> config_map_keys;
@@ -254,8 +255,8 @@ static ParsedConfigMap parse_config_map(const json& config_map_schema,
     return {patched_config_parameters, unknown_config_entries};
 }
 
-static auto get_provides_for_probe_module(const std::string& probe_module_id,
-                                          const ModuleConfigurations& module_configs, const json& manifests) {
+auto get_provides_for_probe_module(const std::string& probe_module_id, const ModuleConfigurations& module_configs,
+                                   const json& manifests) {
     auto provides = json::object();
 
     for (const auto& [module_id, module_config] : module_configs) {
@@ -300,8 +301,8 @@ static auto get_provides_for_probe_module(const std::string& probe_module_id,
     return provides;
 }
 
-static auto get_requirements_for_probe_module(const std::string& probe_module_id,
-                                              const ModuleConfigurations& module_configs, const json& manifests) {
+auto get_requirements_for_probe_module(const std::string& probe_module_id, const ModuleConfigurations& module_configs,
+                                       const json& manifests) {
     ModuleConfig probe_module_config;
     for (const auto& [module_id, module_config] : module_configs) {
         if (module_config.module_id == probe_module_id) {
@@ -356,8 +357,8 @@ static auto get_requirements_for_probe_module(const std::string& probe_module_id
     return requirements;
 }
 
-static void setup_probe_module_manifest(const std::string& probe_module_id, const ModuleConfigurations& module_configs,
-                                        json& manifests) {
+void setup_probe_module_manifest(const std::string& probe_module_id, const ModuleConfigurations& module_configs,
+                                 json& manifests) {
     // setup basic information
     auto& manifest = manifests["ProbeModule"];
     manifest = {
@@ -419,6 +420,7 @@ std::string create_printable_identifier(const ImplementationInfo& info, const st
     }
     return fmt::format("{}->{}:{}", module_string, info.impl_id, info.impl_intf);
 }
+} // namespace
 
 // ConfigBase
 

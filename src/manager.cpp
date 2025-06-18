@@ -97,9 +97,10 @@ struct ModuleStartInfo {
     std::vector<std::string> capabilities;
 };
 
+namespace {
 /// \brief Setup common environment variables for everestjs and everestpy
-static void setup_environment(const ModuleStartInfo& module_info, const RuntimeSettings& rs,
-                              const MQTTSettings& mqtt_settings) {
+void setup_environment(const ModuleStartInfo& module_info, const RuntimeSettings& rs,
+                       const MQTTSettings& mqtt_settings) {
     setenv(EV_MODULE, module_info.name.c_str(), 1);
     setenv(EV_PREFIX, rs.prefix.c_str(), 0);
     setenv(EV_LOG_CONF_FILE, rs.logging_config_file.c_str(), 0);
@@ -117,7 +118,7 @@ static void setup_environment(const ModuleStartInfo& module_info, const RuntimeS
     }
 }
 
-static std::vector<char*> arguments_to_exec_argv(std::vector<std::string>& arguments) {
+std::vector<char*> arguments_to_exec_argv(std::vector<std::string>& arguments) {
     std::vector<char*> argv_list(arguments.size() + 1);
     std::transform(arguments.begin(), arguments.end(), argv_list.begin(),
                    [](std::string& value) { return value.data(); });
@@ -127,8 +128,8 @@ static std::vector<char*> arguments_to_exec_argv(std::vector<std::string>& argum
     return argv_list;
 }
 
-static void exec_cpp_module(system::SubProcess& proc_handle, const ModuleStartInfo& module_info,
-                            const RuntimeSettings& rs, const MQTTSettings& mqtt_settings) {
+void exec_cpp_module(system::SubProcess& proc_handle, const ModuleStartInfo& module_info, const RuntimeSettings& rs,
+                     const MQTTSettings& mqtt_settings) {
     const auto exec_binary = module_info.path.c_str();
     std::vector<std::string> arguments = {
         module_info.printable_name,
@@ -159,8 +160,8 @@ static void exec_cpp_module(system::SubProcess& proc_handle, const ModuleStartIn
                                                 strerror(errno)));
 }
 
-static void exec_javascript_module(system::SubProcess& proc_handle, const ModuleStartInfo& module_info,
-                                   const RuntimeSettings& rs, const MQTTSettings& mqtt_settings) {
+void exec_javascript_module(system::SubProcess& proc_handle, const ModuleStartInfo& module_info,
+                            const RuntimeSettings& rs, const MQTTSettings& mqtt_settings) {
     // instead of using setenv, using execvpe might be a better way for a controlled environment!
 
     // FIXME (aw): everest directory layout
@@ -186,8 +187,8 @@ static void exec_javascript_module(system::SubProcess& proc_handle, const Module
                                                 strerror(errno)));
 }
 
-static void exec_python_module(system::SubProcess& proc_handle, const ModuleStartInfo& module_info,
-                               const RuntimeSettings& rs, const MQTTSettings& mqtt_settings) {
+void exec_python_module(system::SubProcess& proc_handle, const ModuleStartInfo& module_info, const RuntimeSettings& rs,
+                        const MQTTSettings& mqtt_settings) {
     // instead of using setenv, using execvpe might be a better way for a controlled environment!
 
     const auto pythonpath = rs.prefix / defaults::LIB_DIR / defaults::NAMESPACE / "everestpy";
@@ -209,8 +210,8 @@ static void exec_python_module(system::SubProcess& proc_handle, const ModuleStar
                                                 strerror(errno)));
 }
 
-static void exec_module(const RuntimeSettings& rs, const MQTTSettings& mqtt_settings, const ModuleStartInfo& module,
-                        system::SubProcess& proc_handle) {
+void exec_module(const RuntimeSettings& rs, const MQTTSettings& mqtt_settings, const ModuleStartInfo& module,
+                 system::SubProcess& proc_handle) {
     switch (module.language) {
     case ModuleStartInfo::Language::cpp:
         exec_cpp_module(proc_handle, module, rs, mqtt_settings);
@@ -227,8 +228,7 @@ static void exec_module(const RuntimeSettings& rs, const MQTTSettings& mqtt_sett
     }
 }
 
-static std::map<pid_t, std::string> spawn_modules(const std::vector<ModuleStartInfo>& modules,
-                                                  const ManagerSettings& ms) {
+std::map<pid_t, std::string> spawn_modules(const std::vector<ModuleStartInfo>& modules, const ManagerSettings& ms) {
     std::map<pid_t, std::string> started_modules;
 
     const auto& rs = ms.runtime_settings;
@@ -256,6 +256,7 @@ static std::map<pid_t, std::string> spawn_modules(const std::vector<ModuleStartI
 
     return started_modules;
 }
+} // namespace
 
 struct ModuleReadyInfo {
     bool ready;
@@ -265,16 +266,16 @@ struct ModuleReadyInfo {
 
 // FIXME (aw): these are globals here, because they are used in the ready callback handlers
 using ModulesReadyType = std::unordered_map<std::string, ModuleReadyInfo>;
+namespace {
 ModulesReadyType modules_ready; // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
 // Don't hold the mutex and use any function of the `mqtt_abstraction` since the
 // mutex is also held inside the `ready` handler which can deadlock.
 std::mutex modules_ready_mutex; // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
 
-static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbstraction& mqtt_abstraction,
-                                                  const std::vector<std::string>& ignored_modules,
-                                                  const std::vector<std::string>& standalone_modules,
-                                                  const ManagerSettings& ms, StatusFifo& status_fifo,
-                                                  bool retain_topics) {
+std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbstraction& mqtt_abstraction,
+                                           const std::vector<std::string>& ignored_modules,
+                                           const std::vector<std::string>& standalone_modules,
+                                           const ManagerSettings& ms, StatusFifo& status_fifo, bool retain_topics) {
     BOOST_LOG_FUNCTION();
 
     std::vector<ModuleStartInfo> modules_to_spawn;
@@ -464,8 +465,8 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
     return spawn_modules(modules_to_spawn, ms);
 }
 
-static void shutdown_modules(const std::map<pid_t, std::string>& modules, ManagerConfig& config,
-                             MQTTAbstraction& mqtt_abstraction) {
+void shutdown_modules(const std::map<pid_t, std::string>& modules, ManagerConfig& config,
+                      MQTTAbstraction& mqtt_abstraction) {
 
     ModulesReadyType modules_ready_moved;
     {
@@ -504,7 +505,7 @@ static void shutdown_modules(const std::map<pid_t, std::string>& modules, Manage
 }
 
 #ifdef ENABLE_ADMIN_PANEL
-static ControllerHandle start_controller(const ManagerSettings& ms) {
+ControllerHandle start_controller(const ManagerSettings& ms) {
     std::array<int, 2> socket_pair; // NOLINT(cppcoreguidelines-pro-type-member-init): this is always initialized in the
                                     // following socketpair call
 
@@ -873,6 +874,7 @@ int boot(const po::variables_map& vm) {
 
     return EXIT_SUCCESS;
 }
+} // namespace
 
 int main(int argc, char* argv[]) {
     po::options_description desc("EVerest manager");
