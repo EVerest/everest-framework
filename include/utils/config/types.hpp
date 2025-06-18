@@ -113,6 +113,7 @@ enum class Mutability {
 };
 
 enum class Datatype {
+    Unknown,
     String,
     Decimal,
     Integer,
