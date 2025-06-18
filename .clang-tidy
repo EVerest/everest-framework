@@ -28,6 +28,7 @@ Checks: >
     -cppcoreguidelines-avoid-do-while,
     -cppcoreguidelines-macro-usage,
     -cppcoreguidelines-special-member-functions,
+    -cppcoreguidelines-pro-type-vararg,
 # (the last -cppcoreguidelines lines are temporary)
 HeaderFilterRegex:  ".*"
 CheckOptions:
