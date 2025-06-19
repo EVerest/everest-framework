@@ -13,8 +13,12 @@ using namespace everest::db;
 using namespace everest::db::sqlite;
 
 namespace everest::config {
-
-static constexpr auto DEFAULT_MODULE_IMPLEMENTATION_ID = "!module";
+namespace {
+const std::string& default_module_implementation_id() {
+    static const std::string DEFAULT_MODULE_IMPLEMENTATION_ID = "!module";
+    return DEFAULT_MODULE_IMPLEMENTATION_ID;
+}
+} // namespace
 
 /// \brief Helper for accessing the column indices of the SETTING table
 enum class SettingColumnIndex : int {
@@ -126,7 +130,7 @@ GenericResponseStatus SqliteStorage::write_module_configs(const ModuleConfigurat
 
             if (module.mapping.module.has_value()) {
                 const auto& map = module.mapping.module.value();
-                if (this->write_module_tier_mapping(module_id, DEFAULT_MODULE_IMPLEMENTATION_ID, map.evse,
+                if (this->write_module_tier_mapping(module_id, default_module_implementation_id(), map.evse,
                                                     map.connector) != GenericResponseStatus::OK) {
                     EVLOG_error << "Failed to write module tier mapping for module: " << module_id;
                     return GenericResponseStatus::Failed;
@@ -349,7 +353,7 @@ SqliteStorage::get_configuration_parameter(const ConfigurationParameterIdentifie
         stmt->bind_text("@config_param_name", identifier.configuration_parameter_name);
         stmt->bind_text("@module_implementation_id", identifier.module_implementation_id.has_value()
                                                          ? identifier.module_implementation_id.value()
-                                                         : DEFAULT_MODULE_IMPLEMENTATION_ID);
+                                                         : default_module_implementation_id());
 
         const auto status = stmt->step();
 
@@ -472,7 +476,7 @@ GetSetResponseStatus SqliteStorage::update_configuration_parameter(const Configu
         stmt->bind_text("@module_id", identifier.module_id);
         stmt->bind_text("@parameter_name", identifier.configuration_parameter_name);
         stmt->bind_text("@module_implementation_id",
-                        identifier.module_implementation_id.value_or(DEFAULT_MODULE_IMPLEMENTATION_ID));
+                        identifier.module_implementation_id.value_or(default_module_implementation_id()));
 
         if (stmt->step() != SQLITE_DONE) {
             return GetSetResponseStatus::Failed;
@@ -747,7 +751,7 @@ GetModuleTierMappingsResponse SqliteStorage::get_module_tier_mappings(const std:
         if (stmt->column_type(2) != SQLITE_NULL) {
             mapping.connector = stmt->column_int(2);
         }
-        if (implementation_id == DEFAULT_MODULE_IMPLEMENTATION_ID) {
+        if (implementation_id == default_module_implementation_id()) {
             module_tier_mappings.module = mapping;
         } else {
             module_tier_mappings.implementations[implementation_id] = mapping;
