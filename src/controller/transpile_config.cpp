@@ -23,7 +23,7 @@ static void clear_quote_flags(ryml::NodeRef& root) {
     }
 }
 
-c4::yml::Tree transpile_config(nlohmann::json config_json) {
+c4::yml::Tree transpile_config(const nlohmann::json& config_json) {
     const auto json_serialized = config_json.dump();
     auto ryml_deserialized = ryml::parse_in_arena(ryml::to_csubstr(json_serialized));
     auto root = ryml_deserialized.rootref();

@@ -236,7 +236,7 @@ void Server::Impl::run(const Server::IncomingMessageHandler& handler, const std:
     EVLOG_info << fmt::format("Launching controller service on port {}\n", info.port);
 
     {
-        std::lock_guard<std::mutex> lck(context_mtx);
+        const std::lock_guard<std::mutex> lck(context_mtx);
         context = lws_create_context(&info);
     }
 
@@ -245,7 +245,7 @@ void Server::Impl::run(const Server::IncomingMessageHandler& handler, const std:
 
     // FIXME (aw): check for errors and log them somehow ...
     {
-        std::lock_guard<std::mutex> lck(context_mtx);
+        const std::lock_guard<std::mutex> lck(context_mtx);
         lws_context_destroy(context);
         context = nullptr;
     }
