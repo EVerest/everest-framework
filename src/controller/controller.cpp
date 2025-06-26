@@ -59,7 +59,8 @@ int run_controller() {
 } // namespace
 
 int main([[maybe_unused]] int argc, char* argv[]) {
-    if (strcmp(argv[0], MAGIC_CONTROLLER_ARG0) != 0) {
+    const auto argv0 = *argv;
+    if (strcmp(argv0, MAGIC_CONTROLLER_ARG0) != 0) {
         fmt::print(stderr, "This binary does not yet support to be started manually\n");
         return EXIT_FAILURE;
     }
