@@ -17,6 +17,7 @@
 
 using json = nlohmann::json;
 
+namespace {
 int run_controller() {
     auto socket_fd = STDIN_FILENO;
 
@@ -56,6 +57,7 @@ int run_controller() {
 
     return 0;
 }
+} // namespace
 
 int main([[maybe_unused]] int argc, char* argv[]) {
     if (strcmp(argv[0], MAGIC_CONTROLLER_ARG0) != 0) {

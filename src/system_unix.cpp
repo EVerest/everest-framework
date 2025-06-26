@@ -41,7 +41,8 @@ struct GetPasswdEntryResult {
     }
 };
 
-static GetPasswdEntryResult get_passwd_entry(const std::string& user_name) {
+namespace {
+GetPasswdEntryResult get_passwd_entry(const std::string& user_name) {
     // Assuming that a user does not have more than 50 groups
     constexpr int max_supplementary_groups = 50;
 
@@ -62,6 +63,7 @@ static GetPasswdEntryResult get_passwd_entry(const std::string& user_name) {
 
     return GetPasswdEntryResult(entry->pw_uid, entry->pw_gid, std::vector<gid_t>(groups, groups + ngroups));
 }
+} // namespace
 
 bool keep_caps() {
     return (0 == cap_set_secbits(SECBIT_KEEP_CAPS));
