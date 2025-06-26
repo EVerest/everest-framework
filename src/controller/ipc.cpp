@@ -3,6 +3,7 @@
 #include "ipc.hpp"
 
 #include <cerrno>
+#include <iterator>
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <system_error>
@@ -29,17 +30,18 @@ void set_read_timeout(int fd, int timeout_in_ms) {
 
 void send_message(int fd, const nlohmann::json& msg) {
     auto raw = nlohmann::json::to_bson(msg);
-    unsigned char* p = raw.data();
+    auto raw_it = raw.begin();
     size_t already_sent = 0;
 
     while (already_sent < raw.size()) {
-        const ssize_t c = write(fd, &p[already_sent], raw.size() - already_sent);
+        const ssize_t c = write(fd, &(*raw_it), raw.size() - already_sent);
 
         if (c == -1) {
             throw std::system_error(errno, std::system_category(), "Error while sending message");
         }
 
         already_sent += c;
+        std::advance(raw_it, c);
     }
 }
 
