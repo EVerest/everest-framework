@@ -2,7 +2,6 @@
 // Copyright Pionix GmbH and Contributors to EVerest
 
 #include <cstdlib>
-#include <filesystem>
 #include <thread>
 
 #include <fmt/format.h>

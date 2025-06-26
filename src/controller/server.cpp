@@ -86,6 +86,7 @@ WebsocketSession::Output WebsocketSession::pop_output() {
 
 class Server::Impl {
 public:
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init): info initialized via memset
     Impl() {
         memset(&info, 0, sizeof(info));
     }

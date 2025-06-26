@@ -32,8 +32,8 @@ struct GetPasswdEntryResult {
     }
 
     std::string error;
-    uid_t uid;
-    gid_t gid;
+    uid_t uid{};
+    gid_t gid{};
     std::vector<gid_t> groups;
 
     operator bool() const {
