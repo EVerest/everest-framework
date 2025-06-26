@@ -9,7 +9,10 @@
 #include <unistd.h>
 
 // FIXME (aw): this needs be done better!
-static char raw_message_buffer[16 * 1024];
+namespace {
+constexpr auto raw_message_buffer_size = 16 * std::size_t{1024};
+std::array<char, raw_message_buffer_size> raw_message_buffer;
+} // namespace
 
 namespace Everest {
 namespace controller_ipc {
@@ -44,7 +47,7 @@ void send_message(int fd, const nlohmann::json& msg) {
 
 // FIXME (aw): recv should be buffered and memory is not that costly here!
 Message receive_message(int fd) {
-    auto retval = read(fd, raw_message_buffer, sizeof(raw_message_buffer));
+    auto retval = read(fd, raw_message_buffer.data(), raw_message_buffer.size());
 
     if (retval == -1) {
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
@@ -56,7 +59,8 @@ Message receive_message(int fd) {
 
     const auto& msg_size = retval;
 
-    return {MESSAGE_RETURN_STATUS::OK, nlohmann::json::from_bson(raw_message_buffer, raw_message_buffer + msg_size)};
+    return {MESSAGE_RETURN_STATUS::OK,
+            nlohmann::json::from_bson(raw_message_buffer.begin(), raw_message_buffer.begin() + msg_size)};
 }
 
 } // namespace controller_ipc

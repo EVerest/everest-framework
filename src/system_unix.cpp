@@ -54,14 +54,15 @@ GetPasswdEntryResult get_passwd_entry(const std::string& user_name) {
 
     // get supplementary groups for this user
     int max_ngroups = max_supplementary_groups;
-    gid_t groups[max_supplementary_groups];
+    std::array<gid_t, max_supplementary_groups> groups{};
 
-    const int ngroups = getgrouplist(user_name.c_str(), entry->pw_gid, groups, &max_ngroups);
+    const int ngroups = getgrouplist(user_name.c_str(), entry->pw_gid, groups.data(), &max_ngroups);
     if (ngroups < 0) {
         return GetPasswdEntryResult("Could not get supplementary groups for user name: " + user_name);
     }
 
-    return GetPasswdEntryResult(entry->pw_uid, entry->pw_gid, std::vector<gid_t>(groups, groups + ngroups));
+    return GetPasswdEntryResult(entry->pw_uid, entry->pw_gid,
+                                std::vector<gid_t>(groups.begin(), groups.begin() + ngroups));
 }
 } // namespace
 
@@ -193,9 +194,9 @@ std::string set_user_and_capabilities(const std::string& run_as_user, const std:
 }
 
 SubProcess SubProcess::create(const std::string& run_as_user, const std::vector<std::string>& capabilities) {
-    int pipefd[2];
+    std::array<int, 2> pipefd{};
 
-    if (pipe2(pipefd, O_CLOEXEC | O_DIRECT)) {
+    if (pipe2(pipefd.data(), O_CLOEXEC | O_DIRECT)) {
         throw std::runtime_error(fmt::format("Syscall pipe2() failed ({}), exiting", strerror(errno)));
     }
 

@@ -212,16 +212,16 @@ void Server::Impl::run(const Server::IncomingMessageHandler& handler, const std:
     }
     this->message_in_handler = handler;
 
-    static struct lws_protocols protocols[] = {
+    static std::array<lws_protocols, 3> protocols = {{
         {"http", lws_callback_http_dummy, 0, 0, 0, NULL, 0},
         {"everest-controller", Server::Impl::callback, sizeof(WebsocketSession), 1024, 0, this, 0},
         LWS_PROTOCOL_LIST_TERM,
-    };
+    }};
 
     mount.origin = html_origin.c_str();
     info.port = port;
     info.mounts = &mount;
-    info.protocols = protocols;
+    info.protocols = protocols.data();
     info.pvo = &pvo;
 
     lws_set_log_level(LLL_ERR | LLL_WARN | LLL_NOTICE, [](int level, const char* line) {
