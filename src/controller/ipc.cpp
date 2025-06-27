@@ -23,7 +23,9 @@ void set_read_timeout(int fd, int timeout_in_ms) {
     const int seconds = timeout_in_ms / 1000;
     const int u_seconds = (timeout_in_ms - seconds * 1000) * 1000;
 
-    struct timeval socket_timeout{seconds, u_seconds};
+    struct timeval socket_timeout {
+        seconds, u_seconds
+    };
 
     setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, static_cast<void*>(&socket_timeout), sizeof(socket_timeout));
 }
