@@ -15,6 +15,10 @@ set_target_properties(framework PROPERTIES SOVERSION ${PROJECT_VERSION})
 target_sources(framework
     PRIVATE
         config.cpp
+        config/mqtt_settings.cpp
+        config/settings.cpp
+        config/sqlite_storage.cpp
+        config/types.cpp
         config_cache.cpp
         conversions.cpp
         error/error.cpp
@@ -33,7 +37,6 @@ target_sources(framework
         module_config.cpp
         mqtt_abstraction.cpp
         mqtt_abstraction_impl.cpp
-        mqtt_settings.cpp
         thread.cpp
         types.cpp
         serial.cpp
@@ -64,12 +67,24 @@ target_link_libraries(framework
         fmt::fmt
 
         everest::log
+        everest::sqlite
         ${STD_FILESYSTEM_COMPAT_LIB}
     PRIVATE
         Boost::system
         Boost::thread
         Boost::program_options
-
         mqttc
         ryml::ryml
+)
+
+include(${everest-sqlite_SOURCE_DIR}/cmake/CollectMigrationFiles.cmake)
+
+collect_migration_files(
+     LOCATION ${PROJECT_SOURCE_DIR}/schemas/migrations
+     INSTALL_DESTINATION "${CMAKE_INSTALL_DATADIR}/everest/migrations"
+)
+
+target_compile_definitions(framework
+    PRIVATE
+        TARGET_MIGRATION_FILE_VERSION=${TARGET_MIGRATION_FILE_VERSION}
 )

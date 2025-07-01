@@ -14,15 +14,19 @@
 
 #include <nlohmann/json-schema.hpp>
 
+#include <utils/config/mqtt_settings.hpp>
+#include <utils/config/settings.hpp>
 #include <utils/config_cache.hpp>
 #include <utils/error.hpp>
 #include <utils/error/error_type_map.hpp>
 #include <utils/module_config.hpp>
-#include <utils/mqtt_settings.hpp>
 #include <utils/types.hpp>
 
 namespace Everest {
 namespace fs = std::filesystem;
+
+using everest::config::ModuleConfig;
+using everest::config::ModuleConfigurations;
 
 struct ManagerSettings;
 struct RuntimeSettings;
@@ -87,19 +91,21 @@ std::tuple<nlohmann::json, nlohmann::json_schema::json_validator> load_schema(co
 /// \returns the loaded configs and related validators
 SchemaValidation load_schemas(const fs::path& schemas_dir);
 
+/// \brief Serializes the given \p module_configuration and related data to JSON.
 ///
-/// \brief converts the given typed \p json_config with entries like {"type": "xyz", "value": "val"}
-/// to a config map that just contains the values
+/// Includes the module's config, mappings (own and connected), and telemetry if present.
 ///
-/// \returns the converted config map
-nlohmann::json typed_json_map_to_config_map(const nlohmann::json& typed_json_config);
+/// \param module_id ID of the module to serialize.
+/// \param module_configurations Map of all module configurations.
+/// \return JSON object with the serialized module configuration.
+json get_serialized_module_config(const std::string& module_id, const ModuleConfigurations& module_configurations);
 
 ///
 /// \brief Base class for configs
 ///
 class ConfigBase {
 protected:
-    nlohmann::json main;
+    ModuleConfigurations module_configs;
     nlohmann::json settings;
 
     nlohmann::json manifests;
@@ -107,11 +113,8 @@ protected:
     nlohmann::json interface_definitions;
     nlohmann::json types;
     Schemas schemas;
-
-    std::unordered_map<std::string, ModuleTierMappings> tier_mappings;
     // experimental caches
     std::unordered_map<std::string, std::string> module_names;
-    std::unordered_map<std::string, ConfigCache> module_config_cache;
 
     error::ErrorTypeMap error_map;
 
@@ -150,7 +153,7 @@ public:
 
     ///
     /// \returns a json object that contains the main config
-    const nlohmann::json& get_main_config() const;
+    const ModuleConfigurations& get_module_configurations() const;
 
     ///
     /// \brief checks if the config contains the given \p module_id
@@ -185,10 +188,6 @@ public:
     const nlohmann::json& get_types() const;
 
     ///
-    /// \returns the module config cache
-    std::unordered_map<std::string, ConfigCache> get_module_config_cache();
-
-    ///
     /// \return the cached mapping of module ids to module names
     std::unordered_map<std::string, std::string> get_module_names();
 
@@ -196,7 +195,7 @@ public:
     /// \brief checks if the given \p module_id provides the requirement given in \p requirement_id
     ///
     /// \returns a json object that contains the requirement
-    nlohmann::json resolve_requirement(const std::string& module_id, const std::string& requirement_id) const;
+    std::vector<Fulfillment> resolve_requirement(const std::string& module_id, const std::string& requirement_id) const;
 
     ///
     /// \brief resolves all Requirements of the given \p module_id to their Fulfillments
@@ -213,17 +212,6 @@ public:
     /// implemented
     /// \returns a map of Fulfillments for \p module_id
     std::map<std::string, std::vector<Fulfillment>> get_fulfillments(const std::string& module_id) const;
-
-    /// \returns the 3 tier model mappings
-    std::unordered_map<std::string, ModuleTierMappings> get_3_tier_model_mappings();
-
-    //
-    /// \returns the 3 tier model mappings for the given \p module_id
-    std::optional<ModuleTierMappings> get_module_3_tier_model_mappings(const std::string& module_id) const;
-
-    //
-    /// \returns the 3 tier model mapping for the given \p module_id and \p impl_id
-    std::optional<Mapping> get_3_tier_model_mapping(const std::string& module_id, const std::string& impl_id) const;
 };
 
 ///
@@ -233,13 +221,14 @@ public:
 class ManagerConfig : public ConfigBase {
 private:
     const ManagerSettings& ms;
-    std::unordered_map<std::string, std::optional<TelemetryConfig>> telemetry_configs;
     Validators validators;
     std::unique_ptr<nlohmann::json_schema::json_validator> draft7_validator;
 
+    nlohmann::json apply_user_config_and_defaults();
+
     ///
-    /// \brief loads and validates the manifest of the module \p module_id using the provided \p module config
-    void load_and_validate_manifest(const std::string& module_id, const nlohmann::json& module_config);
+    /// \brief loads and validates the manifest of the \p module_config
+    void load_and_validate_manifest(ModuleConfig& module_config);
 
     ///
     /// \brief loads and validates the given file \p file_path with the schema \p schema
@@ -281,7 +270,7 @@ private:
     ///
     /// \brief parses the provided \p config resolving types, errors, manifests, requirements and 3 tier module
     /// mappings
-    void parse(nlohmann::json config);
+    void parse(ModuleConfigurations& module_configs);
 
     ///
     /// \brief Parses the 3 tier model mappings in the config
@@ -305,10 +294,6 @@ public:
     ///
     /// \brief Create a ManagerConfig from the provided ManagerSettings \p ms
     explicit ManagerConfig(const ManagerSettings& ms);
-
-    ///
-    /// \returns a TelemetryConfig if this has been configured for the given \p module_id
-    std::optional<TelemetryConfig> get_telemetry_config(const std::string& module_id);
 };
 
 ///
@@ -317,12 +302,23 @@ public:
 ///
 class Config : public ConfigBase {
 private:
+    ModuleConfig module_config;
+    std::unordered_map<std::string, ModuleTierMappings> tier_mappings;
     std::optional<TelemetryConfig> telemetry_config;
+    std::unordered_map<std::string, ConfigCache> module_config_cache;
+
+    void populate_module_config_cache();
+
+    void populate_error_map();
 
 public:
     ///
     /// \brief creates a new Config object form the given \p mqtt_settings and \p config
-    explicit Config(const MQTTSettings& mqtt_settings, nlohmann::json config);
+    explicit Config(const MQTTSettings& mqtt_settings, const nlohmann::json& config);
+
+    ///
+    /// \returns object that contains the module config options
+    ModuleConfig get_module_config() const;
 
     ///
     /// \returns the ErrorTypeMap
@@ -346,9 +342,13 @@ public:
     /// \returns a map of module config options
     ModuleConfigs get_module_configs(const std::string& module_id) const;
 
-    ///
-    /// \returns a json object that contains the module config options
-    const nlohmann::json& get_module_json_config(const std::string& module_id);
+    //
+    /// \returns the 3 tier model mappings for the given \p module_id
+    std::optional<ModuleTierMappings> get_module_3_tier_model_mappings(const std::string& module_id) const;
+
+    //
+    /// \returns the 3 tier model mapping for the given \p module_id and \p impl_id
+    std::optional<Mapping> get_3_tier_model_mapping(const std::string& module_id, const std::string& impl_id) const;
 
     ///
     /// \brief assemble basic information about the module (id, name,

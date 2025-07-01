@@ -2,6 +2,7 @@
 // Copyright Pionix GmbH and Contributors to EVerest
 
 #include <framework/runtime.hpp>
+#include <utils/config/storage_sqlite.hpp>
 #include <utils/error.hpp>
 #include <utils/error/error_factory.hpp>
 #include <utils/error/error_json.hpp>
@@ -34,32 +35,325 @@ void populate_module_info_path_from_runtime_settings(ModuleInfo& mi, const Runti
     mi.paths.share = rs.data_dir / defaults::MODULES_DIR / mi.name;
 }
 
-RuntimeSettings::RuntimeSettings(const fs::path& prefix, const fs::path& etc_dir, const fs::path& data_dir,
-                                 const fs::path& modules_dir, const fs::path& logging_config_file,
-                                 const std::string& telemetry_prefix, bool telemetry_enabled, bool validate_schema) :
-    prefix(prefix),
-    etc_dir(etc_dir),
-    data_dir(data_dir),
-    modules_dir(modules_dir),
-    logging_config_file(logging_config_file),
-    telemetry_prefix(telemetry_prefix),
-    telemetry_enabled(telemetry_enabled),
-    validate_schema(validate_schema) {
-}
-
-RuntimeSettings::RuntimeSettings(const nlohmann::json& json) {
-    this->prefix = json.at("prefix").get<std::string>();
-    this->etc_dir = json.at("etc_dir").get<std::string>();
-    this->data_dir = json.at("data_dir").get<std::string>();
-    this->modules_dir = json.at("modules_dir").get<std::string>();
-    this->telemetry_prefix = json.at("telemetry_prefix").get<std::string>();
-    this->telemetry_enabled = json.at("telemetry_enabled").get<bool>();
-    this->validate_schema = json.at("validate_schema").get<bool>();
-}
-
 ManagerSettings::ManagerSettings(const std::string& prefix_, const std::string& config_) {
-    // if prefix or config is empty, we assume they have not been set!
-    // if they have been set, check their validity, otherwise bail out!
+    this->boot_mode = ConfigBootMode::YamlFile;
+    init_prefix_and_data_dir(prefix_);
+    init_config_file(config_);
+    const auto settings = everest::config::parse_settings(config.value("settings", json::object()));
+    if (settings.prefix.has_value()) {
+        EVLOG_warning << "Setting the prefix in the config file is deprecated. Please use the --prefix command line "
+                         "option instead.";
+    }
+    init_settings(settings);
+}
+
+ManagerSettings::ManagerSettings(const std::string& prefix_, const std::string& db_, DatabaseTag) {
+    this->boot_mode = ConfigBootMode::Database;
+    init_prefix_and_data_dir(prefix_);
+
+    db_dir = assert_file(db_, "User provided database");
+
+    const auto migrations_dir = this->runtime_settings.data_dir / "migrations";
+    this->storage = std::make_unique<everest::config::SqliteStorage>(db_dir, migrations_dir);
+
+    if (!this->storage->contains_valid_config()) {
+        throw BootException("Database not initialized or valid");
+    }
+
+    EVLOG_info << "Booting and parsing configuration from database: " << db_dir;
+    const auto settings_response = this->storage->get_settings();
+    if (settings_response.status != everest::config::GenericResponseStatus::OK or
+        !settings_response.settings.has_value()) {
+        throw BootException("Failed to load settings from database");
+    }
+    const auto settings = settings_response.settings.value();
+    init_settings(settings);
+    this->storage->write_settings(*this);
+}
+
+ManagerSettings::ManagerSettings(const std::string& prefix_, const std::string& config_, const std::string& db_) {
+    this->boot_mode = ConfigBootMode::DatabaseInit;
+    init_prefix_and_data_dir(prefix_);
+    init_config_file(config_);
+
+    const auto migrations_dir = this->runtime_settings.data_dir / "migrations";
+    this->storage = std::make_unique<everest::config::SqliteStorage>(fs::path(db_), migrations_dir);
+
+    everest::config::Settings settings;
+    if (this->storage->contains_valid_config()) {
+        EVLOG_info << "Booting and parsing configuration from database: " << db_dir;
+        const auto settings_response = this->storage->get_settings();
+        if (settings_response.status != everest::config::GenericResponseStatus::OK or
+            !settings_response.settings.has_value()) {
+            throw BootException("Failed to load settings from database");
+        }
+        settings = settings_response.settings.value();
+    } else {
+        EVLOG_info << "Database not initialized or valid, falling back to YAML config file: " << config_;
+        this->storage->wipe();
+        settings = everest::config::parse_settings(config.value("settings", json::object()));
+    }
+
+    init_settings(settings);
+    this->storage->write_settings(*this);
+}
+
+void ManagerSettings::init_settings(const everest::config::Settings& settings) {
+    if (this->runtime_settings.prefix.empty()) {
+        throw std::runtime_error(
+            "Prefix must be set before initializing the settings. Please call init_prefix_and_data_dir() first.");
+    }
+    if (this->runtime_settings.data_dir.empty()) {
+        throw std::runtime_error("Data directory must be set before initializing the settings. Please call "
+                                 "init_prefix_and_data_dir() first.");
+    }
+
+    const auto prefix = this->runtime_settings.prefix;
+    const auto data_dir = this->runtime_settings.data_dir;
+    fs::path etc_dir;
+    {
+        // etc directory
+        const auto default_etc_dir = fs::path(defaults::SYSCONF_DIR) / defaults::NAMESPACE;
+        if (prefix.string() != "/usr") {
+            etc_dir = prefix / default_etc_dir;
+        } else {
+            etc_dir = fs::path("/") / default_etc_dir;
+        }
+        etc_dir = assert_dir(etc_dir.string(), "Default etc directory");
+    }
+
+    if (settings.configs_dir.has_value()) {
+        auto settings_configs_dir = get_prefixed_path_from_json(settings.configs_dir.value().string(), prefix);
+        configs_dir = assert_dir(settings_configs_dir, "Config provided configs directory");
+    } else {
+        configs_dir = assert_dir(etc_dir.string(), "Default configs directory");
+    }
+
+    if (settings.schemas_dir.has_value()) {
+        const auto settings_schemas_dir = get_prefixed_path_from_json(settings.schemas_dir.value().string(), prefix);
+        schemas_dir = assert_dir(settings_schemas_dir, "Config provided schema directory");
+    } else {
+        const auto default_schemas_dir = data_dir / defaults::SCHEMAS_DIR;
+        schemas_dir = assert_dir(default_schemas_dir.string(), "Default schema directory");
+    }
+
+    if (settings.interfaces_dir.has_value()) {
+        const auto settings_interfaces_dir =
+            get_prefixed_path_from_json(settings.interfaces_dir.value().string(), prefix);
+        interfaces_dir = assert_dir(settings_interfaces_dir, "Config provided interface directory");
+    } else {
+        const auto default_interfaces_dir = data_dir / defaults::INTERFACES_DIR;
+        interfaces_dir = assert_dir(default_interfaces_dir, "Default interface directory");
+    }
+
+    fs::path modules_dir;
+    if (settings.modules_dir.has_value()) {
+        const auto settings_modules_dir = get_prefixed_path_from_json(settings.modules_dir.value().string(), prefix);
+        modules_dir = assert_dir(settings_modules_dir, "Config provided module directory");
+    } else {
+        const auto default_modules_dir = prefix / defaults::LIBEXEC_DIR / defaults::NAMESPACE / defaults::MODULES_DIR;
+        modules_dir = assert_dir(default_modules_dir, "Default module directory");
+    }
+
+    if (settings.types_dir.has_value()) {
+        const auto settings_types_dir = get_prefixed_path_from_json(settings.types_dir.value().string(), prefix);
+        types_dir = assert_dir(settings_types_dir, "Config provided type directory");
+    } else {
+        const auto default_types_dir = data_dir / defaults::TYPES_DIR;
+        types_dir = assert_dir(default_types_dir, "Default type directory");
+    }
+
+    if (settings.errors_dir.has_value()) {
+        const auto settings_errors_dir = get_prefixed_path_from_json(settings.errors_dir.value().string(), prefix);
+        errors_dir = assert_dir(settings_errors_dir, "Config provided error directory");
+    } else {
+        const auto default_errors_dir = data_dir / defaults::ERRORS_DIR;
+        errors_dir = assert_dir(default_errors_dir, "Default error directory");
+    }
+
+    if (settings.www_dir.has_value()) {
+        const auto settings_www_dir = get_prefixed_path_from_json(settings.www_dir.value().string(), prefix);
+        www_dir = assert_dir(settings_www_dir, "Config provided www directory");
+    } else {
+        const auto default_www_dir = data_dir / defaults::WWW_DIR;
+        www_dir = assert_dir(default_www_dir, "Default www directory");
+    }
+
+    fs::path logging_config_file;
+    if (settings.logging_config_file.has_value()) {
+        const auto settings_logging_config_file =
+            get_prefixed_path_from_json(settings.logging_config_file.value().string(), prefix);
+        logging_config_file = assert_file(settings_logging_config_file, "Config provided logging config");
+    } else {
+        auto default_logging_config_file =
+            fs::path(defaults::SYSCONF_DIR) / defaults::NAMESPACE / defaults::LOGGING_CONFIG_NAME;
+        if (prefix.string() != "/usr") {
+            default_logging_config_file = prefix / default_logging_config_file;
+        } else {
+            default_logging_config_file = fs::path("/") / default_logging_config_file;
+        }
+
+        logging_config_file = assert_file(default_logging_config_file, "Default logging config");
+    }
+
+    if (settings.controller_port.has_value()) {
+        controller_port = settings.controller_port.value();
+    } else {
+        controller_port = defaults::CONTROLLER_PORT;
+    }
+
+    if (settings.controller_rpc_timeout_ms.has_value()) {
+        controller_rpc_timeout_ms = settings.controller_rpc_timeout_ms.value();
+    } else {
+        controller_rpc_timeout_ms = defaults::CONTROLLER_RPC_TIMEOUT_MS;
+    }
+
+    std::string mqtt_broker_socket_path;
+    std::string mqtt_broker_host;
+    int mqtt_broker_port = 0;
+    std::string mqtt_everest_prefix;
+    std::string mqtt_external_prefix;
+
+    // Unix Domain Socket configuration MUST be set in the configuration,
+    // doesn't have a default value if not provided thus it takes precedence
+    // over default values - this is to have backward compatiblity in term of configuration
+    // in case both UDS (Unix Domain Sockets) and IDS (Internet Domain Sockets) are set in config, raise exception
+    if (settings.mqtt_broker_socket_path.has_value()) {
+        mqtt_broker_socket_path = settings.mqtt_broker_socket_path.value();
+    }
+
+    if (settings.mqtt_broker_host.has_value()) {
+        mqtt_broker_host = settings.mqtt_broker_host.value();
+        if (!mqtt_broker_socket_path.empty()) {
+            // invalid configuration, can't have both UDS and IDS
+            throw BootException(
+                fmt::format("Setting both the Unix Domain Socket {} and Internet Domain Socket {} in config is invalid",
+                            mqtt_broker_socket_path, mqtt_broker_host));
+        }
+    } else {
+        mqtt_broker_host = defaults::MQTT_BROKER_HOST;
+    }
+
+    // overwrite mqtt broker host with environment variable
+    // NOLINTNEXTLINE(concurrency-mt-unsafe): not problematic that this function is not threadsafe here
+    const char* mqtt_server_address = std::getenv("MQTT_SERVER_ADDRESS");
+    if (mqtt_server_address != nullptr) {
+        mqtt_broker_host = mqtt_server_address;
+        if (!mqtt_broker_socket_path.empty()) {
+            // invalid configuration, can't have both UDS and IDS
+            throw BootException(
+                fmt::format("Setting both the Unix Domain Socket {} and Internet Domain Socket {} in "
+                            "config and as environment variable respectivelly (as MQTT_SERVER_ADDRESS) is not allowed",
+                            mqtt_broker_socket_path, mqtt_broker_host));
+        }
+    }
+
+    if (settings.mqtt_broker_port.has_value()) {
+        mqtt_broker_port = settings.mqtt_broker_port.value();
+    } else {
+        mqtt_broker_port = defaults::MQTT_BROKER_PORT;
+    }
+
+    // overwrite mqtt broker port with environment variable
+    // NOLINTNEXTLINE(concurrency-mt-unsafe): not problematic that this function is not threadsafe here
+    const char* mqtt_server_port = std::getenv("MQTT_SERVER_PORT");
+
+    if (mqtt_server_port != nullptr) {
+        try {
+            mqtt_broker_port = std::stoi(mqtt_server_port);
+        } catch (...) {
+            EVLOG_warning << "Environment variable MQTT_SERVER_PORT set, but not set to an integer. Ignoring.";
+        }
+    }
+
+    if (settings.mqtt_everest_prefix.has_value()) {
+        mqtt_everest_prefix = settings.mqtt_everest_prefix.value();
+    } else {
+        mqtt_everest_prefix = defaults::MQTT_EVEREST_PREFIX;
+    }
+
+    // always make sure the everest mqtt prefix ends with '/'
+    if (mqtt_everest_prefix.length() > 0 && mqtt_everest_prefix.back() != '/') {
+        mqtt_everest_prefix = mqtt_everest_prefix += "/";
+    }
+
+    if (settings.mqtt_external_prefix.has_value()) {
+        mqtt_external_prefix = settings.mqtt_external_prefix.value();
+    } else {
+        mqtt_external_prefix = defaults::MQTT_EXTERNAL_PREFIX;
+    }
+
+    if (mqtt_everest_prefix == mqtt_external_prefix) {
+        throw BootException(fmt::format("mqtt_everest_prefix '{}' cannot be equal to mqtt_external_prefix '{}'!",
+                                        mqtt_everest_prefix, mqtt_external_prefix));
+    }
+
+    if (not mqtt_broker_socket_path.empty()) {
+        populate_mqtt_settings(this->mqtt_settings, mqtt_broker_socket_path, mqtt_everest_prefix, mqtt_external_prefix);
+    } else {
+        populate_mqtt_settings(this->mqtt_settings, mqtt_broker_host, mqtt_broker_port, mqtt_everest_prefix,
+                               mqtt_external_prefix);
+    }
+
+    run_as_user = settings.run_as_user.value_or("");
+
+    auto version_information_path = data_dir / VERSION_INFORMATION_FILE;
+    if (fs::exists(version_information_path)) {
+        std::ifstream ifs(version_information_path.string());
+        version_information = std::string(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
+    } else {
+        version_information = "unknown";
+    }
+
+    std::string telemetry_prefix;
+    if (settings.telemetry_prefix.has_value()) {
+        telemetry_prefix = settings.telemetry_prefix.value();
+    } else {
+        telemetry_prefix = defaults::TELEMETRY_PREFIX;
+    }
+
+    // always make sure the telemetry mqtt prefix ends with '/'
+    if (telemetry_prefix.length() > 0 && telemetry_prefix.back() != '/') {
+        telemetry_prefix = telemetry_prefix += "/";
+    }
+
+    bool telemetry_enabled = defaults::TELEMETRY_ENABLED;
+    if (settings.telemetry_enabled.has_value()) {
+        telemetry_enabled = settings.telemetry_enabled.value();
+    } else {
+        telemetry_enabled = defaults::TELEMETRY_ENABLED;
+    }
+
+    bool validate_schema = defaults::VALIDATE_SCHEMA;
+    if (settings.validate_schema.has_value()) {
+        validate_schema = settings.validate_schema.value();
+    } else {
+        validate_schema = defaults::VALIDATE_SCHEMA;
+    }
+
+    populate_runtime_settings(this->runtime_settings, prefix, etc_dir, data_dir, modules_dir, logging_config_file,
+                              telemetry_prefix, telemetry_enabled, validate_schema);
+}
+
+void ManagerSettings::init_prefix_and_data_dir(const std::string& prefix_) {
+    fs::path prefix;
+    if (prefix_.length() != 0) {
+        // user provided
+        prefix = assert_dir(prefix_, "User provided prefix");
+    }
+    if (prefix.empty()) {
+        prefix = assert_dir(defaults::PREFIX, "Default prefix");
+    }
+    runtime_settings.data_dir =
+        assert_dir((prefix / defaults::DATAROOT_DIR / defaults::NAMESPACE).string(), "Default share directory");
+    runtime_settings.prefix = prefix;
+}
+
+void ManagerSettings::init_config_file(const std::string& config_) {
+    if (this->runtime_settings.prefix.empty()) {
+        throw std::runtime_error(
+            "Prefix must be set before initializing the config file. Please call init_prefix_and_data_dir() first.");
+    }
 
     if (config_.length() != 0) {
         try {
@@ -73,14 +367,8 @@ ManagerSettings::ManagerSettings(const std::string& prefix_, const std::string& 
         }
     }
 
-    fs::path prefix;
-    if (prefix_.length() != 0) {
-        // user provided
-        prefix = assert_dir(prefix_, "User provided prefix");
-    }
-
     if (config_file.empty()) {
-        auto config_file_prefix = prefix;
+        auto config_file_prefix = this->runtime_settings.prefix;
         if (config_file_prefix.empty()) {
             config_file_prefix = assert_dir(defaults::PREFIX, "Default prefix");
         }
@@ -119,273 +407,6 @@ ManagerSettings::ManagerSettings(const std::string& prefix_, const std::string& 
     } else if (!config.is_object()) {
         throw BootException(fmt::format("Config file '{}' is not an object", config_file.string()));
     }
-
-    const auto settings = config.value("settings", json::object());
-
-    if (prefix.empty()) {
-        const auto settings_prefix_it = settings.find("prefix");
-        if (settings_prefix_it != settings.end()) {
-            const auto settings_prefix = settings_prefix_it->get<std::string>();
-            if (!fs::path(settings_prefix).is_absolute()) {
-                throw BootException("Setting a non-absolute directory for the prefix is not allowed");
-            }
-
-            prefix = assert_dir(settings_prefix, "Config provided prefix");
-        } else {
-            prefix = assert_dir(defaults::PREFIX, "Default prefix");
-        }
-    }
-
-    fs::path etc_dir;
-    {
-        // etc directory
-        const auto default_etc_dir = fs::path(defaults::SYSCONF_DIR) / defaults::NAMESPACE;
-        if (prefix.string() != "/usr") {
-            etc_dir = prefix / default_etc_dir;
-        } else {
-            etc_dir = fs::path("/") / default_etc_dir;
-        }
-        etc_dir = assert_dir(etc_dir.string(), "Default etc directory");
-    }
-
-    fs::path data_dir;
-    {
-        // share directory
-        data_dir =
-            assert_dir((prefix / defaults::DATAROOT_DIR / defaults::NAMESPACE).string(), "Default share directory");
-    }
-
-    const auto settings_configs_dir_it = settings.find("configs_dir");
-    if (settings_configs_dir_it != settings.end()) {
-        auto settings_configs_dir = get_prefixed_path_from_json(*settings_configs_dir_it, prefix);
-        configs_dir = assert_dir(settings_configs_dir, "Config provided configs directory");
-    } else {
-        configs_dir = assert_dir(etc_dir.string(), "Default configs directory");
-    }
-
-    const auto settings_schemas_dir_it = settings.find("schemas_dir");
-    if (settings_schemas_dir_it != settings.end()) {
-        const auto settings_schemas_dir = get_prefixed_path_from_json(*settings_schemas_dir_it, prefix);
-        schemas_dir = assert_dir(settings_schemas_dir, "Config provided schema directory");
-    } else {
-        const auto default_schemas_dir = data_dir / defaults::SCHEMAS_DIR;
-        schemas_dir = assert_dir(default_schemas_dir.string(), "Default schema directory");
-    }
-
-    const auto settings_interfaces_dir_it = settings.find("interfaces_dir");
-    if (settings_interfaces_dir_it != settings.end()) {
-        const auto settings_interfaces_dir = get_prefixed_path_from_json(*settings_interfaces_dir_it, prefix);
-        interfaces_dir = assert_dir(settings_interfaces_dir, "Config provided interface directory");
-    } else {
-        const auto default_interfaces_dir = data_dir / defaults::INTERFACES_DIR;
-        interfaces_dir = assert_dir(default_interfaces_dir, "Default interface directory");
-    }
-
-    fs::path modules_dir;
-    const auto settings_modules_dir_it = settings.find("modules_dir");
-    if (settings_modules_dir_it != settings.end()) {
-        const auto settings_modules_dir = get_prefixed_path_from_json(*settings_modules_dir_it, prefix);
-        modules_dir = assert_dir(settings_modules_dir, "Config provided module directory");
-    } else {
-        const auto default_modules_dir = prefix / defaults::LIBEXEC_DIR / defaults::NAMESPACE / defaults::MODULES_DIR;
-        modules_dir = assert_dir(default_modules_dir, "Default module directory");
-    }
-
-    const auto settings_types_dir_it = settings.find("types_dir");
-    if (settings_types_dir_it != settings.end()) {
-        const auto settings_types_dir = get_prefixed_path_from_json(*settings_types_dir_it, prefix);
-        types_dir = assert_dir(settings_types_dir, "Config provided type directory");
-    } else {
-        const auto default_types_dir = data_dir / defaults::TYPES_DIR;
-        types_dir = assert_dir(default_types_dir, "Default type directory");
-    }
-
-    const auto settings_errors_dir_it = settings.find("errors_dir");
-    if (settings_errors_dir_it != settings.end()) {
-        const auto settings_errors_dir = get_prefixed_path_from_json(*settings_errors_dir_it, prefix);
-        errors_dir = assert_dir(settings_errors_dir, "Config provided error directory");
-    } else {
-        const auto default_errors_dir = data_dir / defaults::ERRORS_DIR;
-        errors_dir = assert_dir(default_errors_dir, "Default error directory");
-    }
-
-    const auto settings_www_dir_it = settings.find("www_dir");
-    if (settings_www_dir_it != settings.end()) {
-        const auto settings_www_dir = get_prefixed_path_from_json(*settings_www_dir_it, prefix);
-        www_dir = assert_dir(settings_www_dir, "Config provided www directory");
-    } else {
-        const auto default_www_dir = data_dir / defaults::WWW_DIR;
-        www_dir = assert_dir(default_www_dir, "Default www directory");
-    }
-
-    fs::path logging_config_file;
-    const auto settings_logging_config_file_it = settings.find("logging_config_file");
-    if (settings_logging_config_file_it != settings.end()) {
-        const auto settings_logging_config_file = get_prefixed_path_from_json(*settings_logging_config_file_it, prefix);
-        logging_config_file = assert_file(settings_logging_config_file, "Config provided logging config");
-    } else {
-        auto default_logging_config_file =
-            fs::path(defaults::SYSCONF_DIR) / defaults::NAMESPACE / defaults::LOGGING_CONFIG_NAME;
-        if (prefix.string() != "/usr") {
-            default_logging_config_file = prefix / default_logging_config_file;
-        } else {
-            default_logging_config_file = fs::path("/") / default_logging_config_file;
-        }
-
-        logging_config_file = assert_file(default_logging_config_file, "Default logging config");
-    }
-
-    const auto settings_controller_port_it = settings.find("controller_port");
-    if (settings_controller_port_it != settings.end()) {
-        controller_port = settings_controller_port_it->get<int>();
-    } else {
-        controller_port = defaults::CONTROLLER_PORT;
-    }
-
-    const auto settings_controller_rpc_timeout_ms_it = settings.find("controller_rpc_timeout_ms");
-    if (settings_controller_rpc_timeout_ms_it != settings.end()) {
-        controller_rpc_timeout_ms = settings_controller_rpc_timeout_ms_it->get<int>();
-    } else {
-        controller_rpc_timeout_ms = defaults::CONTROLLER_RPC_TIMEOUT_MS;
-    }
-
-    std::string mqtt_broker_socket_path;
-    std::string mqtt_broker_host;
-    int mqtt_broker_port = 0;
-    std::string mqtt_everest_prefix;
-    std::string mqtt_external_prefix;
-
-    // Unix Domain Socket configuration MUST be set in the configuration,
-    // doesn't have a default value if not provided thus it takes precedence
-    // over default values - this is to have backward compatiblity in term of configuration
-    // in case both UDS (Unix Domain Sockets) and IDS (Internet Domain Sockets) are set in config, raise exception
-    const auto settings_mqtt_broker_socket_path = settings.find("mqtt_broker_socket_path");
-    if (settings_mqtt_broker_socket_path != settings.end()) {
-        mqtt_broker_socket_path = settings_mqtt_broker_socket_path->get<std::string>();
-    }
-
-    const auto settings_mqtt_broker_host_it = settings.find("mqtt_broker_host");
-    if (settings_mqtt_broker_host_it != settings.end()) {
-        mqtt_broker_host = settings_mqtt_broker_host_it->get<std::string>();
-        if (!mqtt_broker_socket_path.empty()) {
-            // invalid configuration, can't have both UDS and IDS
-            throw BootException(
-                fmt::format("Setting both the Unix Domain Socket {} and Internet Domain Socket {} in config is invalid",
-                            mqtt_broker_socket_path, mqtt_broker_host));
-        }
-    } else {
-        mqtt_broker_host = defaults::MQTT_BROKER_HOST;
-    }
-
-    // overwrite mqtt broker host with environment variable
-    // NOLINTNEXTLINE(concurrency-mt-unsafe): not problematic that this function is not threadsafe here
-    const char* mqtt_server_address = std::getenv("MQTT_SERVER_ADDRESS");
-    if (mqtt_server_address != nullptr) {
-        mqtt_broker_host = mqtt_server_address;
-        if (!mqtt_broker_socket_path.empty()) {
-            // invalid configuration, can't have both UDS and IDS
-            throw BootException(
-                fmt::format("Setting both the Unix Domain Socket {} and Internet Domain Socket {} in "
-                            "config and as environment variable respectivelly (as MQTT_SERVER_ADDRESS) is not allowed",
-                            mqtt_broker_socket_path, mqtt_broker_host));
-        }
-    }
-
-    const auto settings_mqtt_broker_port_it = settings.find("mqtt_broker_port");
-    if (settings_mqtt_broker_port_it != settings.end()) {
-        mqtt_broker_port = settings_mqtt_broker_port_it->get<int>();
-    } else {
-        mqtt_broker_port = defaults::MQTT_BROKER_PORT;
-    }
-
-    // overwrite mqtt broker port with environment variable
-    // NOLINTNEXTLINE(concurrency-mt-unsafe): not problematic that this function is not threadsafe here
-    const char* mqtt_server_port = std::getenv("MQTT_SERVER_PORT");
-
-    if (mqtt_server_port != nullptr) {
-        try {
-            mqtt_broker_port = std::stoi(mqtt_server_port);
-        } catch (...) {
-            EVLOG_warning << "Environment variable MQTT_SERVER_PORT set, but not set to an integer. Ignoring.";
-        }
-    }
-
-    const auto settings_mqtt_everest_prefix_it = settings.find("mqtt_everest_prefix");
-    if (settings_mqtt_everest_prefix_it != settings.end()) {
-        mqtt_everest_prefix = settings_mqtt_everest_prefix_it->get<std::string>();
-    } else {
-        mqtt_everest_prefix = defaults::MQTT_EVEREST_PREFIX;
-    }
-
-    // always make sure the everest mqtt prefix ends with '/'
-    if (mqtt_everest_prefix.length() > 0 && mqtt_everest_prefix.back() != '/') {
-        mqtt_everest_prefix = mqtt_everest_prefix += "/";
-    }
-
-    const auto settings_mqtt_external_prefix_it = settings.find("mqtt_external_prefix");
-    if (settings_mqtt_external_prefix_it != settings.end()) {
-        mqtt_external_prefix = settings_mqtt_external_prefix_it->get<std::string>();
-    } else {
-        mqtt_external_prefix = defaults::MQTT_EXTERNAL_PREFIX;
-    }
-
-    if (mqtt_everest_prefix == mqtt_external_prefix) {
-        throw BootException(fmt::format("mqtt_everest_prefix '{}' cannot be equal to mqtt_external_prefix '{}'!",
-                                        mqtt_everest_prefix, mqtt_external_prefix));
-    }
-
-    if (not mqtt_broker_socket_path.empty()) {
-        populate_mqtt_settings(this->mqtt_settings, mqtt_broker_socket_path, mqtt_everest_prefix, mqtt_external_prefix);
-    } else {
-        populate_mqtt_settings(this->mqtt_settings, mqtt_broker_host, mqtt_broker_port, mqtt_everest_prefix,
-                               mqtt_external_prefix);
-    }
-
-    run_as_user = settings.value("run_as_user", "");
-
-    auto version_information_path = data_dir / VERSION_INFORMATION_FILE;
-    if (fs::exists(version_information_path)) {
-        std::ifstream ifs(version_information_path.string());
-        version_information = std::string(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
-    } else {
-        version_information = "unknown";
-    }
-
-    std::string telemetry_prefix;
-    const auto settings_telemetry_prefix_it = settings.find("telemetry_prefix");
-    if (settings_telemetry_prefix_it != settings.end()) {
-        telemetry_prefix = settings_telemetry_prefix_it->get<std::string>();
-    } else {
-        telemetry_prefix = defaults::TELEMETRY_PREFIX;
-    }
-
-    // always make sure the telemetry mqtt prefix ends with '/'
-    if (telemetry_prefix.length() > 0 && telemetry_prefix.back() != '/') {
-        telemetry_prefix = telemetry_prefix += "/";
-    }
-
-    bool telemetry_enabled = defaults::TELEMETRY_ENABLED;
-    const auto settings_telemetry_enabled_it = settings.find("telemetry_enabled");
-    if (settings_telemetry_enabled_it != settings.end()) {
-        telemetry_enabled = settings_telemetry_enabled_it->get<bool>();
-    } else {
-        telemetry_enabled = defaults::TELEMETRY_ENABLED;
-    }
-
-    bool validate_schema = defaults::VALIDATE_SCHEMA;
-    const auto settings_validate_schema_it = settings.find("validate_schema");
-    if (settings_validate_schema_it != settings.end()) {
-        validate_schema = settings_validate_schema_it->get<bool>();
-    } else {
-        validate_schema = defaults::VALIDATE_SCHEMA;
-    }
-
-    runtime_settings = std::make_unique<RuntimeSettings>(prefix, etc_dir, data_dir, modules_dir, logging_config_file,
-                                                         telemetry_prefix, telemetry_enabled, validate_schema);
-}
-
-const RuntimeSettings& ManagerSettings::get_runtime_settings() const {
-    return *runtime_settings.get();
 }
 
 ModuleCallbacks::ModuleCallbacks(
@@ -425,7 +446,8 @@ int ModuleLoader::initialize() {
     EVLOG_debug << "Module " << fmt::format(TERMINAL_STYLE_OK, "{}", module_id) << " get_config() ["
                 << std::chrono::duration_cast<std::chrono::milliseconds>(get_config_time - start_time).count() << "ms]";
 
-    this->runtime_settings = std::make_unique<RuntimeSettings>(result.at("settings"));
+    RuntimeSettings result_settings = result.at("settings");
+    this->runtime_settings = std::make_unique<RuntimeSettings>(std::move(result_settings));
 
     if (!this->runtime_settings) {
         return 0;
@@ -737,25 +759,3 @@ bool ModuleLoader::parse_command_line(int argc, char* argv[]) {
 }
 
 } // namespace Everest
-
-NLOHMANN_JSON_NAMESPACE_BEGIN
-void adl_serializer<Everest::RuntimeSettings>::to_json(nlohmann::json& j, const Everest::RuntimeSettings& r) {
-    j = {{"prefix", r.prefix},
-         {"etc_dir", r.etc_dir},
-         {"data_dir", r.data_dir},
-         {"modules_dir", r.modules_dir},
-         {"telemetry_prefix", r.telemetry_prefix},
-         {"telemetry_enabled", r.telemetry_enabled},
-         {"validate_schema", r.validate_schema}};
-}
-
-void adl_serializer<Everest::RuntimeSettings>::from_json(const nlohmann::json& j, Everest::RuntimeSettings& r) {
-    r.prefix = j.at("prefix").get<std::string>();
-    r.etc_dir = j.at("etc_dir").get<std::string>();
-    r.data_dir = j.at("data_dir").get<std::string>();
-    r.modules_dir = j.at("modules_dir").get<std::string>();
-    r.telemetry_prefix = j.at("telemetry_prefix").get<std::string>();
-    r.telemetry_enabled = j.at("telemetry_enabled").get<bool>();
-    r.validate_schema = j.at("validate_schema").get<bool>();
-}
-NLOHMANN_JSON_NAMESPACE_END

@@ -14,6 +14,7 @@ target_include_directories(${TEST_TARGET_NAME} PRIVATE
 
 target_sources(${TEST_TARGET_NAME} PRIVATE
     test_config.cpp
+    test_config_sqlite.cpp
     test_conversions.cpp
     test_filesystem_helpers.cpp
     helpers.cpp
@@ -25,6 +26,7 @@ target_link_libraries(${TEST_TARGET_NAME}
     PRIVATE
         everest::framework
         everest::log
+        everest::sqlite
         Catch2::Catch2WithMain
 )
 
@@ -63,6 +65,23 @@ setup_test_directory(missing_config_entry TESTValidManifest test_interface)
 setup_test_directory(invalid_config_entry_type TESTValidManifest test_interface)
 setup_test_directory(missing_impl_config_entry TESTValidManifest test_interface)
 
+setup_test_directory(
+    valid_complete_config
+    CONFIG valid_complete_config.json
+    MODULES TESTValidManifest TESTValidManifestCmdVar TESTValidManifestRequires
+    INTERFACE_FILES test_interface test_interface_cmd_var
+)
+
+setup_test_directory(
+    two_module_test 
+    CONFIG two_modules.yaml 
+    MODULES TESTModuleA TESTModuleB
+    INTERFACE_FILES test_interface test_interface_cmd_var
+)
+
+file(COPY ${PROJECT_SOURCE_DIR}/schemas/migrations
+     DESTINATION ${CMAKE_CURRENT_BINARY_DIR}
+)
 
 evc_include(CodeCoverage)
 

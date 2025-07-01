@@ -8,6 +8,7 @@
 #include <map>
 #include <mutex>
 #include <thread>
+#include <unordered_map>
 
 #include <cstdlib>
 #include <errno.h>
@@ -23,6 +24,7 @@
 
 #include <fmt/color.h>
 #include <fmt/core.h>
+#include <fmt/ranges.h>
 
 #include <everest/logging.hpp>
 #include <framework/everest.hpp>
@@ -229,7 +231,7 @@ static std::map<pid_t, std::string> spawn_modules(const std::vector<ModuleStartI
                                                   const ManagerSettings& ms) {
     std::map<pid_t, std::string> started_modules;
 
-    const auto& rs = ms.get_runtime_settings();
+    const auto& rs = ms.runtime_settings;
 
     for (const auto& module : modules) {
 
@@ -262,7 +264,10 @@ struct ModuleReadyInfo {
 };
 
 // FIXME (aw): these are globals here, because they are used in the ready callback handlers
-std::map<std::string, ModuleReadyInfo> modules_ready;
+using ModulesReadyType = std::unordered_map<std::string, ModuleReadyInfo>;
+ModulesReadyType modules_ready;
+// Don't hold the mutex and use any function of the `mqtt_abstraction` since the
+// mutex is also held inside the `ready` handler which can deadlock.
 std::mutex modules_ready_mutex;
 
 static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbstraction& mqtt_abstraction,
@@ -274,10 +279,10 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
 
     std::vector<ModuleStartInfo> modules_to_spawn;
 
-    const auto& main_config = config.get_main_config();
+    const auto& module_configurations = config.get_module_configurations();
     const auto& module_names = config.get_module_names();
-    modules_to_spawn.reserve(main_config.size());
-    const auto number_of_modules = main_config.size();
+    modules_to_spawn.reserve(module_configurations.size());
+    const auto number_of_modules = module_configurations.size();
     EVLOG_info << "Starting " << number_of_modules << " modules";
 
     const auto interface_definitions = config.get_interface_definitions();
@@ -307,16 +312,13 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
             type_definition.value(), QOS::QOS2, true);
     }
 
-    const auto module_provides = config.get_interfaces();
-    mqtt_abstraction.publish(fmt::format("{}module_provides", ms.mqtt_settings.everest_prefix), module_provides,
-                             QOS::QOS2, true);
-
     const auto settings = config.get_settings();
     mqtt_abstraction.publish(fmt::format("{}settings", ms.mqtt_settings.everest_prefix), settings, QOS::QOS2, true);
 
-    const auto schemas = config.get_schemas();
-    mqtt_abstraction.publish(fmt::format("{}schemas", ms.mqtt_settings.everest_prefix), schemas, QOS::QOS2, true);
-
+    if (ms.runtime_settings.validate_schema) {
+        const auto schemas = config.get_schemas();
+        mqtt_abstraction.publish(fmt::format("{}schemas", ms.mqtt_settings.everest_prefix), schemas, QOS::QOS2, true);
+    }
     const auto manifests = config.get_manifests();
 
     for (const auto& manifest : manifests.items()) {
@@ -326,84 +328,51 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
                                  manifest_copy, QOS::QOS2, true);
     }
 
-    const auto error_types_map = config.get_error_types();
-    mqtt_abstraction.publish(fmt::format("{}error_types_map", ms.mqtt_settings.everest_prefix), error_types_map,
-                             QOS::QOS2, true);
-
-    const auto module_config_cache = config.get_module_config_cache();
-    mqtt_abstraction.publish(fmt::format("{}module_config_cache", ms.mqtt_settings.everest_prefix), module_config_cache,
-                             QOS::QOS2, true);
-
     mqtt_abstraction.publish(fmt::format("{}module_names", ms.mqtt_settings.everest_prefix), module_names, QOS::QOS2,
                              true);
 
-    for (const auto& module_name_entry : module_names) {
-        const auto& module_name = module_name_entry.first;
-        const auto& module_type = module_name_entry.second;
-        json serialized_mod_config = json::object();
-        serialized_mod_config["module_config"] = json::object();
-        serialized_mod_config["module_config"][module_name] = main_config.at(module_name);
-        // add mappings of fulfillments
-        const auto fulfillments = config.get_fulfillments(module_name);
-        serialized_mod_config["mappings"] = json::object();
-        for (const auto& fulfillment_list : fulfillments) {
-            for (const auto& fulfillment : fulfillment_list.second) {
-                const auto mappings = config.get_module_3_tier_model_mappings(fulfillment.module_id);
-                if (mappings.has_value()) {
-                    serialized_mod_config["mappings"][fulfillment.module_id] = mappings.value();
-                }
-            }
-        }
-        // also add mappings of module
-        const auto mappings = config.get_module_3_tier_model_mappings(module_name);
-        if (mappings.has_value()) {
-            serialized_mod_config["mappings"][module_name] = mappings.value();
-        }
-        const auto telemetry_config = config.get_telemetry_config(module_name);
-        if (telemetry_config.has_value()) {
-            serialized_mod_config["telemetry_config"] = telemetry_config.value();
-        }
+    for (const auto& [module_id, module_config] : module_configurations) {
+        const auto& module_name = module_config.module_name;
         if (std::any_of(ignored_modules.begin(), ignored_modules.end(),
-                        [module_name](const auto& element) { return element == module_name; })) {
-            EVLOG_info << fmt::format("Ignoring module: {}", module_name);
+                        [module_id](const auto& element) { return element == module_id; })) {
+            EVLOG_info << fmt::format("Ignoring module: {}", module_id);
             continue;
         }
+        const auto serialized_mod_config = get_serialized_module_config(module_id, module_configurations);
 
         // FIXME (aw): implicitely adding ModuleReadyInfo and setting its ready member
-        auto module_it = modules_ready.emplace(module_name, ModuleReadyInfo{false, nullptr, nullptr}).first;
+        auto module_it = modules_ready.emplace(module_id, ModuleReadyInfo{false, nullptr, nullptr}).first;
 
-        const std::string config_topic = fmt::format("{}/config", config.mqtt_module_prefix(module_name));
-        const Handler module_get_config_handler = [module_name, config_topic, serialized_mod_config,
-                                                   &mqtt_abstraction](const std::string&, const nlohmann::json& json) {
+        const std::string config_topic = fmt::format("{}/config", config.mqtt_module_prefix(module_id));
+        const Handler module_get_config_handler = [module_id, config_topic, serialized_mod_config,
+                                                   &mqtt_abstraction](const std::string&, const nlohmann::json&) {
             mqtt_abstraction.publish(config_topic, serialized_mod_config.dump(), QOS::QOS2);
         };
 
-        const std::string get_config_topic = fmt::format("{}/get_config", config.mqtt_module_prefix(module_name));
+        const std::string get_config_topic = fmt::format("{}/get_config", config.mqtt_module_prefix(module_id));
         module_it->second.get_config_token = std::make_shared<TypedHandler>(
             HandlerType::ExternalMQTT, std::make_shared<Handler>(module_get_config_handler));
         mqtt_abstraction.register_handler(get_config_topic, module_it->second.get_config_token, QOS::QOS2);
 
-        const auto capabilities = [&module_config = main_config.at(module_name)]() {
-            const auto cap_it = module_config.find("capabilities");
-            if (cap_it == module_config.end()) {
-                return std::vector<std::string>();
-            }
-
-            return std::vector<std::string>(cap_it->begin(), cap_it->end());
-        }();
-
-        if (not capabilities.empty()) {
-            EVLOG_info << fmt::format("Module {} wants to aquire the following capabilities: {}", module_name,
-                                      fmt::join(capabilities.begin(), capabilities.end(), " "));
+        std::vector<std::string> capabilities;
+        if (module_configurations.at(module_id).capabilities.has_value()) {
+            capabilities.push_back(module_configurations.at(module_id).capabilities.value());
         }
 
-        const Handler module_ready_handler = [module_name, &mqtt_abstraction, &config, standalone_modules,
+        const Handler module_ready_handler = [module_id, &mqtt_abstraction, &config, standalone_modules,
                                               mqtt_everest_prefix = ms.mqtt_settings.everest_prefix, &status_fifo,
                                               retain_topics](const std::string&, const nlohmann::json& json) {
-            EVLOG_debug << fmt::format("received module ready signal for module: {}({})", module_name, json.dump());
+            EVLOG_debug << fmt::format("received module ready signal for module: {}({})", module_id, json.dump());
             const std::unique_lock<std::mutex> lock(modules_ready_mutex);
             // FIXME (aw): here are race conditions, if the ready handler gets called while modules are shut down!
-            modules_ready.at(module_name).ready = json.get<bool>();
+            try {
+                modules_ready.at(module_id).ready = json.get<bool>();
+            } catch (const std::out_of_range& ex) {
+                // This can happen if we're shutting down and a module becomes
+                // ready.
+                EVLOG_error << "The module " << module_id << " is not in `modules_ready`: " << ex.what();
+                return;
+            }
             std::size_t modules_spawned = 0;
             for (const auto& mod : modules_ready) {
                 const std::string text_ready =
@@ -414,8 +383,8 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
                 }
             }
             if (!standalone_modules.empty() && std::find(standalone_modules.begin(), standalone_modules.end(),
-                                                         module_name) != standalone_modules.end()) {
-                EVLOG_info << fmt::format("Standalone module {} initialized.", module_name);
+                                                         module_id) != standalone_modules.end()) {
+                EVLOG_info << fmt::format("Standalone module {} initialized.", module_id);
             }
             if (std::all_of(modules_ready.begin(), modules_ready.end(),
                             [](const auto& element) { return element.second.ready; })) {
@@ -441,40 +410,40 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
             }
         };
 
-        const std::string ready_topic = fmt::format("{}/ready", config.mqtt_module_prefix(module_name));
+        const std::string ready_topic = fmt::format("{}/ready", config.mqtt_module_prefix(module_id));
         module_it->second.ready_token =
             std::make_shared<TypedHandler>(HandlerType::ExternalMQTT, std::make_shared<Handler>(module_ready_handler));
         mqtt_abstraction.register_handler(ready_topic, module_it->second.ready_token, QOS::QOS2);
 
         if (std::any_of(standalone_modules.begin(), standalone_modules.end(),
-                        [module_name](const auto& element) { return element == module_name; })) {
-            EVLOG_info << "Not starting standalone module: " << fmt::format(TERMINAL_STYLE_BLUE, "{}", module_name);
+                        [module_id](const auto& element) { return element == module_id; })) {
+            EVLOG_info << "Not starting standalone module: " << fmt::format(TERMINAL_STYLE_BLUE, "{}", module_id);
             continue;
         }
 
-        const std::string binary_filename = fmt::format("{}", module_type);
+        const std::string binary_filename = fmt::format("{}", module_name);
         const std::string javascript_library_filename = "index.js";
         const std::string python_filename = "module.py";
-        const auto module_path = ms.runtime_settings->modules_dir / module_type;
-        const auto printable_module_name = config.printable_identifier(module_name);
+        const auto module_path = ms.runtime_settings.modules_dir / module_name;
+        const auto printable_module_name = config.printable_identifier(module_id);
         const auto binary_path = module_path / binary_filename;
         const auto javascript_library_path = module_path / javascript_library_filename;
         const auto python_module_path = module_path / python_filename;
 
         if (fs::exists(binary_path)) {
-            EVLOG_debug << fmt::format("module: {} ({}) provided as binary", module_name, module_type);
-            modules_to_spawn.emplace_back(module_name, printable_module_name, ModuleStartInfo::Language::cpp,
-                                          binary_path, capabilities);
+            EVLOG_debug << fmt::format("module: {} ({}) provided as binary", module_id, module_name);
+            modules_to_spawn.emplace_back(module_id, printable_module_name, ModuleStartInfo::Language::cpp, binary_path,
+                                          capabilities);
         } else if (fs::exists(javascript_library_path)) {
-            EVLOG_debug << fmt::format("module: {} ({}) provided as javascript library", module_name, module_type);
-            modules_to_spawn.emplace_back(module_name, printable_module_name, ModuleStartInfo::Language::javascript,
+            EVLOG_debug << fmt::format("module: {} ({}) provided as javascript library", module_id, module_name);
+            modules_to_spawn.emplace_back(module_id, printable_module_name, ModuleStartInfo::Language::javascript,
                                           fs::canonical(javascript_library_path), capabilities);
         } else if (fs::exists(python_module_path)) {
-            EVLOG_verbose << fmt::format("module: {} ({}) provided as python module", module_name, module_type);
-            modules_to_spawn.emplace_back(module_name, printable_module_name, ModuleStartInfo::Language::python,
+            EVLOG_verbose << fmt::format("module: {} ({}) provided as python module", module_id, module_name);
+            modules_to_spawn.emplace_back(module_id, printable_module_name, ModuleStartInfo::Language::python,
                                           fs::canonical(python_module_path), capabilities);
         } else {
-            if (module_name == "probe" || module_type == "ProbeModule") {
+            if (module_id == "probe" || module_name == "ProbeModule") {
                 EVLOG_error << "You are trying to start the probe module as binary, please check "
                                "your test case, did you add \"@pytest.mark.probe_module\" to your test case?";
             }
@@ -485,7 +454,7 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
                             "    binary: {}\n"
                             "    js:  {}\n"
                             "    py:  {}\n",
-                            module_name, module_type, binary_path.string(), javascript_library_path.string(),
+                            module_id, module_name, binary_path.string(), javascript_library_path.string(),
                             python_module_path.string()));
         }
     }
@@ -496,17 +465,19 @@ static std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbs
 static void shutdown_modules(const std::map<pid_t, std::string>& modules, ManagerConfig& config,
                              MQTTAbstraction& mqtt_abstraction) {
 
+    ModulesReadyType modules_ready_moved;
     {
         const std::lock_guard<std::mutex> lck(modules_ready_mutex);
-
-        for (const auto& module : modules_ready) {
-            const auto& ready_info = module.second;
-            const auto& module_name = module.first;
-            const std::string topic = fmt::format("{}/ready", config.mqtt_module_prefix(module_name));
-            mqtt_abstraction.unregister_handler(topic, ready_info.ready_token);
-        }
-
+        modules_ready_moved = std::move(modules_ready);
+        // Probably not needed after our move but lets be explicit.
         modules_ready.clear();
+    }
+
+    for (const auto& module : modules_ready_moved) {
+        const auto& ready_info = module.second;
+        const auto& module_name = module.first;
+        const std::string topic = fmt::format("{}/ready", config.mqtt_module_prefix(module_name));
+        mqtt_abstraction.unregister_handler(topic, ready_info.ready_token);
     }
 
     for (const auto& child : modules) {
@@ -535,7 +506,7 @@ static ControllerHandle start_controller(const ManagerSettings& ms) {
     int socket_pair[2];
 
     // FIXME (aw): destroy this socketpair somewhere
-    auto retval = socketpair(AF_UNIX, SOCK_DGRAM, 0, socket_pair);
+    socketpair(AF_UNIX, SOCK_DGRAM, 0, socket_pair);
     const int manager_socket = socket_pair[0];
     const int controller_socket = socket_pair[1];
 
@@ -566,11 +537,11 @@ static ControllerHandle start_controller(const ManagerSettings& ms) {
                                      {"method", "boot"},
                                      {"params",
                                       {
-                                          {"module_dir", ms.runtime_settings->modules_dir.string()},
+                                          {"module_dir", ms.runtime_settings.modules_dir.string()},
                                           {"interface_dir", ms.interfaces_dir.string()},
                                           {"www_dir", ms.www_dir.string()},
                                           {"configs_dir", ms.configs_dir.string()},
-                                          {"logging_config_file", ms.runtime_settings->logging_config_file.string()},
+                                          {"logging_config_file", ms.runtime_settings.logging_config_file.string()},
                                           {"controller_port", ms.controller_port},
                                           {"controller_rpc_timeout_ms", ms.controller_rpc_timeout_ms},
                                       }},
@@ -580,15 +551,55 @@ static ControllerHandle start_controller(const ManagerSettings& ms) {
 }
 #endif
 
+ConfigBootMode parse_config_boot_mode(const std::string& config_opt, const std::string& db_opt, const bool db_init) {
+    if (config_opt.empty() and db_opt.empty()) {
+        // no config or db option given, use default
+        return ConfigBootMode::YamlFile;
+    }
+    if (!config_opt.empty() && !db_opt.empty()) {
+        if (db_init == false) {
+            throw BootException("Both --config and --db options are set, but no --db-init option is given. "
+                                "This is not allowed.");
+        }
+        return ConfigBootMode::DatabaseInit;
+    }
+    if (!config_opt.empty()) {
+        // only config option given, use yaml file
+        return ConfigBootMode::YamlFile;
+    }
+    if (!db_opt.empty()) {
+        // only db option given, use database
+        return ConfigBootMode::Database;
+    }
+    throw std::logic_error("Could not parse config boot source, this should never happen.");
+}
+
 int boot(const po::variables_map& vm) {
     const bool check = (vm.count("check") != 0);
 
     const auto prefix_opt = parse_string_option(vm, "prefix");
     const auto config_opt = parse_string_option(vm, "config");
+    const auto db_opt = parse_string_option(vm, "db");
+    const auto db_init = vm.count("db-init") != 0;
+    ConfigBootMode boot_mode = parse_config_boot_mode(config_opt, db_opt, db_init);
 
-    const auto ms = ManagerSettings(prefix_opt, config_opt);
+    ManagerSettings ms;
 
-    Logging::init(ms.runtime_settings->logging_config_file.string());
+    switch (boot_mode) {
+    case ConfigBootMode::YamlFile:
+        ms = ManagerSettings(prefix_opt, config_opt);
+        break;
+    case ConfigBootMode::Database:
+        ms = ManagerSettings(prefix_opt, db_opt, DatabaseTag{});
+        break;
+    case ConfigBootMode::DatabaseInit:
+        ms = ManagerSettings(prefix_opt, config_opt, db_opt);
+        break;
+    default:
+        throw BootException(fmt::format("Invalid boot source: {}", static_cast<int>(boot_mode)));
+    }
+
+    Logging::init(ms.runtime_settings.logging_config_file.string());
 
     EVLOG_info << "  \033[0;1;35;95m_\033[0;1;31;91m__\033[0;1;33;93m__\033[0;1;32;92m__\033[0;1;36;96m_\033[0m      "
                   "\033[0;1;31;91m_\033[0;1;33;93m_\033[0m                \033[0;1;36;96m_\033[0m   ";
@@ -625,7 +636,7 @@ int boot(const po::variables_map& vm) {
     } else {
         EVLOG_info << "Using MQTT broker unix domain sockets:" << ms.mqtt_settings.broker_socket_path;
     }
-    if (ms.runtime_settings->telemetry_enabled) {
+    if (ms.runtime_settings.telemetry_enabled) {
         EVLOG_info << "Telemetry enabled";
     }
     if (not ms.run_as_user.empty()) {
@@ -636,14 +647,14 @@ int boot(const po::variables_map& vm) {
     auto controller_handle = start_controller(ms);
 #endif
 
-    EVLOG_verbose << fmt::format("EVerest prefix was set to {}", ms.runtime_settings->prefix.string());
+    EVLOG_verbose << fmt::format("EVerest prefix was set to {}", ms.runtime_settings.prefix.string());
 
     // dump all manifests if requested and terminate afterwards
     if (vm.count("dumpmanifests")) {
         const auto dumpmanifests_path = fs::path(vm["dumpmanifests"].as<std::string>());
         EVLOG_debug << fmt::format("Dumping all known validated manifests into '{}'", dumpmanifests_path.string());
 
-        auto manifests = Config::load_all_manifests(ms.runtime_settings->modules_dir.string(), ms.schemas_dir.string());
+        auto manifests = Config::load_all_manifests(ms.runtime_settings.modules_dir.string(), ms.schemas_dir.string());
 
         for (const auto& module : manifests.items()) {
             const std::string filename = module.key() + ".yaml";
@@ -689,7 +700,7 @@ int boot(const po::variables_map& vm) {
 
         std::ofstream output_config_stream(config_dump_path);
 
-        output_config_stream << config->get_main_config().dump(DUMP_INDENT);
+        output_config_stream << json(config->get_module_configurations()).dump(DUMP_INDENT);
 
         const auto manifests = config->get_manifests();
 
@@ -713,12 +724,10 @@ int boot(const po::variables_map& vm) {
         standalone_modules = vm["standalone"].as<std::vector<std::string>>();
     }
 
-    const auto& main_config = config->get_main_config();
-    for (const auto& module : main_config.items()) {
-        const std::string& module_id = module.key();
+    const auto& module_configurations = config->get_module_configurations();
+    for (const auto& [module_id, module_config] : module_configurations) {
         // check if standalone parameter is set
-        const auto& module_config = main_config.at(module_id);
-        if (module_config.value("standalone", false)) {
+        if (module_config.standalone) {
             if (std::find(standalone_modules.begin(), standalone_modules.end(), module_id) ==
                 standalone_modules.end()) {
                 EVLOG_info << "Module " << fmt::format(TERMINAL_STYLE_BLUE, "{}", module_id)
@@ -883,6 +892,9 @@ int main(int argc, char* argv[]) {
     desc.add_options()("config", po::value<std::string>(),
                        "Full path to a config file.  If the file does not exist and has no extension, it will be "
                        "looked up in the default config directory");
+    desc.add_options()("db", po::value<std::string>(), "Full path to the configuration database file");
+    desc.add_options()("db-init", "Indicator to initialize the database if it does not contain a valid configuration. "
+                                  "Requires --config and --db to be set.");
     desc.add_options()("status-fifo", po::value<std::string>()->default_value(""),
                        "Path to a named pipe, that shall be used for status updates from the manager");
     desc.add_options()("retain-topics", "Retain configuration MQTT topics setup by manager for inspection, by default "

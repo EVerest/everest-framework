@@ -42,11 +42,11 @@ template <typename T, typename... VARIANT_T> struct VariantMemberImpl : public s
 template <typename T, typename... VARIANT_T>
 struct VariantMemberImpl<T, std::variant<VARIANT_T...>> : public std::disjunction<std::is_same<T, VARIANT_T>...> {};
 
-/// @brief Static checker if the type T can be converted to `ConfigEntry`.
+/// @brief Static checker if the type T can be converted to `everest::config::ConfigEntry`.
 ///
 /// We use this to detect `get_config_field` overloads which receive arguments
-/// which aren't part of our `ConfigEntry` variant.
-template <typename T> struct ConfigEntryMember : public VariantMemberImpl<T, ConfigEntry> {};
+/// which aren't part of our `everest::config::ConfigEntry` variant.
+template <typename T> struct ConfigEntryMember : public VariantMemberImpl<T, everest::config::ConfigEntry> {};
 
 inline ConfigField get_config_field(const std::string& _name, bool _value) {
     static_assert(ConfigEntryMember<decltype(_value)>::value);
@@ -122,7 +122,7 @@ JsonBlob Module::get_interface(rust::Str interface_name) const {
 }
 
 JsonBlob Module::get_manifest() const {
-    const std::string& module_name = config_->get_main_config().at(module_id_).at("module");
+    const std::string& module_name = config_->get_module_name(std::string(module_id_));
     return json2blob(config_->get_manifests().at(module_name));
 }
 
@@ -141,20 +141,34 @@ void Module::provide_command(const Runtime& rt, rust::String implementation_id, 
 void Module::subscribe_variable(const Runtime& rt, rust::String implementation_id, std::size_t index,
                                 rust::String name) const {
     const auto req = Requirement{std::string(implementation_id), index};
-    handle_->subscribe_var(req, std::string(name), [&rt, implementation_id, index, name](json args) {
+    // The handle_ptr is guaranteed to be alive in the callback.
+    const auto handle_ptr = handle_.get();
+    handle_->subscribe_var(req, std::string(name), [&rt, implementation_id, index, name, handle_ptr](json args) {
+        handle_ptr->ensure_ready();
         rt.handle_variable(implementation_id, index, name, json2blob(args));
     });
 }
 
 void Module::subscribe_all_errors(const Runtime& rt) const {
     for (const Requirement& req : config_->get_requirements(module_id_)) {
-        handle_->get_error_manager_req(req)->subscribe_all_errors(
-            [&rt, req](Everest::error::Error error) {
+        std::shared_ptr<Everest::error::ErrorManagerReq> error_manager_ptr = nullptr;
+        try {
+            error_manager_ptr = handle_->get_error_manager_req(req);
+        } catch (const std::runtime_error& ex) {
+            // This is expected if the manifest has `ignore.errors=true`
+            // configured.
+            continue;
+        }
+        const auto handle_ptr = handle_.get();
+        error_manager_ptr->subscribe_all_errors(
+            [&rt, req, handle_ptr](Everest::error::Error error) {
+                handle_ptr->ensure_ready();
                 const ErrorType rust_error{rust::String(error.type), rust::String(error.description),
                                            rust::String(error.message), static_cast<ErrorSeverity>(error.severity)};
                 rt.handle_on_error(rust::Str(req.id), req.index, rust_error, true);
             },
-            [&rt, req](Everest::error::Error error) {
+            [&rt, req, handle_ptr](Everest::error::Error error) {
+                handle_ptr->ensure_ready();
                 const ErrorType rust_error{rust::String(error.type), rust::String(error.description),
                                            rust::String(error.message), static_cast<ErrorSeverity>(error.severity)};
                 rt.handle_on_error(rust::Str(req.id), req.index, rust_error, false);
@@ -200,13 +214,13 @@ void Module::clear_error(rust::Str implementation_id, rust::Str error_type, bool
 }
 
 rust::Vec<RsModuleConnections> Module::get_module_connections() const {
-    const auto connections = config_->get_main_config().at(std::string(module_id_))["connections"];
+    const auto connections = config_->get_module_config().connections;
 
     // Iterate over the connections block.
     rust::Vec<RsModuleConnections> out;
     out.reserve(connections.size());
-    for (const auto& connection : connections.items()) {
-        out.emplace_back(RsModuleConnections{rust::String{connection.key()}, connection.value().size()});
+    for (const auto& [req_id, fulfillment] : connections) {
+        out.emplace_back(RsModuleConnections{rust::String{req_id}, fulfillment.size()});
     };
     return out;
 }

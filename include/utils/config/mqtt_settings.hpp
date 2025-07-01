@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Pionix GmbH and Contributors to EVerest
-#ifndef UTILS_MQTT_SETTINGS_HPP
-#define UTILS_MQTT_SETTINGS_HPP
+#ifndef UTILS_CONFIG_MQTT_SETTINGS_HPP
+#define UTILS_CONFIG_MQTT_SETTINGS_HPP
 
-#include <date/date.h>
-#include <date/tz.h>
+#include <string>
 
 namespace Everest {
 
@@ -44,4 +43,4 @@ void populate_mqtt_settings(MQTTSettings& mqtt_settings, const std::string& mqtt
 
 } // namespace Everest
 
-#endif // UTILS_MQTT_SETTINGS_HPP
+#endif // UTILS_CONFIG_MQTT_SETTINGS_HPP
