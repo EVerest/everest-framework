@@ -491,7 +491,7 @@ int ModuleLoader::initialize() {
         Logging::update_process_name(module_identifier);
 
         auto everest = Everest(this->module_id, config, rs->validate_schema, this->mqtt, rs->telemetry_prefix,
-                               rs->telemetry_enabled);
+                               rs->telemetry_enabled, rs->forward_exceptions);
 
         // module import
         EVLOG_debug << fmt::format("Initializing module {}...", module_identifier);
