@@ -41,7 +41,7 @@ const std::array<std::string, 3> TELEMETRY_RESERVED_KEYS = {{"connector_id"}};
 
 Everest::Everest(std::string module_id_, const Config& config_, bool validate_data_with_schema,
                  std::shared_ptr<MQTTAbstraction> mqtt_abstraction, const std::string& telemetry_prefix,
-                 bool telemetry_enabled) :
+                 bool telemetry_enabled, bool forward_exceptions) :
     mqtt_abstraction(mqtt_abstraction),
     config(config_),
     module_id(std::move(module_id_)),
@@ -52,7 +52,8 @@ Everest::Everest(std::string module_id_, const Config& config_, bool validate_da
     mqtt_everest_prefix(mqtt_abstraction->get_everest_prefix()),
     mqtt_external_prefix(mqtt_abstraction->get_external_prefix()),
     telemetry_prefix(telemetry_prefix),
-    telemetry_enabled(telemetry_enabled) {
+    telemetry_enabled(telemetry_enabled),
+    forward_exceptions(forward_exceptions) {
     BOOST_LOG_FUNCTION();
 
     EVLOG_debug << "Initializing EVerest framework...";
@@ -946,7 +947,7 @@ void Everest::provide_cmd(const std::string& impl_id, const std::string& cmd_nam
         // re-throw exception caught in handler
         if (error.has_value()) {
             auto err = error.value();
-            if (err.event == CmdEvent::HandlerException) {
+            if (err.event == CmdEvent::HandlerException and not this->forward_exceptions) {
                 if (err.ex) {
                     std::rethrow_exception(err.ex);
                 } else {
