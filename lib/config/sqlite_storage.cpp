@@ -44,6 +44,10 @@ enum SettingColumnIndex {
 };
 
 SqliteStorage::SqliteStorage(const fs::path& db_path, const std::filesystem::path& migration_files_path) {
+    if (db_path.parent_path().empty()) {
+        throw std::runtime_error("Could not open database at provided path: " + db_path.string() +
+                                 " because it is just a filename. You MUST provide a full path to the database.");
+    }
     db = std::make_unique<Connection>(db_path);
 
     SchemaUpdater updater{db.get()};
