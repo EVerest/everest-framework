@@ -373,8 +373,7 @@ void adl_serializer<everest::config::Access>::to_json(nlohmann::json& j, const e
     }
 }
 
-void adl_serializer<everest::config::Access>::from_json(const nlohmann::json& j,
-                                                              everest::config::Access& a) {
+void adl_serializer<everest::config::Access>::from_json(const nlohmann::json& j, everest::config::Access& a) {
     if (j.contains("config")) {
         a.config = j.at("config").get<everest::config::ConfigAccess>();
     }

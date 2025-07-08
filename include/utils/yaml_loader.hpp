@@ -10,7 +10,7 @@
 namespace Everest {
 
 nlohmann::ordered_json load_yaml(const std::filesystem::path& path);
-bool save_yaml(const nlohmann::ordered_json& data , const std::filesystem::path& path);
+bool save_yaml(const nlohmann::ordered_json& data, const std::filesystem::path& path);
 
 } // namespace Everest
 
