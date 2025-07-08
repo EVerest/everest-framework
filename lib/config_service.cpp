@@ -145,7 +145,7 @@ SetResponse handle_set_request(const SetRequest& set_request, const std::string&
         // TODO: explicit input validation
         const auto& target_module_config = module_configs.at(set_request.identifier.module_id);
         everest::config::SetConfigStatus status = everest::config::SetConfigStatus::Rejected;
-        const auto impl_id = set_request.identifier.module_implementation_id.value_or("!module");
+        const auto impl_id = set_request.identifier.module_implementation_id.value_or(MODULE_IMPLEMENTATION_ID);
         for (const auto& config_entry : target_module_config.configuration_parameters.at(impl_id)) {
             if (config_entry.name == set_request.identifier.configuration_parameter_name) {
                 try {
@@ -265,7 +265,7 @@ ConfigServiceClient::set_config_value(const everest::config::ConfigurationParame
         }
     } catch (const std::exception& e) {
         EVLOG_info << "Could not set config value: " << identifier.module_id << ": "
-                   << identifier.module_implementation_id.value_or("!module") << ": "
+                   << identifier.module_implementation_id.value_or(MODULE_IMPLEMENTATION_ID) << ": "
                    << identifier.configuration_parameter_name << ": " << e.what();
     }
     return everest::config::SetConfigStatus::Rejected;
@@ -297,7 +297,7 @@ ConfigServiceClient::get_config_value(const everest::config::ConfigurationParame
         }
     } catch (const std::exception& e) {
         EVLOG_info << "Could not get config value: " << identifier.module_id << ": "
-                   << identifier.module_implementation_id.value_or("!module") << ": "
+                   << identifier.module_implementation_id.value_or(MODULE_IMPLEMENTATION_ID) << ": "
                    << identifier.configuration_parameter_name << ": " << e.what();
     }
 

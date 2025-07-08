@@ -12,6 +12,8 @@ enum class Type {
     Unknown
 };
 
+constexpr auto MODULE_IMPLEMENTATION_ID = "!module";
+
 enum class GetType {
     All,    ///< All module configurations that the requesting module has access to
     Module, ///< The module configuration for the requesting module
