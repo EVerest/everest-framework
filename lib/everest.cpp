@@ -429,10 +429,18 @@ json Everest::call_cmd(const Requirement& req, const std::string& cmd_name, json
         const auto& error = result.error.value();
         const auto error_message = fmt::format("{}", error.msg);
         switch (error.event) {
+        case CmdEvent::MessageParsingFailed:
+            throw MessageParsingError(error_message);
+        case CmdEvent::SchemaValidationFailed:
+            throw SchemaValidationError(error_message);
         case CmdEvent::HandlerException:
             throw HandlerException(error_message);
         case CmdEvent::Timeout:
             throw CmdTimeout(error_message);
+        case CmdEvent::Shutdown:
+            throw Shutdown(error_message);
+        case CmdEvent::NotReady:
+            throw NotReady(error_message);
         default:
             throw CmdError(fmt::format("{}: {}", conversions::cmd_event_to_string(error.event), error.msg));
         }
