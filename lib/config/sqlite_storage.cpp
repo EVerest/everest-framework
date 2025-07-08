@@ -433,8 +433,12 @@ SqliteStorage::write_configuration_parameter(const ConfigurationParameterIdentif
             stmt->bind_null(to_int(ConfigurationColumnIndex::COL_UNIT));
         }
 
-        stmt->bind_text(to_int(ConfigurationColumnIndex::COL_MODULE_IMPLEMENTATION_ID),
-                        identifier.module_implementation_id.value_or(default_module_implementation_id()));
+        if (identifier.module_implementation_id.has_value()) {
+            stmt->bind_text(to_int(ConfigurationColumnIndex::COL_MODULE_IMPLEMENTATION_ID),
+                            identifier.module_implementation_id.value());
+        } else {
+            stmt->bind_null(to_int(ConfigurationColumnIndex::COL_MODULE_IMPLEMENTATION_ID));
+        }
 
         if (stmt->step() != SQLITE_DONE) {
             return GetSetResponseStatus::NotFound;
