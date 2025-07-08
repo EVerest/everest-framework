@@ -1322,6 +1322,7 @@ ManagerConfig::get_config_value(const everest::config::ConfigurationParameterIde
     }
     case ConfigBootMode::Database:
     case ConfigBootMode::DatabaseInit:
+        // TODO: this will return the new value even if RebootRequired was returned in set_config_value
         response = this->ms.storage->get_configuration_parameter(identifier);
         break;
     }
