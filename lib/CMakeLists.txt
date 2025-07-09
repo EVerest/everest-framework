@@ -18,6 +18,7 @@ target_sources(framework
         config/mqtt_settings.cpp
         config/settings.cpp
         config/sqlite_storage.cpp
+        config/storage_types.cpp
         config/userconfig_storage.cpp
         config/types.cpp
         config_cache.cpp

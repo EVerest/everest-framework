@@ -220,6 +220,8 @@ private:
     Validators validators;
     std::unique_ptr<nlohmann::json_schema::json_validator> draft7_validator;
     std::unique_ptr<everest::config::UserConfigStorage> user_config_storage;
+    std::map<everest::config::ConfigurationParameterIdentifier, everest::config::GetConfigurationParameterResponse>
+        database_get_config_parameter_response_cache;
 
     nlohmann::json apply_user_config_and_defaults();
 

@@ -12,6 +12,12 @@
 
 namespace Everest {
 namespace config {
+
+bool ModuleIdType::operator<(const ModuleIdType& rhs) const {
+    return (this->module_id < rhs.module_id ||
+            (this->module_id == rhs.module_id && this->module_type < rhs.module_type));
+}
+
 namespace {
 bool access_allowed(const everest::config::Access& access, const std::string& origin, const std::string& target) {
     if (not access.config.has_value()) {

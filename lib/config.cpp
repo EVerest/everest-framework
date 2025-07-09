@@ -1287,9 +1287,15 @@ ManagerConfig::set_config_value(const everest::config::ConfigurationParameterIde
     }
     case ConfigBootMode::Database:
     case ConfigBootMode::DatabaseInit:
+        const auto& cached_value_it = this->database_get_config_parameter_response_cache.find(identifier);
+        const auto cached_value = this->ms.storage->get_configuration_parameter(identifier);
         const auto write_response = this->ms.storage->write_configuration_parameter(
             identifier, characteristics, everest::config::config_entry_to_string(value));
         if (write_response == GetSetResponseStatus::OK) {
+            if (cached_value_it == this->database_get_config_parameter_response_cache.end()) {
+                // cache initial config value in case it is only valid after a reboot
+                this->database_get_config_parameter_response_cache[identifier] = cached_value;
+            }
             return everest::config::SetConfigStatus::RebootRequired;
         }
         return everest::config::SetConfigStatus::Rejected;
@@ -1321,10 +1327,15 @@ ManagerConfig::get_config_value(const everest::config::ConfigurationParameterIde
         break;
     }
     case ConfigBootMode::Database:
-    case ConfigBootMode::DatabaseInit:
-        // TODO: this will return the new value even if RebootRequired was returned in set_config_value
+    case ConfigBootMode::DatabaseInit: {
+        // ensure that we do not return database values that are only valid after a reboot
+        const auto& cached_value_it = this->database_get_config_parameter_response_cache.find(identifier);
+        if (cached_value_it != this->database_get_config_parameter_response_cache.end()) {
+            return cached_value_it->second;
+        }
         response = this->ms.storage->get_configuration_parameter(identifier);
         break;
+    }
     }
 
     return response;

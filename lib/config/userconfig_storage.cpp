@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Pionix GmbH and Contributors to EVerest
-#include "utils/config/storage.hpp"
 #include <everest/logging.hpp>
 
+#include <utils/config/storage.hpp>
 #include <utils/config/storage_userconfig.hpp>
 #include <utils/conversions.hpp>
 #include <utils/yaml_loader.hpp>

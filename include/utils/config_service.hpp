@@ -77,9 +77,7 @@ struct ModuleIdType {
     std::string module_id;
     std::string module_type;
 
-    friend bool operator<(const ModuleIdType& lhs, const ModuleIdType& rhs) {
-        return (lhs.module_id < rhs.module_id || (lhs.module_id == rhs.module_id && lhs.module_type < rhs.module_type));
-    }
+    bool operator<(const ModuleIdType& rhs) const;
 };
 
 class ConfigServiceClient {
