@@ -125,6 +125,8 @@ public:
     /// \brief Return the global state monitor, if not enabled nullptr
     std::shared_ptr<error::ErrorStateMonitor> get_global_error_state_monitor() const;
 
+    ///
+    /// \brief Return the config service client
     std::shared_ptr<config::ConfigServiceClient> get_config_service_client() const;
 
     ///

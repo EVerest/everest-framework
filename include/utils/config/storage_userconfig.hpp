@@ -9,12 +9,12 @@
 
 namespace everest::config {
 
-/// \brief Implements StorageInterface with yaml userconfig
+/// \brief Implements StorageInterface with YAML user-config
 class UserConfigStorage : public StorageInterface {
 
 public:
     /// \brief Constructor
-    /// \param user_config_path Path to userconfig file
+    /// \param user_config_path Path to user-config file
     UserConfigStorage(const fs::path& user_config_path);
 
     GenericResponseStatus write_module_configs(const ModuleConfigurations& module_configs) override;

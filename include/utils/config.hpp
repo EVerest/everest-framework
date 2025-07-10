@@ -294,10 +294,14 @@ public:
     /// \brief Create a ManagerConfig from the provided ManagerSettings \p ms
     explicit ManagerConfig(const ManagerSettings& ms);
 
+    /// \brief Sets the config \p value associated with the \p identifier
+    /// \returns if the setting of the value was successful or not
     everest::config::SetConfigStatus
     set_config_value(const everest::config::ConfigurationParameterIdentifier& identifier,
                      const everest::config::ConfigEntry& value);
 
+    /// \brief Gets the configuration parameter associated with the \p identifier
+    /// \returns a result containing the configuration item or an error
     everest::config::GetConfigurationParameterResponse
     get_config_value(const everest::config::ConfigurationParameterIdentifier& identifier);
 };

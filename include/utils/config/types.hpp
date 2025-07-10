@@ -179,18 +179,25 @@ struct ConfigurationParameter {
     bool validate_type() const;
 };
 
+/// \brief Access control information to an individual module config
 struct ModuleConfigAccess {
-    bool allow_set_read_only = false;
+    bool allow_set_read_only = false; ///< If ReadOnly config items can be treated as ReadWrite (this typically requires
+                                      ///< a reboot to have an effect)
 };
 
+/// \brief
 struct ConfigAccess {
-    bool allow_global_read = false;
-    bool allow_set_read_only = false;
-    std::map<std::string, everest::config::ModuleConfigAccess> modules;
+    bool allow_global_read = false;   ///< Allow this module to read the config items of other all other modules
+    bool allow_set_read_only = false; ///< If ReadOnly config items can be treated as ReadWrite (this typically requires
+                                      ///< a reboot to have an effect)
+    std::map<std::string, everest::config::ModuleConfigAccess>
+        modules; ///< Individual access to other modules config. The key represents the other modules module_id
+                 ///< and the value the associated access rights
 };
 
+/// \brief Access control information for a particular module
 struct Access {
-    std::optional<ConfigAccess> config;
+    std::optional<ConfigAccess> config; ///< Access control to other modules configuration items
 };
 
 /// \brief Struct that contains the configuration of an EVerest module

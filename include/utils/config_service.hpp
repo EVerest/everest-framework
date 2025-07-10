@@ -6,91 +6,120 @@
 #include <utils/mqtt_abstraction.hpp>
 namespace Everest {
 namespace config {
-enum class Type {
-    Get,
-    Set,
-    Unknown
-};
 
 constexpr auto MODULE_IMPLEMENTATION_ID = "!module";
 
+/// \brief The type of request or response
+enum class Type {
+    Get,    ///< Identifies a get request or response
+    Set,    ///< Identifies a set request or response
+    Unknown ///< Used for unknown requests that could not be parsed
+};
+
+/// \brief Possible get request and response sub-types
 enum class GetType {
-    All,    ///< All module configurations that the requesting module has access to
-    Module, ///< The module configuration for the requesting module
-    Value,  ///< A specific configuration value identified by a ConfigurationParameterIdentifier
-    // Delta, // TODO: This needs tracking of when the last Request was made
+    All,         ///< All module configurations that the requesting module has access to
+    Module,      ///< The module configuration for the requesting module
+    Value,       ///< A specific configuration value identified by a ConfigurationParameterIdentifier
     AllMappings, ///< All module mappings that the requesting module has access to
-    Unknown,
+    Unknown      ///< Used for unknown requests that could not be parsed
+
+    // TODO: Potential additions in the future:
+    // Delta, // This would need tracking of when the last Request was made
 };
 
+/// \brief Represents a get request
 struct GetRequest {
-    GetType type = GetType::Unknown;
-    // TODO: optional timestamp for Delta?
-    // TODO: list of requested modules?
+    GetType type = GetType::Unknown;                                             ///< The type of get request
     std::optional<everest::config::ConfigurationParameterIdentifier> identifier; ///< Used for GetType::Value
+
+    // TODO: Potential additions in the future:
+    // optional timestamp for GetType::Delta?
+    // a list of requested modules?
 };
 
+/// \brief Represents a response to a get request
 struct GetResponse {
-    GetType type = GetType::Unknown;
-    nlohmann::json data; // FIXME: use proper type(s) for this
+    GetType type = GetType::Unknown; ///< The type of get response, the same as in the get request
+    nlohmann::json data;             ///< Data associated with this reponse.
+    // FIXME: use proper type(s) for data?
 };
 
+/// \brief Represents a set request
 struct SetRequest {
-    everest::config::ConfigurationParameterIdentifier identifier;
-    std::string value;
+    everest::config::ConfigurationParameterIdentifier
+        identifier;    ///< An identifier for the configuration parameter to be set
+    std::string value; ///< The string representation of the configuration value to be set
+    // TODO: should value be a ConfigEntry variant type?
 };
 
+/// \brief Possible response status values
 enum class ResponseStatus {
-    Ok,
-    Error,
-    AccessDenied
+    Ok,          ///< Everything worked
+    Error,       ///< There was an error during handling of the request
+    AccessDenied ///< There was an access error during handling of the request
 };
 
+/// \brief Possible set response status values
 enum class SetResponseStatus {
-    Accepted,
-    Rejected,
-    RebootRequired
+    Accepted,      ///< Configuration value was set successfully
+    Rejected,      ///< Configuration value could not be set
+    RebootRequired ///< Configuration value was set successfully but a reboot is required for modules to actually use
+                   ///< this value
 };
 
+/// \brief Represents a response to a set request
 struct SetResponse {
-    SetResponseStatus status = SetResponseStatus::Rejected;
+    SetResponseStatus status = SetResponseStatus::Rejected; ///< Status of the set response
 };
 
+/// \brief Represents a container for various requests that can be made to the ConfigService
 struct Request {
-    Type type = Type::Unknown;
-    std::variant<std::monostate, GetRequest, SetRequest> request;
-    std::string origin;
+    Type type = Type::Unknown;                                    ///< The type of request
+    std::variant<std::monostate, GetRequest, SetRequest> request; ///< The request itself
+    std::string origin; ///< The origin of the request, the module id of the requesting module
 };
 
+/// \brief Represents a container for various responses to requests made to the ConfigService
 struct Response {
-    ResponseStatus status = ResponseStatus::Error;
-    std::optional<Type> type;
-    std::variant<std::monostate, GetResponse, SetResponse> response;
+    ResponseStatus status = ResponseStatus::Error; ///< Status of the response
+    std::optional<Type> type; ///< The type of the response, identical to the request, missing when status is Error
+    std::variant<std::monostate, GetResponse, SetResponse> response; ///< The response itself
 };
 
+/// \brief Represents a container for getting a configuration parameter
 struct GetConfigResult {
-    ResponseStatus status = ResponseStatus::Error;
-    everest::config::ConfigurationParameter configuration_parameter;
+    ResponseStatus status = ResponseStatus::Error;                   ///< Status of the result
+    everest::config::ConfigurationParameter configuration_parameter; ///< The requested configuration parameter
 };
 
+/// \brief Represents a compound type to identify a specific module instance and its type
 struct ModuleIdType {
-    std::string module_id;
-    std::string module_type;
+    std::string module_id;   ///< The module id
+    std::string module_type; ///< The associated module type
 
     bool operator<(const ModuleIdType& rhs) const;
 };
 
 class ConfigServiceClient {
 public:
+    /// \brief ConfigService client using the provided \p mqtt_abstraction for the module identified by \p module_id
+    /// \p module_names is a mapping of all module ids to module names/types for usage in get_module_configs()
     ConfigServiceClient(std::shared_ptr<MQTTAbstraction> mqtt_abstraction, const std::string& module_id,
                         const std::unordered_map<std::string, std::string>& module_names);
 
+    /// \brief Compiles and \returns all module configs that this module has access to
     std::map<ModuleIdType, everest::config::ModuleConfigurationParameters> get_module_configs();
+
+    /// \brief Compiles and \returns all mappings of modules that this module has access to
     std::map<std::string, ModuleTierMappings> get_mappings();
 
+    /// \brief Sets the config \p value associated with the \p identifier
     everest::config::SetConfigStatus
     set_config_value(const everest::config::ConfigurationParameterIdentifier& identifier, const std::string& value);
 
+    /// \brief Gets the config value associated with the \p identifier
+    /// \returns a result containing the configuration item or an error
     GetConfigResult get_config_value(const everest::config::ConfigurationParameterIdentifier& identifier);
 
 private:
@@ -101,6 +130,8 @@ private:
 
 class ConfigService {
 public:
+    /// \brief ConfigService using the provided \p mqtt_abstraction to distribute relevant parts of the given \p config
+    /// when another module requests them and has appropriate access rights to them
     ConfigService(MQTTAbstraction& mqtt_abstraction, std::shared_ptr<ManagerConfig> config);
 
 private:
