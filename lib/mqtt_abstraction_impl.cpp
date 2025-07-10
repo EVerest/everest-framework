@@ -265,7 +265,7 @@ json MQTTAbstractionImpl::get(const MQTTRequest& request) {
     std::promise<json> res_promise;
     std::future<json> res_future = res_promise.get_future();
 
-    const auto res_handler = [&res_promise](const std::string& topic, json response) {
+    const auto res_handler = [&res_promise](const std::string& /*topic*/, json response) {
         res_promise.set_value(std::move(response));
     };
 
@@ -283,7 +283,7 @@ json MQTTAbstractionImpl::get(const MQTTRequest& request) {
     // wait for result future
     const std::chrono::time_point<std::chrono::steady_clock> res_wait =
         std::chrono::steady_clock::now() + request.timeout;
-    std::future_status res_future_status;
+    std::future_status res_future_status = std::future_status::deferred;
     do {
         res_future_status = res_future.wait_until(res_wait);
     } while (res_future_status == std::future_status::deferred);

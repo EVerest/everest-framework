@@ -38,21 +38,21 @@ GetSettingsResponse UserConfigStorage::get_settings() {
     response.status = GenericResponseStatus::Failed;
     return response;
 }
-GetModuleConfigurationResponse UserConfigStorage::get_module_config(const std::string& module_id) {
+GetModuleConfigurationResponse UserConfigStorage::get_module_config(const std::string& /*module_id*/) {
     GetModuleConfigurationResponse response;
     response.status = GenericResponseStatus::Failed;
     return response;
 }
 GetConfigurationParameterResponse
-UserConfigStorage::get_configuration_parameter(const ConfigurationParameterIdentifier& identifier) {
+UserConfigStorage::get_configuration_parameter(const ConfigurationParameterIdentifier& /*identifier*/) {
     GetConfigurationParameterResponse response;
     response.status = GetSetResponseStatus::Failed;
     return response;
 }
 
 GetSetResponseStatus
-UserConfigStorage::update_configuration_parameter(const ConfigurationParameterIdentifier& identifier,
-                                                  const std::string& value) {
+UserConfigStorage::update_configuration_parameter(const ConfigurationParameterIdentifier& /*identifier*/,
+                                                  const std::string& /*value*/) {
     return GetSetResponseStatus::Failed;
 }
 

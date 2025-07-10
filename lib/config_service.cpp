@@ -79,7 +79,7 @@ std::tuple<GetResponse, ResponseStatus> handle_get_config_value(const GetRequest
     } else {
         const auto identifier = get_request.identifier.value();
         const auto& module_configs = config.get_module_configurations();
-        everest::config::Access access = module_configs.at(origin).access;
+        const everest::config::Access access = module_configs.at(origin).access;
         if (not access_allowed(access, origin, identifier.module_id)) {
             EVLOG_error << "Access to config item denied: " << origin << " cannot access " << identifier.module_id;
             status = ResponseStatus::AccessDenied;
@@ -126,7 +126,7 @@ GetResponse handle_get_all_mappings(const std::string& origin, const ManagerConf
     get_response.type = GetType::AllMappings;
     json all_mappings = json::object();
     const auto& module_configs = config.get_module_configurations();
-    everest::config::Access access = module_configs.at(origin).access;
+    const everest::config::Access access = module_configs.at(origin).access;
     for (const auto& [module_id, module_name] : config.get_module_names()) {
         if (not access_allowed(access, origin, module_id)) {
             // request.origin has no access to module_id.mappings
@@ -144,7 +144,7 @@ SetResponse handle_set_request(const SetRequest& set_request, const std::string&
     set_response.status = SetResponseStatus::Rejected;
 
     const auto& module_configs = config.get_module_configurations();
-    everest::config::Access access = module_configs.at(origin).access;
+    const everest::config::Access access = module_configs.at(origin).access;
     if (not access_allowed(access, origin, set_request.identifier.module_id)) {
         set_response.status = SetResponseStatus::Rejected;
     } else {
@@ -265,7 +265,7 @@ ConfigServiceClient::set_config_value(const everest::config::ConfigurationParame
         const Response response = mqtt_abstraction->get(mqtt_request);
         if (response.status == ResponseStatus::Ok) {
             if (response.type.has_value() and response.type.value() == Type::Set) {
-                SetResponse set_response = std::get<SetResponse>(response.response);
+                const SetResponse set_response = std::get<SetResponse>(response.response);
                 return conversions::set_response_status_to_set_config_status(set_response.status);
             }
         }
@@ -297,7 +297,7 @@ ConfigServiceClient::get_config_value(const everest::config::ConfigurationParame
         const Response response = mqtt_abstraction->get(mqtt_request);
         if (response.status == ResponseStatus::Ok) {
             if (response.type.has_value() and response.type.value() == Type::Get) {
-                GetResponse get_response = std::get<GetResponse>(response.response);
+                const GetResponse get_response = std::get<GetResponse>(response.response);
                 result.configuration_parameter = get_response.data;
             }
         }
@@ -326,7 +326,7 @@ ConfigService::ConfigService(MQTTAbstraction& mqtt_abstraction, std::shared_ptr<
                 fmt::format("{}modules/{}/response", mqtt_abstraction.get_everest_prefix(), request.origin);
 
             if (request.type == Type::Get) {
-                GetRequest get_request = std::get<GetRequest>(request.request);
+                const GetRequest get_request = std::get<GetRequest>(request.request);
                 if (get_request.type == GetType::Module) {
                     response.response = handle_get_module_config(request.origin, *config);
                     response.status = ResponseStatus::Ok;

@@ -15,11 +15,12 @@
 namespace Everest {
 using json = nlohmann::json;
 
+namespace {
 inline constexpr int mqtt_get_config_timeout_ms = 5000;
 
 // TODO: make this use the ConfigServiceClient as well?
 // TODO: needs changes in the bindings to support a new get_module_config call
-json get_definitions(std::shared_ptr<MQTTAbstraction> mqtt, const std::string& module_id) {
+json get_definitions(std::shared_ptr<MQTTAbstraction> mqtt) {
     const auto& everest_prefix = mqtt->get_everest_prefix();
 
     json result;
@@ -72,6 +73,7 @@ json get_definitions(std::shared_ptr<MQTTAbstraction> mqtt, const std::string& m
 
     return result;
 }
+} // namespace
 
 json get_module_config(std::shared_ptr<MQTTAbstraction> mqtt, const std::string& module_id) {
     const auto& everest_prefix = mqtt->get_everest_prefix();
@@ -122,7 +124,7 @@ json get_module_config(std::shared_ptr<MQTTAbstraction> mqtt, const std::string&
     }
     mqtt->unregister_handler(config_topic, res_token);
 
-    result.update(get_definitions(mqtt, module_id));
+    result.update(get_definitions(mqtt));
 
     return result;
 }

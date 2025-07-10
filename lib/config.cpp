@@ -1253,9 +1253,10 @@ Config::Config(const MQTTSettings& mqtt_settings, const json& serialized_config)
     this->populate_error_map();
 }
 
+namespace {
 everest::config::ConfigurationParameterCharacteristics
 get_characteristics(const std::string& name,
-                    std::vector<everest::config::ConfigurationParameter> configuration_parameters) {
+                    const std::vector<everest::config::ConfigurationParameter>& configuration_parameters) {
     for (const auto& configuration_parameter : configuration_parameters) {
         if (configuration_parameter.name == name) {
             return configuration_parameter.characteristics;
@@ -1263,6 +1264,7 @@ get_characteristics(const std::string& name,
     }
     throw std::out_of_range("oops");
 }
+} // namespace
 
 everest::config::SetConfigStatus
 ManagerConfig::set_config_value(const everest::config::ConfigurationParameterIdentifier& identifier,
