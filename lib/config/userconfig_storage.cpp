@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // Copyright Pionix GmbH and Contributors to EVerest
+#include <exception>
+
 #include <everest/logging.hpp>
 
 #include <utils/config/storage.hpp>
@@ -10,22 +12,29 @@
 namespace everest::config {
 
 UserConfigStorage::UserConfigStorage(const fs::path& user_config_path) : user_config_path(user_config_path) {
-    // TODO: try-catch
-    if (fs::exists(user_config_path)) {
-        this->user_config = Everest::load_yaml(user_config_path);
+    try {
+        if (fs::exists(user_config_path)) {
+            this->user_config = Everest::load_yaml(user_config_path);
+        }
+    } catch (const std::exception& e) {
+        EVLOG_error << "Could not load user-config at " << user_config_path.string() << ": " << e.what();
     }
 }
 
-GenericResponseStatus UserConfigStorage::write_module_configs(const ModuleConfigurations& module_configs) {
+GenericResponseStatus UserConfigStorage::write_module_configs(const ModuleConfigurations& /*module_configs*/) {
     return GenericResponseStatus::Failed;
 }
-GenericResponseStatus UserConfigStorage::write_settings(const Everest::ManagerSettings& manager_settings) {
+GenericResponseStatus UserConfigStorage::write_settings(const Everest::ManagerSettings& /*manager_settings*/) {
     return GenericResponseStatus::Failed;
 }
 GenericResponseStatus UserConfigStorage::wipe() {
-    // FIXME: error handling
-    this->user_config = nlohmann::json::object();
-    Everest::save_yaml(this->user_config, this->user_config_path);
+    try {
+        this->user_config = nlohmann::json::object();
+        Everest::save_yaml(this->user_config, this->user_config_path);
+    } catch (const std::exception& e) {
+        EVLOG_error << "Could not save user-config to " << this->user_config_path.string() << ": " << e.what();
+        return GenericResponseStatus::Failed;
+    }
     return GenericResponseStatus::OK;
 }
 GetModuleConfigsResponse UserConfigStorage::get_module_configs() {

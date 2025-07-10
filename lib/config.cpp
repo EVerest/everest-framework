@@ -1269,37 +1269,38 @@ get_characteristics(const std::string& name,
 everest::config::SetConfigStatus
 ManagerConfig::set_config_value(const everest::config::ConfigurationParameterIdentifier& identifier,
                                 const everest::config::ConfigEntry& value) {
-    // TODO: do a validation step here before engaging the storage backend (which should be
-    // as-unknowledgeable-as-possible about valid module ids and values)
+    try {
+        const auto& module_config = this->module_configs.at(identifier.module_id);
+        const auto& configuration_parameters =
+            module_config.configuration_parameters.at(identifier.module_implementation_id.value_or("!module"));
+        const auto& characteristics =
+            get_characteristics(identifier.configuration_parameter_name, configuration_parameters);
 
-    const auto& module_config = this->module_configs.at(identifier.module_id);
-    const auto& configuration_parameters =
-        module_config.configuration_parameters.at(identifier.module_implementation_id.value_or("!module"));
-    const auto& characteristics =
-        get_characteristics(identifier.configuration_parameter_name, configuration_parameters);
-
-    switch (this->ms.boot_mode) {
-    case ConfigBootMode::YamlFile: {
-        const auto write_response = this->user_config_storage->write_configuration_parameter(
-            identifier, characteristics, everest::config::config_entry_to_string(value));
-        if (write_response == GetSetResponseStatus::OK) {
-            return everest::config::SetConfigStatus::RebootRequired;
-        }
-        break;
-    }
-    case ConfigBootMode::Database:
-    case ConfigBootMode::DatabaseInit:
-        const auto& cached_value_it = this->database_get_config_parameter_response_cache.find(identifier);
-        const auto cached_value = this->ms.storage->get_configuration_parameter(identifier);
-        const auto write_response = this->ms.storage->write_configuration_parameter(
-            identifier, characteristics, everest::config::config_entry_to_string(value));
-        if (write_response == GetSetResponseStatus::OK) {
-            if (cached_value_it == this->database_get_config_parameter_response_cache.end()) {
-                // cache initial config value in case it is only valid after a reboot
-                this->database_get_config_parameter_response_cache[identifier] = cached_value;
+        switch (this->ms.boot_mode) {
+        case ConfigBootMode::YamlFile: {
+            const auto write_response = this->user_config_storage->write_configuration_parameter(
+                identifier, characteristics, everest::config::config_entry_to_string(value));
+            if (write_response == GetSetResponseStatus::OK) {
+                return everest::config::SetConfigStatus::RebootRequired;
             }
-            return everest::config::SetConfigStatus::RebootRequired;
+            break;
         }
+        case ConfigBootMode::Database:
+        case ConfigBootMode::DatabaseInit:
+            const auto& cached_value_it = this->database_get_config_parameter_response_cache.find(identifier);
+            const auto cached_value = this->ms.storage->get_configuration_parameter(identifier);
+            const auto write_response = this->ms.storage->write_configuration_parameter(
+                identifier, characteristics, everest::config::config_entry_to_string(value));
+            if (write_response == GetSetResponseStatus::OK) {
+                if (cached_value_it == this->database_get_config_parameter_response_cache.end()) {
+                    // cache initial config value in case it is only valid after a reboot
+                    this->database_get_config_parameter_response_cache[identifier] = cached_value;
+                }
+                return everest::config::SetConfigStatus::RebootRequired;
+            }
+            return everest::config::SetConfigStatus::Rejected;
+        }
+    } catch (const std::exception& e) {
         return everest::config::SetConfigStatus::Rejected;
     }
 
@@ -1311,33 +1312,39 @@ ManagerConfig::get_config_value(const everest::config::ConfigurationParameterIde
     everest::config::GetConfigurationParameterResponse response;
     response.status = GetSetResponseStatus::Failed;
 
-    switch (this->ms.boot_mode) {
-    case ConfigBootMode::YamlFile: {
-        const auto& module_config = this->module_configs.at(identifier.module_id);
-        const auto& configuration_parameters =
-            module_config.configuration_parameters.at(identifier.module_implementation_id.value_or("!module"));
-        for (const auto& configuration_parameter : configuration_parameters) {
-            if (configuration_parameter.name == identifier.configuration_parameter_name) {
-                response.status = GetSetResponseStatus::OK;
-                response.configuration_parameter = configuration_parameter;
-                break;
+    try {
+        switch (this->ms.boot_mode) {
+        case ConfigBootMode::YamlFile: {
+            const auto& module_config = this->module_configs.at(identifier.module_id);
+            const auto& configuration_parameters =
+                module_config.configuration_parameters.at(identifier.module_implementation_id.value_or("!module"));
+            for (const auto& configuration_parameter : configuration_parameters) {
+                if (configuration_parameter.name == identifier.configuration_parameter_name) {
+                    response.status = GetSetResponseStatus::OK;
+                    response.configuration_parameter = configuration_parameter;
+                    break;
+                }
             }
+            if (response.status != GetSetResponseStatus::OK) {
+                response.status = GetSetResponseStatus::NotFound;
+            }
+            break;
         }
-        if (response.status != GetSetResponseStatus::OK) {
-            response.status = GetSetResponseStatus::NotFound;
+        case ConfigBootMode::Database:
+        case ConfigBootMode::DatabaseInit: {
+            // ensure that we do not return database values that are only valid after a reboot
+            const auto& cached_value_it = this->database_get_config_parameter_response_cache.find(identifier);
+            if (cached_value_it != this->database_get_config_parameter_response_cache.end()) {
+                return cached_value_it->second;
+            }
+            response = this->ms.storage->get_configuration_parameter(identifier);
+            break;
         }
-        break;
-    }
-    case ConfigBootMode::Database:
-    case ConfigBootMode::DatabaseInit: {
-        // ensure that we do not return database values that are only valid after a reboot
-        const auto& cached_value_it = this->database_get_config_parameter_response_cache.find(identifier);
-        if (cached_value_it != this->database_get_config_parameter_response_cache.end()) {
-            return cached_value_it->second;
         }
-        response = this->ms.storage->get_configuration_parameter(identifier);
-        break;
-    }
+    } catch (const std::exception& e) {
+        everest::config::GetConfigurationParameterResponse failed_response;
+        failed_response.status = GetSetResponseStatus::Failed;
+        return failed_response;
     }
 
     return response;
