@@ -71,6 +71,7 @@ enum class SetResponseStatus {
 /// \brief Represents a response to a set request
 struct SetResponse {
     SetResponseStatus status = SetResponseStatus::Rejected; ///< Status of the set response
+    std::string status_info;                                ///< Can contain additional status information
 };
 
 /// \brief Represents a container for various requests that can be made to the ConfigService
@@ -83,6 +84,7 @@ struct Request {
 /// \brief Represents a container for various responses to requests made to the ConfigService
 struct Response {
     ResponseStatus status = ResponseStatus::Error; ///< Status of the response
+    std::string status_info;                       ///< Can contain additional status information
     std::optional<Type> type; ///< The type of the response, identical to the request, missing when status is Error
     std::variant<std::monostate, GetResponse, SetResponse> response; ///< The response itself
 };
@@ -90,7 +92,16 @@ struct Response {
 /// \brief Represents a container for getting a configuration parameter
 struct GetConfigResult {
     ResponseStatus status = ResponseStatus::Error;                   ///< Status of the result
+    std::string status_info;                                         ///< Can contain additional status information
     everest::config::ConfigurationParameter configuration_parameter; ///< The requested configuration parameter
+};
+
+/// \brief Represents a container for the result of setting a configuration parameter
+struct SetConfigResult {
+    ResponseStatus status = ResponseStatus::Error; ///< Status of the result
+    std::string status_info;                       ///< Can contain additional status information
+    everest::config::SetConfigStatus set_status =
+        everest::config::SetConfigStatus::Rejected; ///< Specific status for the resut of setting the config parameter
 };
 
 /// \brief Represents a compound type to identify a specific module instance and its type
@@ -115,8 +126,9 @@ public:
     std::map<std::string, ModuleTierMappings> get_mappings();
 
     /// \brief Sets the config \p value associated with the \p identifier
-    everest::config::SetConfigStatus
-    set_config_value(const everest::config::ConfigurationParameterIdentifier& identifier, const std::string& value);
+    /// \returns a resukt containing status and potential error information
+    SetConfigResult set_config_value(const everest::config::ConfigurationParameterIdentifier& identifier,
+                                     const std::string& value);
 
     /// \brief Gets the config value associated with the \p identifier
     /// \returns a result containing the configuration item or an error

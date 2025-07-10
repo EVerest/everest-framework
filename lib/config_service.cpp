@@ -68,33 +68,35 @@ GetResponse handle_get_module_config(const std::string& origin, const ManagerCon
     return get_response;
 }
 
-std::tuple<GetResponse, ResponseStatus> handle_get_config_value(const GetRequest& get_request,
-                                                                const std::string& origin, ManagerConfig& config) {
+Response handle_get_config_value(const GetRequest& get_request, const std::string& origin, ManagerConfig& config) {
+    Response response;
+    response.type = Type::Get;
     GetResponse get_response;
     get_response.type = GetType::Value;
-    auto status = ResponseStatus::Error;
 
     if (not get_request.identifier.has_value()) {
-        status = ResponseStatus::Error; // no identifier is always an error in this case
+        response.status = ResponseStatus::Error; // no identifier is always an error in this case
+        response.status_info = "No identifier provided";
     } else {
         const auto identifier = get_request.identifier.value();
         const auto& module_configs = config.get_module_configurations();
         const everest::config::Access access = module_configs.at(origin).access;
         if (not access_allowed(access, origin, identifier.module_id)) {
-            EVLOG_error << "Access to config item denied: " << origin << " cannot access " << identifier.module_id;
-            status = ResponseStatus::AccessDenied;
+            response.status = ResponseStatus::AccessDenied;
+            response.status_info =
+                fmt::format("Access to config item denied: {} cannot access {}", origin, identifier.module_id);
         } else {
             const auto get_config_value_response = config.get_config_value(identifier);
             if (get_config_value_response.status == everest::config::GetSetResponseStatus::OK) {
                 if (get_config_value_response.configuration_parameter.has_value()) {
                     get_response.data = get_config_value_response.configuration_parameter.value();
-                    status = ResponseStatus::Ok;
+                    response.status = ResponseStatus::Ok;
                 }
             }
         }
     }
 
-    return {get_response, status};
+    return response;
 }
 
 GetResponse handle_get_all_configs(const std::string& origin, const ManagerConfig& config) {
@@ -139,7 +141,9 @@ GetResponse handle_get_all_mappings(const std::string& origin, const ManagerConf
     return get_response;
 }
 
-SetResponse handle_set_request(const SetRequest& set_request, const std::string& origin, ManagerConfig& config) {
+Response handle_set_request(const SetRequest& set_request, const std::string& origin, ManagerConfig& config) {
+    Response response;
+    response.type = Type::Set;
     SetResponse set_response;
     set_response.status = SetResponseStatus::Rejected;
 
@@ -147,6 +151,9 @@ SetResponse handle_set_request(const SetRequest& set_request, const std::string&
     const everest::config::Access access = module_configs.at(origin).access;
     if (not access_allowed(access, origin, set_request.identifier.module_id)) {
         set_response.status = SetResponseStatus::Rejected;
+        response.status = ResponseStatus::AccessDenied;
+        response.status_info =
+            fmt::format("Access to config item denied: {} cannot access {}", origin, set_request.identifier.module_id);
     } else {
         // TODO: explicit input validation
         const auto& target_module_config = module_configs.at(set_request.identifier.module_id);
@@ -157,15 +164,19 @@ SetResponse handle_set_request(const SetRequest& set_request, const std::string&
                 try {
                     const auto value = parse_config_value(config_entry.characteristics.datatype, set_request.value);
                     status = config.set_config_value(set_request.identifier, value);
+                    response.status = ResponseStatus::Ok;
                 } catch (const std::exception& e) {
-                    EVLOG_error << "Could not set config entry: " << e.what(); // FIXME: mention module and config entry
+                    response.status = ResponseStatus::Error;
+                    response.status_info = fmt::format("Could not set config entry {} of module {}: {}",
+                                                       set_request.identifier.configuration_parameter_name,
+                                                       set_request.identifier.module_id, e.what());
                 }
                 break;
             }
         }
         set_response.status = conversions::set_config_status_to_set_response_status(status);
     }
-    return set_response;
+    return response;
 }
 } // namespace
 
@@ -244,9 +255,10 @@ std::map<std::string, ModuleTierMappings> ConfigServiceClient::get_mappings() {
     }
 }
 
-everest::config::SetConfigStatus
+SetConfigResult
 ConfigServiceClient::set_config_value(const everest::config::ConfigurationParameterIdentifier& identifier,
                                       const std::string& value) {
+    SetConfigResult result;
     Request request;
     request.type = Type::Set;
     request.origin = this->origin;
@@ -263,18 +275,22 @@ ConfigServiceClient::set_config_value(const everest::config::ConfigurationParame
         mqtt_request.request_data = json(request).dump();
 
         const Response response = mqtt_abstraction->get(mqtt_request);
+        result.status = response.status;
+        result.status_info = response.status_info;
         if (response.status == ResponseStatus::Ok) {
             if (response.type.has_value() and response.type.value() == Type::Set) {
                 const SetResponse set_response = std::get<SetResponse>(response.response);
-                return conversions::set_response_status_to_set_config_status(set_response.status);
+                result.set_status = conversions::set_response_status_to_set_config_status(set_response.status);
             }
         }
+        return result;
     } catch (const std::exception& e) {
         EVLOG_info << "Could not set config value: " << identifier.module_id << ": "
                    << identifier.module_implementation_id.value_or(MODULE_IMPLEMENTATION_ID) << ": "
                    << identifier.configuration_parameter_name << ": " << e.what();
+        result.status = ResponseStatus::Error;
     }
-    return everest::config::SetConfigStatus::Rejected;
+    return result;
 }
 
 GetConfigResult
@@ -295,6 +311,8 @@ ConfigServiceClient::get_config_value(const everest::config::ConfigurationParame
         mqtt_request.request_topic = fmt::format("{}config/request", mqtt_abstraction->get_everest_prefix());
         mqtt_request.request_data = json(request).dump();
         const Response response = mqtt_abstraction->get(mqtt_request);
+        result.status = response.status;
+        result.status_info = response.status_info;
         if (response.status == ResponseStatus::Ok) {
             if (response.type.has_value() and response.type.value() == Type::Get) {
                 const GetResponse get_response = std::get<GetResponse>(response.response);
@@ -331,9 +349,7 @@ ConfigService::ConfigService(MQTTAbstraction& mqtt_abstraction, std::shared_ptr<
                     response.response = handle_get_module_config(request.origin, *config);
                     response.status = ResponseStatus::Ok;
                 } else if (get_request.type == GetType::Value) {
-                    const auto [get_response, status] = handle_get_config_value(get_request, request.origin, *config);
-                    response.response = get_response;
-                    response.status = status;
+                    response = handle_get_config_value(get_request, request.origin, *config);
                 } else if (get_request.type == GetType::All) {
                     response.response = handle_get_all_configs(request.origin, *config);
                     response.status = ResponseStatus::Ok;
@@ -342,8 +358,7 @@ ConfigService::ConfigService(MQTTAbstraction& mqtt_abstraction, std::shared_ptr<
                     response.status = ResponseStatus::Ok;
                 }
             } else if (request.type == Type::Set) {
-                response.response = handle_set_request(std::get<SetRequest>(request.request), request.origin, *config);
-                response.status = ResponseStatus::Ok;
+                response = handle_set_request(std::get<SetRequest>(request.request), request.origin, *config);
             }
 
             mqtt_abstraction.publish(response_topic, response, QOS::QOS2);
@@ -550,7 +565,7 @@ void from_json(const nlohmann::json& j, Request& r) {
 }
 
 void to_json(nlohmann::json& j, const Response& r) {
-    j = {{"status", conversions::response_status_to_string(r.status)}};
+    j = {{"status", conversions::response_status_to_string(r.status)}, {"status_info", r.status_info}};
     if (r.type.has_value()) {
         j["type"] = conversions::type_to_string(r.type.value());
     }
@@ -559,6 +574,7 @@ void to_json(nlohmann::json& j, const Response& r) {
 
 void from_json(const nlohmann::json& j, Response& r) {
     r.status = conversions::string_to_response_status(j.at("status"));
+    r.status_info = j.at("status_info");
     if (j.contains("type")) {
         Type type = conversions::string_to_type(j.at("type"));
         r.type = type;
