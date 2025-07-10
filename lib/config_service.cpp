@@ -176,6 +176,7 @@ Response handle_set_request(const SetRequest& set_request, const std::string& or
         }
         set_response.status = conversions::set_config_status_to_set_response_status(status);
     }
+    response.response = set_response;
     return response;
 }
 } // namespace
