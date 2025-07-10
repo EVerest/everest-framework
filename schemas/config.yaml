@@ -198,7 +198,10 @@ properties:
                 type: object
                 properties:
                   allow_global_read:
-                    description: Allow global readonly access to config items
+                    description: Allow global read access to config items
+                    type: boolean
+                  allow_global_write:
+                    description: Allow global write access to config items
                     type: boolean
                   allow_set_read_only:
                     description: Allow setting of readonly config items, will need a restart
@@ -211,8 +214,14 @@ properties:
                       ^[a-zA-Z_][a-zA-Z0-9_.-]*$:
                         type: object
                         properties:
+                          allow_read:
+                            description: Allow read access to config items
+                            type: boolean
+                          allow_write:
+                            description: Allow write access to config items
+                            type: boolean
                           allow_set_read_only:
-                            description: Allow setting of a readonly config item, will need a restart
+                            description: Allow setting of a readonly config items, will need a restart
                             type: boolean
                 additionalProperties: false
             additionalProperties: false

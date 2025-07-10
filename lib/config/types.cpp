@@ -338,11 +338,19 @@ NLOHMANN_JSON_NAMESPACE_BEGIN
 
 void adl_serializer<everest::config::ModuleConfigAccess>::to_json(nlohmann::json& j,
                                                                   const everest::config::ModuleConfigAccess& m) {
+    j["allow_read"] = m.allow_read;
+    j["allow_write"] = m.allow_write;
     j["allow_set_read_only"] = m.allow_set_read_only;
 }
 
 void adl_serializer<everest::config::ModuleConfigAccess>::from_json(const nlohmann::json& j,
                                                                     everest::config::ModuleConfigAccess& m) {
+    if (j.contains("allow_read")) {
+        m.allow_read = j.at("allow_read").get<bool>();
+    }
+    if (j.contains("allow_write")) {
+        m.allow_write = j.at("allow_write").get<bool>();
+    }
     if (j.contains("allow_set_read_only")) {
         m.allow_set_read_only = j.at("allow_set_read_only").get<bool>();
     }
@@ -350,6 +358,7 @@ void adl_serializer<everest::config::ModuleConfigAccess>::from_json(const nlohma
 
 void adl_serializer<everest::config::ConfigAccess>::to_json(nlohmann::json& j, const everest::config::ConfigAccess& c) {
     j["allow_global_read"] = c.allow_global_read;
+    j["allow_global_write"] = c.allow_global_write;
     j["allow_set_read_only"] = c.allow_set_read_only;
     j["modules"] = c.modules;
 }
@@ -358,6 +367,9 @@ void adl_serializer<everest::config::ConfigAccess>::from_json(const nlohmann::js
                                                               everest::config::ConfigAccess& c) {
     if (j.contains("allow_global_read")) {
         c.allow_global_read = j.at("allow_global_read").get<bool>();
+    }
+    if (j.contains("allow_global_write")) {
+        c.allow_global_write = j.at("allow_global_write").get<bool>();
     }
     if (j.contains("allow_set_read_only")) {
         c.allow_set_read_only = j.at("allow_set_read_only").get<bool>();

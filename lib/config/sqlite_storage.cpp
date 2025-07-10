@@ -596,14 +596,15 @@ GenericResponseStatus SqliteStorage::write_access(const std::string& module_id, 
 GenericResponseStatus SqliteStorage::write_config_access(const std::string& module_id,
                                                          const ConfigAccess& config_access) {
     // write global config access to db
-    const std::string sql = "INSERT OR REPLACE INTO CONFIG_ACCESS (MODULE_ID, ALLOW_GLOBAL_READ, "
-                            "ALLOW_SET_READ_ONLY) VALUES (?,?,?)";
+    const std::string sql = "INSERT OR REPLACE INTO CONFIG_ACCESS (MODULE_ID, ALLOW_GLOBAL_READ, ALLOW_GLOBAL_WRITE, "
+                            "ALLOW_SET_READ_ONLY) VALUES (?,?,?,?)";
 
     auto stmt = this->db->new_statement(sql);
 
     stmt->bind_text(1, module_id);
     stmt->bind_int(2, config_access.allow_global_read ? 1 : 0);
-    stmt->bind_int(3, config_access.allow_set_read_only ? 1 : 0);
+    stmt->bind_int(3, config_access.allow_global_write ? 1 : 0);
+    stmt->bind_int(4, config_access.allow_set_read_only ? 1 : 0);
 
     if (stmt->step() != SQLITE_DONE) {
         return GenericResponseStatus::Failed;
@@ -623,13 +624,15 @@ GenericResponseStatus SqliteStorage::write_module_config_access(const std::strin
                                                                 const std::string& other_module_id,
                                                                 const ModuleConfigAccess& module_config_access) {
     const std::string sql = "INSERT OR REPLACE INTO MODULE_CONFIG_ACCESS (MODULE_ID, OTHER_MODULE_ID, "
-                            "ALLOW_SET_READ_ONLY) VALUES (?,?,?)";
+                            "ALLOW_READ, ALLOW_WRITE, ALLOW_SET_READ_ONLY) VALUES (?,?,?,?,?)";
 
     auto stmt = this->db->new_statement(sql);
 
     stmt->bind_text(1, module_id);
     stmt->bind_text(2, other_module_id);
-    stmt->bind_int(3, module_config_access.allow_set_read_only ? 1 : 0);
+    stmt->bind_int(3, module_config_access.allow_read ? 1 : 0);
+    stmt->bind_int(4, module_config_access.allow_write ? 1 : 0);
+    stmt->bind_int(5, module_config_access.allow_set_read_only ? 1 : 0);
 
     if (stmt->step() != SQLITE_DONE) {
         return GenericResponseStatus::Failed;

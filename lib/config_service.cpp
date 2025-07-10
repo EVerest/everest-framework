@@ -18,23 +18,46 @@ bool ModuleIdType::operator<(const ModuleIdType& rhs) const {
             (this->module_id == rhs.module_id && this->module_type < rhs.module_type));
 }
 
+enum class AccessMethod {
+    Read,
+    Write
+};
+
 namespace {
-bool access_allowed(const everest::config::Access& access, const std::string& origin, const std::string& target) {
+bool access_allowed(const everest::config::Access& access, const std::string& origin, const std::string& target,
+                    AccessMethod method) {
+    if (origin == target) {
+        // a module can always read and write its own config
+        return true;
+    }
     if (not access.config.has_value()) {
         return false;
     }
     const auto& config_access = access.config.value();
-    if (config_access.allow_global_read) {
-        return true;
-    }
-    if (origin == target) {
-        // a module can always read its own config
-        return true;
+    const auto& config_access_modules_it = config_access.modules.find(target);
+    switch (method) {
+    case AccessMethod::Read:
+        if (config_access.allow_global_read) {
+            return true;
+        }
+        if (config_access_modules_it != config_access.modules.end()) {
+            if (config_access_modules_it->second.allow_read) {
+                return true;
+            }
+        }
+        break;
+    case AccessMethod::Write:
+        if (config_access.allow_global_write) {
+            return true;
+        }
+        if (config_access_modules_it != config_access.modules.end()) {
+            if (config_access_modules_it->second.allow_write) {
+                return true;
+            }
+        }
+        break;
     }
 
-    if (config_access.modules.find(target) != config_access.modules.end()) {
-        return true;
-    }
     return false;
 }
 
@@ -81,7 +104,7 @@ Response handle_get_config_value(const GetRequest& get_request, const std::strin
         const auto identifier = get_request.identifier.value();
         const auto& module_configs = config.get_module_configurations();
         const everest::config::Access access = module_configs.at(origin).access;
-        if (not access_allowed(access, origin, identifier.module_id)) {
+        if (not access_allowed(access, origin, identifier.module_id, AccessMethod::Read)) {
             response.status = ResponseStatus::AccessDenied;
             response.status_info =
                 fmt::format("Access to config item denied: {} cannot access {}", origin, identifier.module_id);
@@ -108,14 +131,24 @@ GetResponse handle_get_all_configs(const std::string& origin, const ManagerConfi
     const auto& module_configs = config.get_module_configurations();
     everest::config::Access access = module_configs.at(origin).access;
     for (const auto& [module_id, module_name] : config.get_module_names()) {
-        if (not access_allowed(access, origin, module_id)) {
+        if (not access_allowed(access, origin, module_id, AccessMethod::Read)) {
             // request.origin has no access to module_id.config
             continue;
         }
         auto allow_set_read_only = false;
         if (access.config.has_value()) {
-            allow_set_read_only = access.config.value().allow_set_read_only;
+            const auto config_access = access.config.value();
+            allow_set_read_only = config_access.allow_set_read_only;
+
+            if (not allow_set_read_only) {
+                // check if allow_set_read_only is set for specific modules
+                const auto module_config_access_it = config_access.modules.find(module_id);
+                if (module_config_access_it != config_access.modules.end()) {
+                    allow_set_read_only = module_config_access_it->second.allow_set_read_only;
+                }
+            }
         }
+
         all_configs[module_id] =
             update_mutability(module_configs.at(module_id).configuration_parameters, allow_set_read_only);
     }
@@ -130,7 +163,7 @@ GetResponse handle_get_all_mappings(const std::string& origin, const ManagerConf
     const auto& module_configs = config.get_module_configurations();
     const everest::config::Access access = module_configs.at(origin).access;
     for (const auto& [module_id, module_name] : config.get_module_names()) {
-        if (not access_allowed(access, origin, module_id)) {
+        if (not access_allowed(access, origin, module_id, AccessMethod::Read)) {
             // request.origin has no access to module_id.mappings
             continue;
         }
@@ -149,7 +182,7 @@ Response handle_set_request(const SetRequest& set_request, const std::string& or
 
     const auto& module_configs = config.get_module_configurations();
     const everest::config::Access access = module_configs.at(origin).access;
-    if (not access_allowed(access, origin, set_request.identifier.module_id)) {
+    if (not access_allowed(access, origin, set_request.identifier.module_id, AccessMethod::Write)) {
         set_response.status = SetResponseStatus::Rejected;
         response.status = ResponseStatus::AccessDenied;
         response.status_info =
