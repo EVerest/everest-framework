@@ -190,8 +190,8 @@ struct ModuleConfigAccess {
 
 /// \brief
 struct ConfigAccess {
-    bool allow_global_read = false;   ///< Allow this module to read the config items of other all other modules
-    bool allow_global_write = false;  ///< Allow this module to write the config items of other all other modules
+    bool allow_global_read = false;   ///< Allow this module to read the config items of all other modules
+    bool allow_global_write = false;  ///< Allow this module to write the config items of all other modules
     bool allow_set_read_only = false; ///< If ReadOnly config items can be treated as ReadWrite (this typically requires
                                       ///< a reboot to have an effect)
     std::map<std::string, everest::config::ModuleConfigAccess>

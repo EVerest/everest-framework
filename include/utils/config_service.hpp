@@ -126,7 +126,7 @@ public:
     std::map<std::string, ModuleTierMappings> get_mappings();
 
     /// \brief Sets the config \p value associated with the \p identifier
-    /// \returns a resukt containing status and potential error information
+    /// \returns a result containing status and potential error information
     SetConfigResult set_config_value(const everest::config::ConfigurationParameterIdentifier& identifier,
                                      const std::string& value);
 
