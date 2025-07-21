@@ -315,8 +315,10 @@ json Everest::call_cmd(const Requirement& req, const std::string& cmd_name, json
     const auto& connections = this->config.resolve_requirement(this->module_id, req.id);
     const auto& connection = connections.at(req.index);
 
+    const auto& [implementation_id, implementation_index] = parse_requirement_id(connection.implementation_id);
+
     // extract manifest definition of this command
-    const json cmd_definition = get_cmd_definition(connection.module_id, connection.implementation_id, cmd_name, true);
+    const json cmd_definition = get_cmd_definition(connection.module_id, implementation_id, cmd_name, true);
 
     const json return_type = cmd_definition.at("result").at("type");
 
@@ -393,17 +395,18 @@ json Everest::call_cmd(const Requirement& req, const std::string& cmd_name, json
         }
     };
 
-    const auto cmd_topic =
-        fmt::format("{}/cmd", this->config.mqtt_prefix(connection.module_id, connection.implementation_id));
+    const auto cmd_topic = fmt::format("{}/cmd", this->config.mqtt_prefix(connection.module_id, implementation_id));
 
     const std::shared_ptr<TypedHandler> res_token =
         std::make_shared<TypedHandler>(cmd_name, call_id, HandlerType::Result, std::make_shared<Handler>(res_handler));
     this->mqtt_abstraction->register_handler(cmd_topic, res_token, QOS::QOS2);
 
-    const json cmd_publish_data =
-        json::object({{"name", cmd_name},
-                      {"type", "call"},
-                      {"data", json::object({{"id", call_id}, {"args", json_args}, {"origin", this->module_id}})}});
+    const json cmd_publish_data = json::object(
+        {{"name", cmd_name},
+         {"type", "call"},
+         {"data",
+          json::object(
+              {{"id", call_id}, {"index", implementation_index}, {"args", json_args}, {"origin", this->module_id}})}});
 
     this->mqtt_abstraction->publish(cmd_topic, cmd_publish_data, QOS::QOS2);
 
@@ -457,6 +460,11 @@ json Everest::call_cmd(const Requirement& req, const std::string& cmd_name, json
 }
 
 void Everest::publish_var(const std::string& impl_id, const std::string& var_name, json value) {
+    this->publish_var(0, impl_id, value);
+}
+
+void Everest::publish_var(std::size_t index, const std::string& impl_id, const std::string& var_name,
+                          nlohmann::json value) {
     BOOST_LOG_FUNCTION();
 
     // check arguments
@@ -488,7 +496,7 @@ void Everest::publish_var(const std::string& impl_id, const std::string& var_nam
         }
     }
 
-    const auto var_topic = fmt::format("{}/var", this->config.mqtt_prefix(this->module_id, impl_id));
+    const auto var_topic = fmt::format("{}/var/{}", this->config.mqtt_prefix(this->module_id, impl_id), index);
 
     const json var_publish_data = {{"name", var_name}, {"data", value}};
 
@@ -505,9 +513,11 @@ void Everest::subscribe_var(const Requirement& req, const std::string& var_name,
     const auto& connections = this->config.resolve_requirement(this->module_id, req.id);
     const auto& connection = connections.at(req.index);
 
+    const auto& [implementation_id, implementation_index] = parse_requirement_id(connection.implementation_id);
+
     const auto requirement_module_id = connection.module_id;
     const auto module_name = this->config.get_module_name(requirement_module_id);
-    const auto requirement_impl_id = connection.implementation_id;
+    const auto requirement_impl_id = implementation_id;
     const auto requirement_impl_manifest = this->config.get_interface_definitions().at(
         this->config.get_interfaces().at(module_name).at(requirement_impl_id));
 
@@ -542,7 +552,8 @@ void Everest::subscribe_var(const Requirement& req, const std::string& var_name,
         callback(data);
     };
 
-    const auto var_topic = fmt::format("{}/var", this->config.mqtt_prefix(requirement_module_id, requirement_impl_id));
+    const auto var_topic = fmt::format(
+        "{}/var/{}", this->config.mqtt_prefix(requirement_module_id, requirement_impl_id), implementation_index);
 
     // TODO(kai): multiple subscription should be perfectly fine here!
     const std::shared_ptr<TypedHandler> token =
@@ -855,8 +866,12 @@ void Everest::handle_ready(const json& data) {
 }
 
 void Everest::provide_cmd(const std::string& impl_id, const std::string& cmd_name, const JsonCommand& handler) {
-    BOOST_LOG_FUNCTION();
 
+    this->provide_cmd(impl_id, cmd_name, [handler](std::size_t index, json data) { return handler(std::move(data)); });
+}
+
+void Everest::provide_cmd(const std::string& impl_id, const std::string& cmd_name, const JsonCommandMultiple& handler) {
+    BOOST_LOG_FUNCTION();
     // extract manifest definition of this command
     const json cmd_definition = get_cmd_definition(this->module_id, impl_id, cmd_name, false);
 
@@ -917,7 +932,8 @@ void Everest::provide_cmd(const std::string& impl_id, const std::string& cmd_nam
         // call real cmd handler
         try {
             if (not error.has_value()) {
-                res_data["retval"] = handler(data.at("args"));
+                std::size_t index = data.at("index").get<std::size_t>();
+                res_data["retval"] = handler(index, data.at("args"));
             }
         } catch (const std::exception& e) {
             EVLOG_error << fmt::format("Exception during handling of: {}->{}({}): {}",
@@ -1041,11 +1057,11 @@ void Everest::provide_cmd(const cmd& cmd) {
                         fmt::join(arg_names, ","), fmt::join(return_type, ","), cmd_definition.at("result"))));
     }
 
-    return this->provide_cmd(impl_id, cmd_name, [handler](json data) {
+    return this->provide_cmd(impl_id, cmd_name, [handler](std::size_t index, json data) {
         // call cmd handlers (handle async or normal handlers being both:
         // methods or functions)
         // FIXME (aw): this behaviour needs to be checked, i.e. how to distinguish in json between no value and null?
-        return handler(std::move(data)).value_or(nullptr);
+        return handler(index, std::move(data)).value_or(nullptr);
     });
 }
 

@@ -74,6 +74,7 @@ public:
     /// \brief Allows a module to indicate that it provides the given command \p cmd
     ///
     void provide_cmd(const std::string& impl_id, const std::string& cmd_name, const JsonCommand& handler);
+    void provide_cmd(const std::string& impl_id, const std::string& cmd_name, const JsonCommandMultiple& handler);
     void provide_cmd(const cmd& cmd);
 
     ///
@@ -86,6 +87,12 @@ public:
     /// \brief Publishes a variable of the given \p impl_id, names \p var_name with the given \p value
     ///
     void publish_var(const std::string& impl_id, const std::string& var_name, nlohmann::json value);
+
+    ///
+    /// \brief Publishes a variable at the given \p _index, of the given \p impl_id, names \p var_name with the given \p
+    /// value
+    ///
+    void publish_var(std::size_t index, const std::string& impl_id, const std::string& var_name, nlohmann::json value);
 
     ///
     /// \brief Subscribes to a variable of another module identified by the given \p req and variable name \p
