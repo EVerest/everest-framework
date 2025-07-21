@@ -91,9 +91,7 @@ Everest::Everest(std::string module_id_, const Config& config_, bool validate_da
 
     // setup error_managers, error_state_monitors, error_factories and error_databases for all implementations
     for (const std::string& impl : Config::keys(this->module_manifest.at("provides"))) {
-        // setup shared database
-        auto error_database = std::make_shared<error::ErrorDatabaseMap>();
-
+        const auto quantity = this->module_manifest.at("provides").at(impl).at("quantity");
         // setup error manager
         const std::string interface_name = this->module_manifest.at("provides").at(impl).at("interface");
         json interface_def = this->config.get_interface_definition(interface_name);
@@ -103,17 +101,22 @@ Everest::Everest(std::string module_id_, const Config& config_, bool validate_da
                 allowed_error_types.push_back(error_namespace_it.key() + "/" + error_name_it.key());
             }
         }
-        const error::ErrorManagerImpl::PublishErrorFunc publish_raised_error = [this, impl](const error::Error& error) {
-            this->publish_raised_error(impl, error);
-        };
-        const error::ErrorManagerImpl::PublishErrorFunc publish_cleared_error =
-            [this, impl](const error::Error& error) { this->publish_cleared_error(impl, error); };
-        this->impl_error_managers[impl] = std::make_shared<error::ErrorManagerImpl>(
-            std::make_shared<error::ErrorTypeMap>(this->config.get_error_map()), error_database, allowed_error_types,
-            publish_raised_error, publish_cleared_error);
+        for (std::size_t index = 0; index < quantity; index++) {
+            // setup shared database
+            auto error_database = std::make_shared<error::ErrorDatabaseMap>();
+            const error::ErrorManagerImpl::PublishErrorFunc publish_raised_error = [this, index,
+                                                                                    impl](const error::Error& error) {
+                this->publish_raised_error(index, impl, error);
+            };
+            const error::ErrorManagerImpl::PublishErrorFunc publish_cleared_error =
+                [this, index, impl](const error::Error& error) { this->publish_cleared_error(index, impl, error); };
+            this->impl_error_managers[impl].push_back(std::make_shared<error::ErrorManagerImpl>(
+                std::make_shared<error::ErrorTypeMap>(this->config.get_error_map()), error_database,
+                allowed_error_types, publish_raised_error, publish_cleared_error));
 
-        // setup error state monitor
-        this->impl_error_state_monitors[impl] = std::make_shared<error::ErrorStateMonitor>(error_database);
+            // setup error state monitor
+            this->impl_error_state_monitors[impl].push_back(std::make_shared<error::ErrorStateMonitor>(error_database));
+        }
 
         std::optional<Mapping> mapping;
         if (this->module_tier_mappings.has_value()) {
@@ -460,7 +463,7 @@ json Everest::call_cmd(const Requirement& req, const std::string& cmd_name, json
 }
 
 void Everest::publish_var(const std::string& impl_id, const std::string& var_name, json value) {
-    this->publish_var(0, impl_id, value);
+    this->publish_var(0, impl_id, var_name, value);
 }
 
 void Everest::publish_var(std::size_t index, const std::string& impl_id, const std::string& var_name,
@@ -573,7 +576,7 @@ void Everest::subscribe_error(const Requirement& req, const error::ErrorType& er
 
     const std::string requirement_module_id = connection.module_id;
     const std::string module_name = this->config.get_module_name(requirement_module_id);
-    const std::string requirement_impl_id = connection.implementation_id;
+    const auto& [requirement_impl_id, requirement_impl_index] = parse_requirement_id(connection.implementation_id);
     const json requirement_impl_if = this->config.get_interface_definitions().at(
         this->config.get_interfaces().at(module_name).at(requirement_impl_id));
 
@@ -620,8 +623,8 @@ void Everest::subscribe_error(const Requirement& req, const error::ErrorType& er
         }
     };
 
-    const std::string error_topic =
-        fmt::format("{}/error", this->config.mqtt_prefix(requirement_module_id, requirement_impl_id));
+    const std::string error_topic = fmt::format(
+        "{}/error/{}", this->config.mqtt_prefix(requirement_module_id, requirement_impl_id), requirement_impl_index);
 
     const std::shared_ptr<TypedHandler> error_token = std::make_shared<TypedHandler>(
         error_type, HandlerType::SubscribeError, std::make_shared<Handler>(error_handler));
@@ -629,18 +632,19 @@ void Everest::subscribe_error(const Requirement& req, const error::ErrorType& er
     this->mqtt_abstraction->register_handler(error_topic, error_token, QOS::QOS2);
 }
 
-std::shared_ptr<error::ErrorManagerImpl> Everest::get_error_manager_impl(const std::string& impl_id) {
+std::vector<std::shared_ptr<error::ErrorManagerImpl>> Everest::get_error_manager_impl(const std::string& impl_id) {
     if (this->impl_error_managers.find(impl_id) == this->impl_error_managers.end()) {
         EVLOG_error << fmt::format("Error manager for {} not found!", impl_id);
-        return nullptr;
+        return {};
     }
     return this->impl_error_managers.at(impl_id);
 }
 
-std::shared_ptr<error::ErrorStateMonitor> Everest::get_error_state_monitor_impl(const std::string& impl_id) {
+std::vector<std::shared_ptr<error::ErrorStateMonitor>>
+Everest::get_error_state_monitor_impl(const std::string& impl_id) {
     if (this->impl_error_state_monitors.find(impl_id) == this->impl_error_state_monitors.end()) {
         EVLOG_error << fmt::format("Error state monitor for {} not found!", impl_id);
-        return nullptr;
+        return {};
     }
     return this->impl_error_state_monitors.at(impl_id);
 }
@@ -729,18 +733,18 @@ void Everest::subscribe_global_all_errors(const error::ErrorCallback& raise_call
     }
 }
 
-void Everest::publish_raised_error(const std::string& impl_id, const error::Error& error) {
+void Everest::publish_raised_error(std::size_t index, const std::string& impl_id, const error::Error& error) {
     BOOST_LOG_FUNCTION();
 
-    const auto error_topic = fmt::format("{}/error", this->config.mqtt_prefix(this->module_id, impl_id));
+    const auto error_topic = fmt::format("{}/error/{}", this->config.mqtt_prefix(this->module_id, impl_id), index);
 
     this->mqtt_abstraction->publish(error_topic, json(error), QOS::QOS2);
 }
 
-void Everest::publish_cleared_error(const std::string& impl_id, const error::Error& error) {
+void Everest::publish_cleared_error(std::size_t index, const std::string& impl_id, const error::Error& error) {
     BOOST_LOG_FUNCTION();
 
-    const auto error_topic = fmt::format("{}/error", this->config.mqtt_prefix(this->module_id, impl_id));
+    const auto error_topic = fmt::format("{}/error/{}", this->config.mqtt_prefix(this->module_id, impl_id), index);
 
     this->mqtt_abstraction->publish(error_topic, json(error), QOS::QOS2);
 }

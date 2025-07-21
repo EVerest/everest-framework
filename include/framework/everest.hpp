@@ -101,14 +101,14 @@ public:
     void subscribe_var(const Requirement& req, const std::string& var_name, const JsonCallback& callback);
 
     ///
-    /// \brief Return the error manager for the given \p impl_id
+    /// \brief Return the error managers for the given \p impl_id
     ///
-    std::shared_ptr<error::ErrorManagerImpl> get_error_manager_impl(const std::string& impl_id);
+    std::vector<std::shared_ptr<error::ErrorManagerImpl>> get_error_manager_impl(const std::string& impl_id);
 
     ///
-    /// \brief Return the error state monitor for the given \p impl_id
+    /// \brief Return the error state monitors for the given \p impl_id
     ///
-    std::shared_ptr<error::ErrorStateMonitor> get_error_state_monitor_impl(const std::string& impl_id);
+    std::vector<std::shared_ptr<error::ErrorStateMonitor>> get_error_state_monitor_impl(const std::string& impl_id);
 
     ///
     /// \brief Return the error factory for the given \p impl_id
@@ -215,8 +215,9 @@ private:
     std::shared_ptr<MQTTAbstraction> mqtt_abstraction;
     Config config;
     std::string module_id;
-    std::map<std::string, std::shared_ptr<error::ErrorManagerImpl>> impl_error_managers; // one per implementation
-    std::map<std::string, std::shared_ptr<error::ErrorStateMonitor>>
+    std::map<std::string, std::vector<std::shared_ptr<error::ErrorManagerImpl>>>
+        impl_error_managers; // one per implementation
+    std::map<std::string, std::vector<std::shared_ptr<error::ErrorStateMonitor>>>
         impl_error_state_monitors;                                                             // one per implementation
     std::map<std::string, std::shared_ptr<error::ErrorFactory>> error_factories;               // one per implementation
     std::map<Requirement, std::shared_ptr<error::ErrorManagerReq>> req_error_managers;         // one per requirement
@@ -255,12 +256,12 @@ private:
     ///
     /// \brief Publishes the given \p error as a cleared error
     ///
-    void publish_cleared_error(const std::string& impl_id, const error::Error& error);
+    void publish_cleared_error(std::size_t index, const std::string& impl_id, const error::Error& error);
 
     ///
     /// \brief Publishes the given \p error as a raised error
     ///
-    void publish_raised_error(const std::string& impl_id, const error::Error& error);
+    void publish_raised_error(std::size_t index, const std::string& impl_id, const error::Error& error);
 
     ///
     /// \brief Subscribes to an error of another module indentified by the given \p req and error type
