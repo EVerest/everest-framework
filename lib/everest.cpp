@@ -104,10 +104,8 @@ Everest::Everest(std::string module_id_, const Config& config_, bool validate_da
         for (std::size_t index = 0; index < quantity; index++) {
             // setup shared database
             auto error_database = std::make_shared<error::ErrorDatabaseMap>();
-            const error::ErrorManagerImpl::PublishErrorFunc publish_raised_error = [this, index,
-                                                                                    impl](const error::Error& error) {
-                this->publish_raised_error(index, impl, error);
-            };
+            const error::ErrorManagerImpl::PublishErrorFunc publish_raised_error =
+                [this, index, impl](const error::Error& error) { this->publish_raised_error(index, impl, error); };
             const error::ErrorManagerImpl::PublishErrorFunc publish_cleared_error =
                 [this, index, impl](const error::Error& error) { this->publish_cleared_error(index, impl, error); };
             this->impl_error_managers[impl].push_back(std::make_shared<error::ErrorManagerImpl>(
