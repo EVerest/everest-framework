@@ -124,7 +124,7 @@ Module::get_error_state_monitor_impl(const std::string& impl_id) const {
 }
 
 std::shared_ptr<Everest::error::ErrorFactory> Module::get_error_factory(const std::string& impl_id) const {
-    return handle->get_error_factory(impl_id);
+    return handle->get_error_factory(impl_id).at(0);
 }
 
 void Module::subscribe_error(const Fulfillment& fulfillment, const Everest::error::ErrorType& type,

@@ -116,9 +116,9 @@ public:
     std::vector<std::shared_ptr<error::ErrorStateMonitor>> get_error_state_monitor_impl(const std::string& impl_id);
 
     ///
-    /// \brief Return the error factory for the given \p impl_id
+    /// \brief Return the error factories for the given \p impl_id
     ///
-    std::shared_ptr<error::ErrorFactory> get_error_factory(const std::string& impl_id);
+    std::vector<std::shared_ptr<error::ErrorFactory>> get_error_factory(const std::string& impl_id);
 
     ///
     /// \brief Return the error manager for the given \p req
@@ -224,7 +224,7 @@ private:
         impl_error_managers; // one per implementation
     std::map<std::string, std::vector<std::shared_ptr<error::ErrorStateMonitor>>>
         impl_error_state_monitors;                                                             // one per implementation
-    std::map<std::string, std::shared_ptr<error::ErrorFactory>> error_factories;               // one per implementation
+    std::map<std::string, std::vector<std::shared_ptr<error::ErrorFactory>>> error_factories;  // one per implementation
     std::map<Requirement, std::shared_ptr<error::ErrorManagerReq>> req_error_managers;         // one per requirement
     std::map<Requirement, std::shared_ptr<error::ErrorStateMonitor>> req_error_state_monitors; // one per requirement
     std::shared_ptr<error::ErrorManagerReqGlobal> global_error_manager;   // nullptr if not enabled in manifest

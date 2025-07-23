@@ -157,10 +157,14 @@ Everest::Everest(std::string module_id_, const Config& config_, bool validate_da
             }
         }
 
-        // setup error factory
-        const ImplementationIdentifier default_origin(this->module_id, impl, mapping);
-        this->error_factories[impl] = std::make_shared<error::ErrorFactory>(
-            std::make_shared<error::ErrorTypeMap>(this->config.get_error_map()), default_origin);
+        // setup error factories
+        for (std::size_t index = 0; index < quantity; index++) {
+            // add index to impl in case multiple impls are provided
+            const auto impl_id_index = (quantity > 1) ? fmt::format("{}.{}", impl, index) : impl;
+            const ImplementationIdentifier default_origin(this->module_id, impl_id_index, mapping);
+            this->error_factories[impl].push_back(std::make_shared<error::ErrorFactory>(
+                std::make_shared<error::ErrorTypeMap>(this->config.get_error_map()), default_origin));
+        }
     }
 
     // setup error_databases, error_managers and error_state_monitors for all requirements
@@ -651,10 +655,11 @@ Everest::get_error_state_monitor_impl(const std::string& impl_id) {
     return this->impl_error_state_monitors.at(impl_id);
 }
 
-std::shared_ptr<error::ErrorFactory> Everest::get_error_factory(const std::string& impl_id) {
+std::vector<std::shared_ptr<error::ErrorFactory>> Everest::get_error_factory(const std::string& impl_id) {
+
     if (this->error_factories.find(impl_id) == this->error_factories.end()) {
         EVLOG_error << fmt::format("Error factory for {} not found!", impl_id);
-        return nullptr;
+        return {};
     }
     return this->error_factories.at(impl_id);
 }

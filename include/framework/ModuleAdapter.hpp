@@ -81,7 +81,7 @@ struct ModuleAdapter {
         std::function<std::vector<std::shared_ptr<error::ErrorManagerImpl>>(const std::string&)>;
     using GetErrorStateMonitorImplFunc =
         std::function<std::vector<std::shared_ptr<error::ErrorStateMonitor>>(const std::string&)>;
-    using GetErrorFactoryFunc = std::function<std::shared_ptr<error::ErrorFactory>(const std::string&)>;
+    using GetErrorFactoryFunc = std::function<std::vector<std::shared_ptr<error::ErrorFactory>>(const std::string&)>;
     using GetErrorManagerReqFunc = std::function<std::shared_ptr<error::ErrorManagerReq>(const Requirement&)>;
     using GetGlobalErrorManagerFunc = std::function<std::shared_ptr<error::ErrorManagerReqGlobal>()>;
     using GetGlobalErrorStateMonitorFunc = std::function<std::shared_ptr<error::ErrorStateMonitor>()>;

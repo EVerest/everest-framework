@@ -401,17 +401,17 @@ static Napi::Value create_error(const std::string& impl_id, const Napi::Callback
 
     try {
         if (info.Length() == 0) {
-            return convertToNapiValue(env, ctx->everest->get_error_factory(impl_id)->create_error());
+            return convertToNapiValue(env, ctx->everest->get_error_factory(impl_id).at(0)->create_error());
         } else if (info.Length() == 3) {
             return convertToNapiValue(
-                env, ctx->everest->get_error_factory(impl_id)->create_error(
+                env, ctx->everest->get_error_factory(impl_id).at(0)->create_error(
                          convertToErrorType(info[0]), convertToErrorSubType(info[1]), info[2].ToString().Utf8Value()));
         } else if (info.Length() == 4) {
-            return convertToNapiValue(env, ctx->everest->get_error_factory(impl_id)->create_error(
+            return convertToNapiValue(env, ctx->everest->get_error_factory(impl_id).at(0)->create_error(
                                                convertToErrorType(info[0]), convertToErrorSubType(info[1]),
                                                info[2].ToString().Utf8Value(), convertToErrorSeverity(info[3])));
         } else if (info.Length() == 5) {
-            return convertToNapiValue(env, ctx->everest->get_error_factory(impl_id)->create_error(
+            return convertToNapiValue(env, ctx->everest->get_error_factory(impl_id).at(0)->create_error(
                                                convertToErrorType(info[0]), convertToErrorSubType(info[1]),
                                                info[2].ToString().Utf8Value(), convertToErrorSeverity(info[3]),
                                                convertToErrorState(info[4])));
