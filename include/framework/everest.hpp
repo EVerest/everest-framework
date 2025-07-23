@@ -48,6 +48,11 @@ struct ErrorManagerReq;
 struct ErrorManagerReqGlobal;
 struct ErrorStateMonitor;
 struct ErrorFactory;
+
+struct ErrorWrapper {
+    Error error;
+    std::size_t index;
+};
 } // namespace error
 
 ///
@@ -304,5 +309,12 @@ std::optional<Mapping> get_impl_mapping(std::optional<ModuleTierMappings> module
                                         const std::string& impl_id);
 
 } // namespace Everest
+
+NLOHMANN_JSON_NAMESPACE_BEGIN
+template <> struct adl_serializer<Everest::error::ErrorWrapper> {
+    static void to_json(nlohmann::json& j, const Everest::error::ErrorWrapper& e);
+    static void from_json(const nlohmann::json& j, Everest::error::ErrorWrapper& e);
+};
+NLOHMANN_JSON_NAMESPACE_END
 
 #endif // FRAMEWORK_EVEREST_HPP

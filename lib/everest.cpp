@@ -595,9 +595,13 @@ void Everest::subscribe_error(const Requirement& req, const error::ErrorType& er
         return;
     }
 
-    const auto error_handler = [this, requirement_module_id, requirement_impl_id, error_type, raise_callback,
-                                clear_callback](const std::string&, json const& data) {
-        auto error = data.get<error::Error>();
+    const auto error_handler = [this, requirement_module_id, requirement_impl_id, requirement_impl_index, error_type,
+                                raise_callback, clear_callback](const std::string&, json const& data) {
+        auto error_wrapper = data.get<error::ErrorWrapper>();
+        if (error_wrapper.index != requirement_impl_index) {
+            return;
+        }
+        auto error = error_wrapper.error;
         if (error.type != error_type) {
             // error type doesn't match, ignoring
             return;
@@ -621,8 +625,8 @@ void Everest::subscribe_error(const Requirement& req, const error::ErrorType& er
         }
     };
 
-    const std::string error_topic = fmt::format(
-        "{}/error/{}", this->config.mqtt_prefix(requirement_module_id, requirement_impl_id), requirement_impl_index);
+    const std::string error_topic =
+        fmt::format("{}/error", this->config.mqtt_prefix(requirement_module_id, requirement_impl_id));
 
     const std::shared_ptr<TypedHandler> error_token = std::make_shared<TypedHandler>(
         error_type, HandlerType::SubscribeError, std::make_shared<Handler>(error_handler));
@@ -701,7 +705,8 @@ void Everest::subscribe_global_all_errors(const error::ErrorCallback& raise_call
     }
 
     const auto error_handler = [this, raise_callback, clear_callback](const std::string&, json const& data) {
-        error::Error error = data.get<error::Error>();
+        auto error_wrapper = data.get<error::ErrorWrapper>();
+        auto error = error_wrapper.error;
         switch (error.state) {
         case error::State::Active:
             EVLOG_debug << fmt::format(
@@ -734,17 +739,21 @@ void Everest::subscribe_global_all_errors(const error::ErrorCallback& raise_call
 void Everest::publish_raised_error(std::size_t index, const std::string& impl_id, const error::Error& error) {
     BOOST_LOG_FUNCTION();
 
-    const auto error_topic = fmt::format("{}/error/{}", this->config.mqtt_prefix(this->module_id, impl_id), index);
+    auto error_wrapper = error::ErrorWrapper{error, index};
 
-    this->mqtt_abstraction->publish(error_topic, json(error), QOS::QOS2);
+    const auto error_topic = fmt::format("{}/error", this->config.mqtt_prefix(this->module_id, impl_id));
+
+    this->mqtt_abstraction->publish(error_topic, json(error_wrapper), QOS::QOS2);
 }
 
 void Everest::publish_cleared_error(std::size_t index, const std::string& impl_id, const error::Error& error) {
     BOOST_LOG_FUNCTION();
 
-    const auto error_topic = fmt::format("{}/error/{}", this->config.mqtt_prefix(this->module_id, impl_id), index);
+    auto error_wrapper = error::ErrorWrapper{error, index};
 
-    this->mqtt_abstraction->publish(error_topic, json(error), QOS::QOS2);
+    const auto error_topic = fmt::format("{}/error", this->config.mqtt_prefix(this->module_id, impl_id));
+
+    this->mqtt_abstraction->publish(error_topic, json(error_wrapper), QOS::QOS2);
 }
 
 void Everest::external_mqtt_publish(const std::string& topic, const std::string& data) {
@@ -1198,3 +1207,14 @@ std::optional<Mapping> get_impl_mapping(std::optional<ModuleTierMappings> module
     return mapping.implementations.at(impl_id);
 }
 } // namespace Everest
+
+NLOHMANN_JSON_NAMESPACE_BEGIN
+void adl_serializer<Everest::error::ErrorWrapper>::to_json(nlohmann::json& j, const Everest::error::ErrorWrapper& e) {
+    j = {{"error", e.error}, {"index", e.index}};
+}
+
+void adl_serializer<Everest::error::ErrorWrapper>::from_json(const nlohmann::json& j, Everest::error::ErrorWrapper& e) {
+    e.error = j.at("error").get<Everest::error::Error>();
+    e.index = j.at("index").get<std::size_t>();
+}
+NLOHMANN_JSON_NAMESPACE_END
