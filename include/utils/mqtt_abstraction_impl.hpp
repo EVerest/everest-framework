@@ -15,6 +15,7 @@
 #include <mqtt.h>
 #include <nlohmann/json.hpp>
 
+#include <utils/message_handler.hpp>
 #include <utils/message_queue.hpp>
 #include <utils/types.hpp>
 
@@ -124,13 +125,13 @@ public:
 private:
     static constexpr int mqtt_poll_timeout_ms{300000};
     bool mqtt_is_connected;
-    std::map<std::string, MessageHandler> message_handlers;
-    std::mutex handlers_mutex;
+    MessageHandler message_handler;
     MessageQueue message_queue;
     std::vector<std::shared_ptr<MessageWithQOS>> messages_before_connected;
     std::mutex messages_before_connected_mutex;
     std::mutex retained_topics_mutex;
     std::vector<std::string> retained_topics;
+    std::unordered_set<std::string> subscribed_topics;
 
     Thread mqtt_mainloop_thread;
     std::shared_future<void> main_loop_future;
