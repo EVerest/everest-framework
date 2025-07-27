@@ -54,40 +54,6 @@ public:
     void stop();
 };
 
-/// \brief Contains a message queue driven list of handler callbacks
-class MessageHandler {
-private:
-    std::unordered_set<std::shared_ptr<TypedHandler>> handlers;
-    std::thread handler_thread;
-    std::queue<std::shared_ptr<ParsedMessage>> message_queue;
-    std::mutex handler_ctrl_mutex;
-    std::mutex handler_list_mutex;
-    std::condition_variable cv;
-    bool running = true;
-
-public:
-    /// \brief Creates the message handler
-    MessageHandler();
-
-    /// \brief Destructor
-    ~MessageHandler();
-
-    /// \brief Adds a \p message to the message queue which will be delivered to the registered handlers
-    void add(std::shared_ptr<ParsedMessage>);
-
-    /// \brief Stops the message handler
-    void stop();
-
-    /// \brief Adds a \p handler that will receive messages from the queue.
-    void add_handler(std::shared_ptr<TypedHandler> handler);
-
-    /// \brief Removes a specific \p handler
-    void remove_handler(std::shared_ptr<TypedHandler> handler);
-
-    /// \brief \returns the number of registered handlers
-    std::size_t count_handlers();
-};
-
 } // namespace Everest
 
 #endif // UTILS_MESSAGE_QUEUE_HPP

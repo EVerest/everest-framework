@@ -35,6 +35,103 @@ bool operator!=(const ImplementationIdentifier& lhs, const ImplementationIdentif
     return !(lhs == rhs);
 }
 
+std::string mqtt_message_type_to_string(MqttMessageType type) {
+    switch (type) {
+    case MqttMessageType::Var:
+        return "var";
+    case MqttMessageType::Cmd:
+        return "cmd";
+    case MqttMessageType::CmdResult:
+        return "cmd_result";
+    case MqttMessageType::ExternalMQTT:
+        return "external_mqtt";
+    case MqttMessageType::RaiseError:
+        return "raise_error";
+    case MqttMessageType::ClearError:
+        return "clear_error";
+    case MqttMessageType::GetConfig:
+        return "get_config";
+    case MqttMessageType::GetConfigResponse:
+        return "get_config_response";
+    case MqttMessageType::Metadata:
+        return "metadata";
+    case MqttMessageType::Telemetry:
+        return "telemetry";
+    case MqttMessageType::Heartbeat:
+        return "heartbeat";
+    case MqttMessageType::ModuleReady:
+        return "module_ready";
+    case MqttMessageType::GlobalReady:
+        return "global_ready";
+    case MqttMessageType::Interfaces:
+        return "interfaces";
+    case MqttMessageType::InterfaceDefinitions:
+        return "interface_definitions";
+    case MqttMessageType::TypeDefinitions:
+        return "type_definitions";
+    case MqttMessageType::Types:
+        return "types";
+    case MqttMessageType::Settings:
+        return "settings";
+    case MqttMessageType::Schemas:
+        return "schemas";
+    case MqttMessageType::Manifests:
+        return "manifests";
+    case MqttMessageType::ModuleNames:
+        return "module_names";
+    default:
+        throw std::runtime_error("Unknown MQTT message type");
+    }
+}
+
+MqttMessageType string_to_mqtt_message_type(const std::string& str) {
+    if (str == "var") {
+        return MqttMessageType::Var;
+    } else if (str == "cmd") {
+        return MqttMessageType::Cmd;
+    } else if (str == "cmd_result") {
+        return MqttMessageType::CmdResult;
+    } else if (str == "external_mqtt") {
+        return MqttMessageType::ExternalMQTT;
+    } else if (str == "raise_error") {
+        return MqttMessageType::RaiseError;
+    } else if (str == "clear_error") {
+        return MqttMessageType::ClearError;
+    } else if (str == "get_config") {
+        return MqttMessageType::GetConfig;
+    } else if (str == "get_config_response") {
+        return MqttMessageType::GetConfigResponse;
+    } else if (str == "metadata") {
+        return MqttMessageType::Metadata;
+    } else if (str == "telemetry") {
+        return MqttMessageType::Telemetry;
+    } else if (str == "heartbeat") {
+        return MqttMessageType::Heartbeat;
+    } else if (str == "module_ready") {
+        return MqttMessageType::ModuleReady;
+    } else if (str == "global_ready") {
+        return MqttMessageType::GlobalReady;
+    } else if (str == "interfaces") {
+        return MqttMessageType::Interfaces;
+    } else if (str == "interface_definitions") {
+        return MqttMessageType::InterfaceDefinitions;
+    } else if (str == "type_definitions") {
+        return MqttMessageType::TypeDefinitions;
+    } else if (str == "types") {
+        return MqttMessageType::Types;
+    } else if (str == "settings") {
+        return MqttMessageType::Settings;
+    } else if (str == "schemas") {
+        return MqttMessageType::Schemas;
+    } else if (str == "manifests") {
+        return MqttMessageType::Manifests;
+    } else if (str == "module_names") {
+        return MqttMessageType::ModuleNames;
+    }
+
+    throw std::runtime_error("Unknown MQTT message type string: " + str);
+}
+
 NLOHMANN_JSON_NAMESPACE_BEGIN
 void adl_serializer<Mapping>::to_json(json& j, const Mapping& m) {
     j = {{"evse", m.evse}};
@@ -116,4 +213,14 @@ Fulfillment adl_serializer<Fulfillment>::from_json(const json& j) {
     f.requirement = j.at("requirement").get<Requirement>();
     return f;
 }
+
+void adl_serializer<MqttMessagePayload>::to_json(json& j, const MqttMessagePayload& m) {
+    j = {{"msg_type", mqtt_message_type_to_string(m.type)}, {"data", m.data}};
+}
+
+MqttMessagePayload adl_serializer<MqttMessagePayload>::from_json(const json& j) {
+    return MqttMessagePayload{string_to_mqtt_message_type(j.at("msg_type").get<std::string>()),
+                              j.at("data").get<json>()};
+}
+
 NLOHMANN_JSON_NAMESPACE_END
