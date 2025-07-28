@@ -18,8 +18,11 @@ target_sources(framework
         config/mqtt_settings.cpp
         config/settings.cpp
         config/sqlite_storage.cpp
+        config/storage_types.cpp
+        config/userconfig_storage.cpp
         config/types.cpp
         config_cache.cpp
+        config_service.cpp
         conversions.cpp
         error/error.cpp
         error/error_database_map.cpp
@@ -78,8 +81,6 @@ target_link_libraries(framework
         ryml::ryml
 )
 
-include(${everest-sqlite_SOURCE_DIR}/cmake/CollectMigrationFiles.cmake)
-
 collect_migration_files(
      LOCATION ${PROJECT_SOURCE_DIR}/schemas/migrations
      INSTALL_DESTINATION "${CMAKE_INSTALL_DATADIR}/everest/migrations"
@@ -88,4 +89,9 @@ collect_migration_files(
 target_compile_definitions(framework
     PRIVATE
         TARGET_MIGRATION_FILE_VERSION=${TARGET_MIGRATION_FILE_VERSION}
+)
+
+set_target_properties(framework
+    PROPERTIES
+        POSITION_INDEPENDENT_CODE ON
 )
