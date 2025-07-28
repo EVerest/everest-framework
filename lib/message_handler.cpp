@@ -8,6 +8,57 @@
 
 namespace Everest {
 
+// Helper to split string by delimiter
+std::vector<std::string> split_topic(const std::string& topic, char delimiter = '/') {
+    std::vector<std::string> result;
+    std::istringstream stream(topic);
+    std::string part;
+    while (std::getline(stream, part, delimiter)) {
+        result.push_back(part);
+    }
+    return result;
+}
+
+// NOLINTNEXTLINE(misc-no-recursion)
+bool check_topic_matches(const std::string& full_topic, const std::string& wildcard_topic) {
+    // Verbatim match
+    if (full_topic == wildcard_topic) {
+        return true;
+    }
+
+    // Check if wildcard ends with "/#" and matches base
+    if (wildcard_topic.size() >= 2 && wildcard_topic.compare(wildcard_topic.size() - 2, 2, "/#") == 0) {
+        std::string start = wildcard_topic.substr(0, wildcard_topic.size() - 2);
+        if (check_topic_matches(full_topic, start)) {
+            return true;
+        }
+    }
+
+    std::vector<std::string> full_split = split_topic(full_topic);
+    std::vector<std::string> wildcard_split = split_topic(wildcard_topic);
+
+    for (std::size_t partno = 0; partno < full_split.size(); ++partno) {
+        if (partno >= wildcard_split.size()) {
+            return false;
+        }
+
+        const std::string& full_part = full_split[partno];
+        const std::string& wildcard_part = wildcard_split[partno];
+
+        if (wildcard_part == "#") {
+            return true;
+        }
+
+        if (wildcard_part == "+" || wildcard_part == full_part) {
+            continue;
+        }
+
+        return false;
+    }
+
+    return full_split.size() == wildcard_split.size();
+}
+
 MessageHandler::MessageHandler() {
     main_worker_thread = std::thread([this] { run_main_worker(); });
     cmd_result_worker_thread = std::thread([this] { run_cmd_result_worker(); });
@@ -126,7 +177,7 @@ void MessageHandler::handle_message(const std::string& topic, const json& payloa
     case MqttMessageType::Var: {
         std::vector<std::shared_ptr<TypedHandler>> handlers_copy;
         {
-            std::lock_guard<std::mutex> lock(var_handler_mutex);
+            std::lock_guard<std::mutex> lock(handler_mutex);
             const auto it = var_handlers.find(topic);
             if (it != var_handlers.end()) {
                 handlers_copy = it->second;
@@ -137,17 +188,37 @@ void MessageHandler::handle_message(const std::string& topic, const json& payloa
         }
         break;
     }
-    case MqttMessageType::Cmd:
+    case MqttMessageType::Cmd: {
+        std::lock_guard<std::mutex> lock(handler_mutex);
         (*cmd_handlers.at(topic)->handler)(topic, data);
         break;
-    case MqttMessageType::ExternalMQTT:
-        (*external_var_handlers.at(topic)->handler)(topic, data);
+    }
+    case MqttMessageType::ExternalMQTT: {
+        std::vector<std::shared_ptr<TypedHandler>> handlers_copy;
+        {
+            std::lock_guard<std::mutex> lock(handler_mutex);
+            const auto it = external_var_handlers.find(topic);
+            if (it != external_var_handlers.end()) {
+                handlers_copy = it->second;
+            }
+        }
+        for (const auto& handler : handlers_copy) {
+            (*handler->handler)(topic, data);
+        }
         break;
+    }
     case MqttMessageType::RaiseError:
-    case MqttMessageType::ClearError:
-        (*error_handlers.at(topic)->handler)(topic, data);
+    case MqttMessageType::ClearError: {
+        std::lock_guard<std::mutex> lock(handler_mutex);
+        for (const auto& [_topic, error_handler] : error_handlers) {
+            if (check_topic_matches(topic, _topic)) {
+                (*error_handler->handler)(topic, data);
+            }
+        }
         break;
+    }
     case MqttMessageType::GetConfig: {
+        std::lock_guard<std::mutex> lock(handler_mutex);
         const auto it = get_module_config_handlers.find(topic);
         if (it != get_module_config_handlers.end()) {
             (*it->second->handler)(topic, data);
@@ -164,11 +235,17 @@ void MessageHandler::handle_message(const std::string& topic, const json& payloa
     case MqttMessageType::Settings:
     case MqttMessageType::Manifests:
     case MqttMessageType::ModuleNames:
-    case MqttMessageType::TypeDefinitions:
+    case MqttMessageType::TypeDefinitions: {
+        std::lock_guard<std::mutex> lock(handler_mutex);
         (*config_response_handler->handler)(topic, data);
         break;
-    case MqttMessageType::ModuleReady:
+    }
+    case MqttMessageType::ModuleReady: {
+        std::lock_guard<std::mutex> lock(handler_mutex);
         (*module_ready_handlers.at(topic)->handler)(topic, data);
+        break;
+    }
+    default:
         break;
     }
 }
@@ -194,6 +271,7 @@ void MessageHandler::handle_cmd_result_message(const std::string& topic, const j
 void MessageHandler::register_handler(const std::string& topic, std::shared_ptr<TypedHandler> handler) {
     switch (handler->type) {
     case HandlerType::Call: {
+        std::lock_guard<std::mutex> lg(handler_mutex);
         cmd_handlers[topic] = handler;
         break;
     }
@@ -203,31 +281,37 @@ void MessageHandler::register_handler(const std::string& topic, std::shared_ptr<
         break;
     }
     case HandlerType::SubscribeVar: {
-        std::lock_guard<std::mutex> lock_var(var_handler_mutex);
+        std::lock_guard<std::mutex> lg(handler_mutex);
         var_handlers[topic].push_back(handler);
         break;
     }
     case HandlerType::SubscribeError: {
+        std::lock_guard<std::mutex> lg(handler_mutex);
         error_handlers[topic] = handler;
         break;
     }
     case HandlerType::ExternalMQTT: {
-        external_var_handlers[topic] = handler;
+        std::lock_guard<std::mutex> lg(handler_mutex);
+        external_var_handlers[topic].push_back(handler);
         break;
     }
     case HandlerType::GetConfig: {
+        std::lock_guard<std::mutex> lg(handler_mutex);
         get_module_config_handlers[topic] = handler;
         break;
     }
     case HandlerType::GetConfigResponse: {
+        std::lock_guard<std::mutex> lg(handler_mutex);
         config_response_handler = handler;
         break;
     }
     case HandlerType::ModuleReady: {
+        std::lock_guard<std::mutex> lg(handler_mutex);
         module_ready_handlers[topic] = handler;
         break;
     }
     case HandlerType::GlobalReady: {
+        std::lock_guard<std::mutex> lg(handler_mutex);
         global_ready_handler = handler;
         break;
     }
