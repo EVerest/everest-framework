@@ -430,7 +430,7 @@ json Everest::call_cmd(const Requirement& req, const std::string& cmd_name, json
     if (res_future_status == std::future_status::ready) {
         result = res_future.get();
     }
-    this->mqtt_abstraction->unregister_handler(cmd_response_topic, res_token); // TOOD(pg): Maybe not needed anymore
+    // this->mqtt_abstraction->unregister_handler(cmd_response_topic, res_token); // TOOD(pg): Maybe not needed anymore
 
     if (result.error.has_value()) {
         const auto& error = result.error.value();

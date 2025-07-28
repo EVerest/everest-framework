@@ -159,7 +159,7 @@ void MQTTAbstractionImpl::publish(const std::string& topic, const std::string& d
             // topic should be retained, so save the topic in retained_topics
             // do not save the topic when the payload is empty and QOS is set to 0 which means a retained topic is to be
             // cleared
-            const std::lock_guard<std::mutex> lock(retained_topics_mutex);
+            const std::lock_guard<std::mutex> lock(topics_mutex);
             this->retained_topics.push_back(topic);
         }
     }
@@ -188,6 +188,7 @@ void MQTTAbstractionImpl::subscribe(const std::string& topic) {
 
 void MQTTAbstractionImpl::subscribe(const std::string& topic, QOS qos) {
     BOOST_LOG_FUNCTION();
+    const std::lock_guard<std::mutex> lock(topics_mutex);
 
     auto max_qos_level = 0;
     switch (qos) {
@@ -212,6 +213,7 @@ void MQTTAbstractionImpl::subscribe(const std::string& topic, QOS qos) {
 
 void MQTTAbstractionImpl::unsubscribe(const std::string& topic) {
     BOOST_LOG_FUNCTION();
+    const std::lock_guard<std::mutex> lock(topics_mutex);
 
     if (this->subscribed_topics.find(topic) == this->subscribed_topics.end()) {
         EVLOG_warning << fmt::format("Tried to unsubscribe from topic {} but it was not subscribed", topic);
@@ -228,7 +230,7 @@ void MQTTAbstractionImpl::unsubscribe(const std::string& topic) {
 
 void MQTTAbstractionImpl::clear_retained_topics() {
     BOOST_LOG_FUNCTION();
-    const std::lock_guard<std::mutex> lock(retained_topics_mutex);
+    const std::lock_guard<std::mutex> lock(topics_mutex);
 
     for (const auto& retained_topic : retained_topics) {
         this->publish(retained_topic, std::string(), QOS::QOS0, true);
@@ -455,6 +457,7 @@ void MQTTAbstractionImpl::register_handler(const std::string& topic, std::shared
     BOOST_LOG_FUNCTION();
 
     auto subscription_required = [this](const std::string& topic) {
+        const std::lock_guard<std::mutex> lock(topics_mutex);
         return std::find(this->subscribed_topics.begin(), this->subscribed_topics.end(), topic) ==
                this->subscribed_topics.end();
     };
@@ -630,54 +633,6 @@ int MQTTAbstractionImpl::open_nb_socket(const char* addr, const char* port) {
 
     /* return the new socket fd */
     return sockfd;
-}
-
-// NOLINTNEXTLINE(misc-no-recursion)
-bool MQTTAbstractionImpl::check_topic_matches(const std::string& full_topic, const std::string& wildcard_topic) {
-    BOOST_LOG_FUNCTION();
-
-    // verbatim topic
-    // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
-    if (full_topic == wildcard_topic) {
-        return true;
-    }
-
-    // check if the last /# matches a zero part of the topic
-    // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
-    if (wildcard_topic.size() >= 2) {
-        const std::string start = wildcard_topic.substr(0, wildcard_topic.size() - 2);
-        const std::string end = wildcard_topic.substr(wildcard_topic.size() - 2);
-        if (end == "/#" && check_topic_matches(full_topic, start)) {
-            return true;
-        }
-    }
-
-    std::vector<std::string> full_split;
-    // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
-    boost::split(full_split, full_topic, boost::is_any_of("/"));
-
-    std::vector<std::string> wildcard_split;
-    // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
-    boost::split(wildcard_split, wildcard_topic, boost::is_any_of("/"));
-
-    for (std::size_t partno = 0; partno < full_split.size(); partno++) {
-        if (wildcard_split.size() <= partno) {
-            return false;
-        }
-
-        if (full_split[partno] == wildcard_split[partno]) {
-            continue;
-        }
-
-        if (wildcard_split[partno] == "+") {
-            continue;
-        }
-
-        return wildcard_split[partno] == "#";
-    }
-
-    // either all wildcards match, or there are more wildcard parts than topic parts
-    return full_split.size() == wildcard_split.size();
 }
 
 void MQTTAbstractionImpl::publish_callback(void** state, struct mqtt_response_publish* published) {
