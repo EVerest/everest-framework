@@ -96,6 +96,9 @@ SchemaValidation load_schemas(const fs::path& schemas_dir);
 /// \return JSON object with the serialized module configuration.
 json get_serialized_module_config(const std::string& module_id, const ModuleConfigurations& module_configurations);
 
+/// \brief Parse the given \p requirement_id into id and index
+std::tuple<std::string, std::size_t> parse_requirement_id(const std::string& requirement_id);
+
 ///
 /// \brief Base class for configs
 ///
