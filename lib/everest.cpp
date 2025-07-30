@@ -37,7 +37,7 @@ using json = nlohmann::json;
 using json_uri = nlohmann::json_uri;
 using json_validator = nlohmann::json_schema::json_validator;
 
-const auto remote_cmd_res_timeout_seconds = 5;
+const auto remote_cmd_res_timeout_seconds = 300;
 const std::array<std::string_view, 3> TELEMETRY_RESERVED_KEYS = {{"connector_id"}};
 constexpr auto ensure_ready_timeout_ms = 100;
 
@@ -258,7 +258,7 @@ void Everest::publish_metadata() {
 
     const auto metadata_topic = fmt::format("{}/metadata", this->config.mqtt_module_prefix(this->module_id));
 
-    MqttMessagePayload payload{MqttMessageType::Metadata, metadata};
+    MqttMessagePayload payload{MqttMessageType::GetConfigResponse, metadata};
 
     this->mqtt_abstraction->publish(metadata_topic, payload, QOS::QOS2);
 }
@@ -430,7 +430,6 @@ json Everest::call_cmd(const Requirement& req, const std::string& cmd_name, json
     if (res_future_status == std::future_status::ready) {
         result = res_future.get();
     }
-    // this->mqtt_abstraction->unregister_handler(cmd_response_topic, res_token); // TOOD(pg): Maybe not needed anymore
 
     if (result.error.has_value()) {
         const auto& error = result.error.value();
@@ -492,11 +491,9 @@ void Everest::publish_var(const std::string& impl_id, const std::string& var_nam
         }
     }
 
-    // const auto var_topic = fmt::format("{}/var", this->config.mqtt_prefix(this->module_id, impl_id));
     const auto var_topic = fmt::format("{}/var/{}", this->config.mqtt_prefix(this->module_id, impl_id), var_name);
 
     const json var_publish_data = {{"data", value}};
-
     MqttMessagePayload payload{MqttMessageType::Var, var_publish_data};
 
     // FIXME(kai): implement an efficient way of choosing qos for each variable
@@ -550,8 +547,7 @@ void Everest::subscribe_var(const Requirement& req, const std::string& var_name,
     };
 
     const auto var_topic =
-        fmt::format("{}/var/{}", this->config.mqtt_prefix(requirement_module_id, requirement_impl_id),
-                    var_name); // this currently adds one thread per var!
+        fmt::format("{}/var/{}", this->config.mqtt_prefix(requirement_module_id, requirement_impl_id), var_name);
 
     // TODO(kai): multiple subscription should be perfectly fine here!
     const std::shared_ptr<TypedHandler> token =
@@ -733,7 +729,6 @@ void Everest::publish_raised_error(const std::string& impl_id, const error::Erro
     const auto error_topic = fmt::format("{}/error/{}", this->config.mqtt_prefix(this->module_id, impl_id), error.type);
 
     MqttMessagePayload payload{MqttMessageType::RaiseError, json(error)};
-
     this->mqtt_abstraction->publish(error_topic, payload, QOS::QOS2);
 }
 
@@ -743,7 +738,6 @@ void Everest::publish_cleared_error(const std::string& impl_id, const error::Err
     const auto error_topic = fmt::format("{}/error/{}", this->config.mqtt_prefix(this->module_id, impl_id), error.type);
 
     MqttMessagePayload payload{MqttMessageType::ClearError, json(error)};
-
     this->mqtt_abstraction->publish(error_topic, payload, QOS::QOS2);
 }
 
@@ -780,8 +774,7 @@ UnsubscribeToken Everest::provide_external_mqtt_handler(const std::string& topic
 void Everest::telemetry_publish(const std::string& topic, const std::string& data) {
     BOOST_LOG_FUNCTION();
 
-    MqttMessagePayload payload{MqttMessageType::Telemetry, data};
-
+    MqttMessagePayload payload{MqttMessageType::ExternalMQTT, data};
     this->mqtt_abstraction->publish(fmt::format("{}{}", this->telemetry_prefix, topic), payload);
 }
 
@@ -818,7 +811,6 @@ void Everest::signal_ready() {
     const auto ready_topic = fmt::format("{}/ready", this->config.mqtt_module_prefix(this->module_id));
 
     MqttMessagePayload payload{MqttMessageType::ModuleReady, json(true)};
-
     this->mqtt_abstraction->publish(ready_topic, payload, QOS::QOS2);
 }
 
@@ -984,10 +976,9 @@ void Everest::provide_cmd(const std::string& impl_id, const std::string& cmd_nam
             res_data["error"] = error.value();
         }
 
-        const json res_publish_data = json::object({{"name", cmd_name}, {"type", "result"}, {"data", res_data}});
+        const json res_publish_data = json::object({{"type", "result"}, {"data", res_data}});
 
         MqttMessagePayload payload{MqttMessageType::CmdResult, res_publish_data};
-
         const auto final_cmd_response_topic =
             fmt::format("{}/response/{}", cmd_topic, data.at("origin").get<std::string>());
         this->mqtt_abstraction->publish(final_cmd_response_topic, payload);

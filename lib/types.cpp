@@ -38,95 +38,55 @@ bool operator!=(const ImplementationIdentifier& lhs, const ImplementationIdentif
 std::string mqtt_message_type_to_string(MqttMessageType type) {
     switch (type) {
     case MqttMessageType::Var:
-        return "var";
+        return "Var";
     case MqttMessageType::Cmd:
-        return "cmd";
+        return "Cmd";
     case MqttMessageType::CmdResult:
-        return "cmd_result";
+        return "CmdResult";
     case MqttMessageType::ExternalMQTT:
-        return "external_mqtt";
+        return "ExternalMQTT";
     case MqttMessageType::RaiseError:
-        return "raise_error";
+        return "RaiseError";
     case MqttMessageType::ClearError:
-        return "clear_error";
+        return "ClearError";
     case MqttMessageType::GetConfig:
-        return "get_config";
+        return "GetConfig";
     case MqttMessageType::GetConfigResponse:
-        return "get_config_response";
-    case MqttMessageType::Metadata:
-        return "metadata";
-    case MqttMessageType::Telemetry:
-        return "telemetry";
+        return "GetConfigResponse";
     case MqttMessageType::Heartbeat:
-        return "heartbeat";
+        return "Heartbeat";
     case MqttMessageType::ModuleReady:
-        return "module_ready";
+        return "ModuleReady";
     case MqttMessageType::GlobalReady:
-        return "global_ready";
-    case MqttMessageType::Interfaces:
-        return "interfaces";
-    case MqttMessageType::InterfaceDefinitions:
-        return "interface_definitions";
-    case MqttMessageType::TypeDefinitions:
-        return "type_definitions";
-    case MqttMessageType::Types:
-        return "types";
-    case MqttMessageType::Settings:
-        return "settings";
-    case MqttMessageType::Schemas:
-        return "schemas";
-    case MqttMessageType::Manifests:
-        return "manifests";
-    case MqttMessageType::ModuleNames:
-        return "module_names";
+        return "GlobalReady";
     default:
         throw std::runtime_error("Unknown MQTT message type");
     }
 }
 
 MqttMessageType string_to_mqtt_message_type(const std::string& str) {
-    if (str == "var") {
+    if (str == "Var") {
         return MqttMessageType::Var;
-    } else if (str == "cmd") {
+    } else if (str == "Cmd") {
         return MqttMessageType::Cmd;
-    } else if (str == "cmd_result") {
+    } else if (str == "CmdResult") {
         return MqttMessageType::CmdResult;
-    } else if (str == "external_mqtt") {
+    } else if (str == "ExternalMQTT") {
         return MqttMessageType::ExternalMQTT;
-    } else if (str == "raise_error") {
+    } else if (str == "RaiseError") {
         return MqttMessageType::RaiseError;
-    } else if (str == "clear_error") {
+    } else if (str == "ClearError") {
         return MqttMessageType::ClearError;
-    } else if (str == "get_config") {
+    } else if (str == "GetConfig") {
         return MqttMessageType::GetConfig;
-    } else if (str == "get_config_response") {
+    } else if (str == "GetConfigResponse") {
         return MqttMessageType::GetConfigResponse;
-    } else if (str == "metadata") {
-        return MqttMessageType::Metadata;
-    } else if (str == "telemetry") {
-        return MqttMessageType::Telemetry;
-    } else if (str == "heartbeat") {
+    } else if (str == "Heartbeat") {
         return MqttMessageType::Heartbeat;
-    } else if (str == "module_ready") {
+    } else if (str == "ModuleReady") {
         return MqttMessageType::ModuleReady;
-    } else if (str == "global_ready") {
+    } else if (str == "GlobalReady") {
         return MqttMessageType::GlobalReady;
-    } else if (str == "interfaces") {
-        return MqttMessageType::Interfaces;
-    } else if (str == "interface_definitions") {
-        return MqttMessageType::InterfaceDefinitions;
-    } else if (str == "type_definitions") {
-        return MqttMessageType::TypeDefinitions;
-    } else if (str == "types") {
-        return MqttMessageType::Types;
-    } else if (str == "settings") {
-        return MqttMessageType::Settings;
-    } else if (str == "schemas") {
-        return MqttMessageType::Schemas;
-    } else if (str == "manifests") {
-        return MqttMessageType::Manifests;
-    } else if (str == "module_names") {
-        return MqttMessageType::ModuleNames;
     }
 
     throw std::runtime_error("Unknown MQTT message type string: " + str);

@@ -3,7 +3,9 @@
 
 #pragma once
 
+#include <atomic>
 #include <condition_variable>
+#include <functional>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -20,7 +22,9 @@ using CmdId = std::string;
 
 namespace Everest {
 
-/// \brief Handles message dispatching and thread-safe queuing of different message types
+/// \brief Handles message dispatching and thread-safe queuing of different message types. This class uses two separate
+/// threads and message queues: one for operation messages (vars, cmds, errors, GetConfig, ModuleReady) and one for
+/// result messages (cmd results, GetConfig responses).
 class MessageHandler {
 public:
     MessageHandler();
@@ -36,31 +40,49 @@ public:
     void register_handler(const std::string& topic, std::shared_ptr<TypedHandler> handler);
 
 private:
-    void run_main_worker();
-    void run_cmd_result_worker();
+    void run_operation_message_worker();
+    void run_result_message_worker();
 
-    void handle_message(const std::string& topic, const json& payload);
-    void handle_cmd_result_message(const std::string& topic, const json& payload);
+    void handle_operation_message(const std::string& topic, const json& payload);
+    void handle_result_message(const std::string& topic, const json& payload);
+
+    // Individual message handler methods
+    void handle_var_message(const std::string& topic, const json& data);
+    void handle_cmd_message(const std::string& topic, const json& data);
+    void handle_external_mqtt_message(const std::string& topic, const json& data);
+    void handle_error_message(const std::string& topic, const json& data);
+    void handle_get_config_message(const std::string& topic, const json& data);
+    void handle_module_ready_message(const std::string& topic, const json& data);
+    void handle_cmd_result(const std::string& topic, const json& payload);
+    void handle_get_config_response(const std::string& topic, const json& payload);
+
+    // Helper methods for handler execution
+    template <typename HandlerMap, typename ExecuteFn>
+    void execute_handlers_from_vector(HandlerMap& handlers, const std::string& topic, ExecuteFn execute_fn);
+
+    template <typename HandlerMap, typename ExecuteFn>
+    void execute_single_handler(HandlerMap& handlers, const std::string& topic, ExecuteFn execute_fn);
 
     // Threads
-    std::thread main_worker_thread;
-    std::thread cmd_result_worker_thread;
-    std::thread ready_thread;
+    std::thread
+        operation_worker_thread; // processes vars, commands, external MQTT, errors, GetConfig and ModuleReady messages
+    std::thread result_worker_thread; // processes cmd results and GetConfig responses
+    std::thread ready_thread;         // runs the modules ready function
 
     // Queues and sync primitives
-    std::queue<ParsedMessage> main_queue;
-    std::queue<ParsedMessage> cmd_result_queue;
+    std::queue<ParsedMessage> operation_message_queue;
+    std::queue<ParsedMessage> result_message_queue;
 
-    std::mutex main_queue_mutex;
-    std::condition_variable main_cv;
+    std::mutex operation_queue_mutex;
+    std::condition_variable operation_cv;
 
-    std::mutex cmd_result_queue_mutex;
-    std::condition_variable cmd_result_cv;
+    std::mutex result_queue_mutex;
+    std::condition_variable result_cv;
 
     std::mutex cmd_result_handler_mutex;
     std::mutex handler_mutex;
 
-    bool running = true;
+    std::atomic<bool> running = true;
 
     // Handler data structures
     std::map<MqttTopic, std::vector<std::shared_ptr<TypedHandler>>> var_handlers; // var handlers of module
