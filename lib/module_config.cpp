@@ -38,7 +38,7 @@ json get_definitions(std::shared_ptr<MQTTAbstraction> mqtt) {
     auto type_definitions = json::object();
     for (const auto& type_name : type_names) {
         // type_definition keys already start with a / so omit it in the topic name
-        auto type_topic = fmt::format("{}type_definitions/{}", everest_prefix, type_name.get<std::string>());
+        auto type_topic = fmt::format("{}type_definitions{}", everest_prefix, type_name.get<std::string>());
         auto type_definition = mqtt->get(type_topic, QOS::QOS2);
         type_definitions[type_name] = type_definition;
     }

@@ -89,27 +89,18 @@ struct ModuleInfo {
 };
 
 enum class MqttMessageType {
-    Var,                  ///< Variable message
-    Cmd,                  ///< Command message
-    CmdResult,            ///< Command result message
-    ExternalMQTT,         ///< External MQTT message
-    RaiseError,           ///< Raise error message
-    ClearError,           ///< Clear error message
-    GetConfig,            ///< Get config request
-    GetConfigResponse,    ///< Get config response
-    Metadata,             ///< Metadata message
-    Telemetry,            ///< Telemetry message
-    Heartbeat,            ///< Heartbeat message
-    ModuleReady,          ///< Module ready message
-    GlobalReady,          ///< Global ready message
-    Interfaces,           ///< Interfaces message
-    InterfaceDefinitions, ///< Interface definitions message
-    TypeDefinitions,      ///< Type definitions message
-    Types,                ///< Types message
-    Settings,             ///< Settings message
-    Schemas,              ///< Schemas message
-    Manifests,            ///< Manifests message
-    ModuleNames,          ///< Module names message
+    Var,               ///< Variable message
+    Cmd,               ///< Command message
+    CmdResult,         ///< Command result message
+    ExternalMQTT,      ///< External MQTT message
+    RaiseError,        ///< Raise error message
+    ClearError,        ///< Clear error message
+    GetConfig,         ///< Get config request
+    GetConfigResponse, ///< Get config response
+    Telemetry,         ///< Telemetry message
+    Heartbeat,         ///< Heartbeat message
+    ModuleReady,       ///< Module ready message
+    GlobalReady        ///< Global ready message
 };
 
 std::string mqtt_message_type_to_string(MqttMessageType type);
