@@ -130,6 +130,7 @@ private:
     std::vector<std::shared_ptr<MessageWithQOS>> messages_before_connected;
     std::mutex messages_before_connected_mutex;
     std::mutex topics_mutex;
+    std::mutex topic_request_mutex;
     std::vector<std::string> retained_topics;
     std::unordered_set<std::string> subscribed_topics;
 
