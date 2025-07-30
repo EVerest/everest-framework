@@ -8,6 +8,7 @@
 
 namespace Everest {
 
+namespace {
 // Helper to split string by delimiter
 std::vector<std::string> split_topic(const std::string& topic, char delimiter = '/') {
     std::vector<std::string> result;
@@ -58,10 +59,11 @@ bool check_topic_matches(const std::string& full_topic, const std::string& wildc
 
     return full_split.size() == wildcard_split.size();
 }
+} // namespace
 
 MessageHandler::MessageHandler() {
-    main_worker_thread = std::thread([this] { run_main_worker(); });
-    cmd_result_worker_thread = std::thread([this] { run_cmd_result_worker(); });
+    operation_worker_thread = std::thread([this] { run_operation_message_worker(); });
+    result_worker_thread = std::thread([this] { run_result_message_worker(); });
 }
 
 MessageHandler::~MessageHandler() {
@@ -71,23 +73,20 @@ MessageHandler::~MessageHandler() {
 void MessageHandler::add(const ParsedMessage& message) {
     EVLOG_debug << "Adding message to queue: " << message.topic << " with data: " << message.data;
 
-    std::string msg_type;
+    MqttMessageType msg_type = MqttMessageType::ExternalMQTT; // Default to ExternalMQTT if msg_type is not present
 
-    // Defensive check: ensure message.data is an object before accessing keys
     if (message.data.is_object() && message.data.contains("msg_type")) {
-        msg_type = message.data.at("msg_type").get<std::string>();
-    } else {
-        msg_type = "external_mqtt";
+        msg_type = string_to_mqtt_message_type(message.data.at("msg_type").get<std::string>());
     }
 
-    if (msg_type == "cmd_result") {
+    if (msg_type == MqttMessageType::CmdResult || msg_type == MqttMessageType::GetConfigResponse) {
         EVLOG_verbose << "Pushing cmd_result message to queue: " << message.data;
         {
-            std::lock_guard<std::mutex> lock(cmd_result_queue_mutex);
-            cmd_result_queue.push(message);
+            std::lock_guard<std::mutex> lock(result_queue_mutex);
+            result_message_queue.push(message);
         }
-        cmd_result_cv.notify_all();
-    } else if (msg_type == "global_ready") {
+        result_cv.notify_all();
+    } else if (msg_type == MqttMessageType::GlobalReady) {
         const auto topic_copy = message.topic;
         const auto data_copy = message.data.at("data");
 
@@ -95,78 +94,76 @@ void MessageHandler::add(const ParsedMessage& message) {
             std::thread([this, topic_copy, data_copy] { (*global_ready_handler->handler)(topic_copy, data_copy); });
     } else {
         {
-            std::lock_guard<std::mutex> lock(main_queue_mutex);
-            main_queue.push(message);
+            std::lock_guard<std::mutex> lock(operation_queue_mutex);
+            operation_message_queue.push(message);
         }
-        main_cv.notify_all();
+        operation_cv.notify_all();
     }
 }
 
 void MessageHandler::stop() {
     {
-        std::lock_guard<std::mutex> lock1(main_queue_mutex);
-        std::lock_guard<std::mutex> lock2(cmd_result_queue_mutex);
+        std::lock_guard<std::mutex> lock1(operation_queue_mutex);
+        std::lock_guard<std::mutex> lock2(result_queue_mutex);
         running = false;
     }
 
-    main_cv.notify_all();
-    cmd_result_cv.notify_all();
+    operation_cv.notify_all();
+    result_cv.notify_all();
 
-    if (main_worker_thread.joinable()) {
-        main_worker_thread.join();
+    if (operation_worker_thread.joinable()) {
+        operation_worker_thread.join();
     }
-    if (cmd_result_worker_thread.joinable()) {
-        cmd_result_worker_thread.join();
+    if (result_worker_thread.joinable()) {
+        result_worker_thread.join();
     }
     if (ready_thread.joinable()) {
         ready_thread.join();
     }
 }
 
-void MessageHandler::run_main_worker() {
+void MessageHandler::run_operation_message_worker() {
     while (true) {
-        std::unique_lock<std::mutex> lock(main_queue_mutex);
-        main_cv.wait(lock, [this] { return !main_queue.empty() || !running; });
+        std::unique_lock<std::mutex> lock(operation_queue_mutex);
+        operation_cv.wait(lock, [this] { return !operation_message_queue.empty() || !running; });
         if (!running)
             return;
 
-        ParsedMessage message = std::move(main_queue.front());
-        main_queue.pop();
+        ParsedMessage message = std::move(operation_message_queue.front());
+        operation_message_queue.pop();
         lock.unlock();
 
-        handle_message(message.topic, message.data);
+        handle_operation_message(message.topic, message.data);
     }
     EVLOG_info << "Main worker thread stopped";
 }
 
-void MessageHandler::run_cmd_result_worker() {
+void MessageHandler::run_result_message_worker() {
     while (true) {
-        std::unique_lock<std::mutex> lock(cmd_result_queue_mutex);
-        cmd_result_cv.wait(lock, [this] { return !cmd_result_queue.empty() || !running; });
-        if (!running)
+        std::unique_lock<std::mutex> lock(result_queue_mutex);
+        result_cv.wait(lock, [this] { return !result_message_queue.empty() || !running; });
+        if (!running) {
             return;
+        }
 
-        ParsedMessage message = std::move(cmd_result_queue.front());
-        cmd_result_queue.pop();
+        ParsedMessage message = std::move(result_message_queue.front());
+        result_message_queue.pop();
         lock.unlock();
 
-        handle_cmd_result_message(message.topic, message.data);
+        handle_result_message(message.topic, message.data);
     }
     EVLOG_info << "Cmd result worker thread stopped";
 }
 
-void MessageHandler::handle_message(const std::string& topic, const json& payload) {
+void MessageHandler::handle_operation_message(const std::string& topic, const json& payload) {
     json data;
-    MqttMessageType msg_type;
+    MqttMessageType msg_type = MqttMessageType::ExternalMQTT;
 
     // Determine message type
-    if (!payload.contains("msg_type")) {
-        msg_type = MqttMessageType::ExternalMQTT;
-    } else {
+    if (payload.contains("msg_type")) {
         msg_type = string_to_mqtt_message_type(payload.at("msg_type").get<std::string>());
     }
 
-    // Determine payload structure
     if (payload.contains("data")) {
         data = payload.at("data");
     } else {
@@ -174,95 +171,42 @@ void MessageHandler::handle_message(const std::string& topic, const json& payloa
     }
 
     switch (msg_type) {
-    case MqttMessageType::Var: {
-        std::vector<std::shared_ptr<TypedHandler>> handlers_copy;
-        {
-            std::lock_guard<std::mutex> lock(handler_mutex);
-            const auto it = var_handlers.find(topic);
-            if (it != var_handlers.end()) {
-                handlers_copy = it->second;
-            }
-        }
-        for (const auto& handler : handlers_copy) {
-            (*handler->handler)(topic, data.at("data"));
-        }
+    case MqttMessageType::Var:
+        handle_var_message(topic, data);
         break;
-    }
-    case MqttMessageType::Cmd: {
-        std::lock_guard<std::mutex> lock(handler_mutex);
-        (*cmd_handlers.at(topic)->handler)(topic, data);
+    case MqttMessageType::Cmd:
+        handle_cmd_message(topic, data);
         break;
-    }
-    case MqttMessageType::ExternalMQTT: {
-        std::vector<std::shared_ptr<TypedHandler>> handlers_copy;
-        {
-            std::lock_guard<std::mutex> lock(handler_mutex);
-            const auto it = external_var_handlers.find(topic);
-            if (it != external_var_handlers.end()) {
-                handlers_copy = it->second;
-            }
-        }
-        for (const auto& handler : handlers_copy) {
-            (*handler->handler)(topic, data);
-        }
+    case MqttMessageType::ExternalMQTT:
+        handle_external_mqtt_message(topic, data);
         break;
-    }
     case MqttMessageType::RaiseError:
-    case MqttMessageType::ClearError: {
-        std::lock_guard<std::mutex> lock(handler_mutex);
-        for (const auto& [_topic, error_handler] : error_handlers) {
-            if (check_topic_matches(topic, _topic)) {
-                (*error_handler->handler)(topic, data);
-            }
-        }
+    case MqttMessageType::ClearError:
+        handle_error_message(topic, data);
         break;
-    }
-    case MqttMessageType::GetConfig: {
-        std::lock_guard<std::mutex> lock(handler_mutex);
-        const auto it = get_module_config_handlers.find(topic);
-        if (it != get_module_config_handlers.end()) {
-            (*it->second->handler)(topic, data);
-        }
+    case MqttMessageType::GetConfig:
+        handle_get_config_message(topic, data);
         break;
-    }
-    case MqttMessageType::GetConfigResponse:
-    case MqttMessageType::Metadata:
-    case MqttMessageType::Telemetry:
-    case MqttMessageType::Interfaces:
-    case MqttMessageType::InterfaceDefinitions:
-    case MqttMessageType::Types:
-    case MqttMessageType::Schemas:
-    case MqttMessageType::Settings:
-    case MqttMessageType::Manifests:
-    case MqttMessageType::ModuleNames:
-    case MqttMessageType::TypeDefinitions: {
-        std::lock_guard<std::mutex> lock(handler_mutex);
-        (*config_response_handler->handler)(topic, data);
+    case MqttMessageType::ModuleReady:
+        handle_module_ready_message(topic, data);
         break;
-    }
-    case MqttMessageType::ModuleReady: {
-        std::lock_guard<std::mutex> lock(handler_mutex);
-        (*module_ready_handlers.at(topic)->handler)(topic, data);
-        break;
-    }
     default:
         break;
     }
 }
 
-void MessageHandler::handle_cmd_result_message(const std::string& topic, const json& payload) {
-    if (payload.contains("msg_type") &&
-        string_to_mqtt_message_type(payload.at("msg_type")) == MqttMessageType::CmdResult) {
-        const auto& data = payload.at("data").at("data");
-        const auto id = data.at("id").get<std::string>();
-        {
-            std::lock_guard<std::mutex> lock(cmd_result_handler_mutex);
-            auto it = cmd_result_handlers.find(id);
-            if (it != cmd_result_handlers.end()) {
-                (*it->second->handler)(topic, data);
-                cmd_result_handlers.erase(it);
-            }
-        }
+void MessageHandler::handle_result_message(const std::string& topic, const json& payload) {
+    if (!payload.contains("msg_type")) {
+        EVLOG_warning << "Received cmd_result message without msg_type: " << payload;
+        return;
+    }
+
+    const auto msg_type = string_to_mqtt_message_type(payload.at("msg_type").get<std::string>());
+
+    if (msg_type == MqttMessageType::CmdResult) {
+        handle_cmd_result(topic, payload);
+    } else if (msg_type == MqttMessageType::GetConfigResponse) {
+        handle_get_config_response(topic, payload);
     } else {
         EVLOG_warning << "Received invalid cmd_result message: " << payload;
     }
@@ -301,7 +245,7 @@ void MessageHandler::register_handler(const std::string& topic, std::shared_ptr<
         break;
     }
     case HandlerType::GetConfigResponse: {
-        std::lock_guard<std::mutex> lg(handler_mutex);
+        std::lock_guard<std::mutex> lg(cmd_result_handler_mutex);
         config_response_handler = handler;
         break;
     }
@@ -318,6 +262,110 @@ void MessageHandler::register_handler(const std::string& topic, std::shared_ptr<
     default:
         EVLOG_warning << "Unknown handler type for topic: " << topic;
         break;
+    }
+}
+
+// Private message handler methods
+void MessageHandler::handle_var_message(const std::string& topic, const json& data) {
+    execute_handlers_from_vector(var_handlers, topic,
+                                 [&](const auto& handler) { (*handler->handler)(topic, data.at("data")); });
+}
+
+void MessageHandler::handle_cmd_message(const std::string& topic, const json& data) {
+    execute_single_handler(cmd_handlers, topic, [&](const auto& handler) { (*handler->handler)(topic, data); });
+}
+
+void MessageHandler::handle_external_mqtt_message(const std::string& topic, const json& data) {
+    execute_handlers_from_vector(external_var_handlers, topic,
+                                 [&](const auto& handler) { (*handler->handler)(topic, data); });
+}
+
+void MessageHandler::handle_error_message(const std::string& topic, const json& data) {
+    std::vector<std::pair<std::string, std::shared_ptr<TypedHandler>>> matching_handlers;
+    {
+        std::lock_guard<std::mutex> lock(handler_mutex);
+        for (const auto& [_topic, error_handler] : error_handlers) {
+            if (check_topic_matches(topic, _topic)) {
+                matching_handlers.emplace_back(_topic, error_handler);
+            }
+        }
+    }
+    for (const auto& [_topic, handler] : matching_handlers) {
+        (*handler->handler)(topic, data);
+    }
+}
+
+void MessageHandler::handle_get_config_message(const std::string& topic, const json& data) {
+    execute_single_handler(get_module_config_handlers, topic,
+                           [&](const auto& handler) { (*handler->handler)(topic, data); });
+}
+
+void MessageHandler::handle_module_ready_message(const std::string& topic, const json& data) {
+    execute_single_handler(module_ready_handlers, topic,
+                           [&](const auto& handler) { (*handler->handler)(topic, data); });
+}
+
+void MessageHandler::handle_cmd_result(const std::string& topic, const json& payload) {
+    const auto& data = payload.at("data").at("data");
+    const auto id = data.at("id").get<std::string>();
+
+    std::shared_ptr<TypedHandler> handler_copy;
+    {
+        std::lock_guard<std::mutex> lock(cmd_result_handler_mutex);
+        auto it = cmd_result_handlers.find(id);
+        if (it != cmd_result_handlers.end()) {
+            handler_copy = it->second;
+            cmd_result_handlers.erase(it);
+        }
+    }
+
+    if (handler_copy) {
+        (*handler_copy->handler)(topic, data);
+    }
+}
+
+void MessageHandler::handle_get_config_response(const std::string& topic, const json& payload) {
+    std::shared_ptr<TypedHandler> handler_copy;
+    {
+        std::lock_guard<std::mutex> lock(cmd_result_handler_mutex);
+        if (config_response_handler) {
+            handler_copy = config_response_handler;
+        }
+    }
+    if (handler_copy) {
+        (*handler_copy->handler)(topic, payload.at("data"));
+    }
+}
+
+// Helper methods for handler execution
+template <typename HandlerMap, typename ExecuteFn>
+void MessageHandler::execute_handlers_from_vector(HandlerMap& handlers, const std::string& topic,
+                                                  ExecuteFn execute_fn) {
+    std::vector<std::shared_ptr<TypedHandler>> handlers_copy;
+    {
+        std::lock_guard<std::mutex> lock(handler_mutex);
+        const auto it = handlers.find(topic);
+        if (it != handlers.end()) {
+            handlers_copy = it->second;
+        }
+    }
+    for (const auto& handler : handlers_copy) {
+        execute_fn(handler);
+    }
+}
+
+template <typename HandlerMap, typename ExecuteFn>
+void MessageHandler::execute_single_handler(HandlerMap& handlers, const std::string& topic, ExecuteFn execute_fn) {
+    std::shared_ptr<TypedHandler> handler_copy;
+    {
+        std::lock_guard<std::mutex> lock(handler_mutex);
+        const auto it = handlers.find(topic);
+        if (it != handlers.end()) {
+            handler_copy = it->second;
+        }
+    }
+    if (handler_copy) {
+        execute_fn(handler_copy);
     }
 }
 

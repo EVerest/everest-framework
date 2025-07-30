@@ -85,12 +85,30 @@ public:
     /// \brief clears any previously published topics that had the retain flag set
     void clear_retained_topics();
 
+    /// \brief Sends an MQTT request and waits for a JSON response.
     ///
-    /// \brief subscribe and wait for value on the subscribed topic
+    /// This function registers a temporary response handler for the specified topic,
+    /// waits for a response message, and returns the received JSON data.
+    /// If no response is received within the configured timeout, it throws an
+    /// EverestTimeoutError.
+    ///
+    /// \param topic The MQTT topic to retrieve data from.
+    /// \param qos The Quality of Service (QoS) level for the request.
+    /// \return The JSON message received from the MQTT topic.
+    /// \throws EverestTimeoutError If no response is received within the timeout.
     nlohmann::json get(const std::string& topic, QOS qos);
 
+    /// \brief Sends an MQTT request and waits for a JSON response.
     ///
-    /// \brief subscribe to the topic defind in the \p request and wait for a result
+    /// This function registers a temporary handler for the response topic specified
+    /// in the request, publishes a request message, and waits for the
+    /// corresponding JSON response. If no response is received within the timeout,
+    /// it throws an EverestTimeoutError.
+    ///
+    /// \param request The MQTT request containing the response topic, request topic,
+    ///                payload, QoS, and timeout.
+    /// \return The JSON response received from the MQTT broker.
+    /// \throws EverestTimeoutError If no response is received within the specified timeout.
     nlohmann::json get(const MQTTRequest& request);
 
     ///
@@ -130,6 +148,7 @@ private:
     std::vector<std::shared_ptr<MessageWithQOS>> messages_before_connected;
     std::mutex messages_before_connected_mutex;
     std::mutex topics_mutex;
+    std::mutex topic_request_mutex;
     std::vector<std::string> retained_topics;
     std::unordered_set<std::string> subscribed_topics;
 

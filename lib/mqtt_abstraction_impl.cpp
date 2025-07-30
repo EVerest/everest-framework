@@ -242,6 +242,8 @@ void MQTTAbstractionImpl::clear_retained_topics() {
 
 json MQTTAbstractionImpl::get(const std::string& topic, QOS qos) {
     BOOST_LOG_FUNCTION();
+    std::lock_guard<std::mutex> lock(topic_request_mutex);
+
     std::promise<json> res_promise;
     std::future<json> res_future = res_promise.get_future();
 
@@ -251,7 +253,9 @@ json MQTTAbstractionImpl::get(const std::string& topic, QOS qos) {
 
     const std::shared_ptr<TypedHandler> res_token =
         std::make_shared<TypedHandler>(HandlerType::GetConfigResponse, std::make_shared<Handler>(res_handler));
-    this->register_handler(topic, res_token, QOS::QOS2);
+    this->register_handler(
+        topic, res_token,
+        QOS::QOS2); // without the lock guard, response handlers could be overriden if called from different threads
 
     // wait for result future
     const std::chrono::time_point<std::chrono::steady_clock> res_wait =
@@ -276,6 +280,8 @@ json MQTTAbstractionImpl::get(const std::string& topic, QOS qos) {
 
 json MQTTAbstractionImpl::get(const MQTTRequest& request) {
     BOOST_LOG_FUNCTION();
+    std::lock_guard<std::mutex> lock(topic_request_mutex);
+
     std::promise<json> res_promise;
     std::future<json> res_future = res_promise.get_future();
 
@@ -285,12 +291,12 @@ json MQTTAbstractionImpl::get(const MQTTRequest& request) {
 
     // FIXME: use configurable HandlerType?
     const std::shared_ptr<TypedHandler> res_token =
-        std::make_shared<TypedHandler>(HandlerType::GetConfig, std::make_shared<Handler>(res_handler));
+        std::make_shared<TypedHandler>(HandlerType::GetConfigResponse, std::make_shared<Handler>(res_handler));
     this->register_handler(request.response_topic, res_token, request.qos);
     if (request.request_topic.has_value()) {
-        std::string req_data;
+        json req_data;
         if (request.request_data.has_value()) {
-            req_data = request.request_data.value();
+            req_data = json::parse(request.request_data.value());
         }
 
         MqttMessagePayload payload{MqttMessageType::GetConfig, req_data};
@@ -462,19 +468,22 @@ void MQTTAbstractionImpl::register_handler(const std::string& topic, std::shared
                this->subscribed_topics.end();
     };
 
+    this->message_handler.register_handler(topic, handler);
+
     if (subscription_required(topic)) {
         EVLOG_debug << fmt::format("Subscribing to {}", topic);
         this->subscribe(topic, qos);
     }
-
-    this->message_handler.register_handler(topic, handler);
 }
 
 void MQTTAbstractionImpl::unregister_handler(const std::string& topic, const Token& token) {
     BOOST_LOG_FUNCTION();
 
     EVLOG_debug << fmt::format("Unregistering handler {} for {}", fmt::ptr(&token), topic);
-    this->unsubscribe(topic);
+
+    if (this->mqtt_is_connected) {
+        this->unsubscribe(topic);
+    }
 }
 
 bool MQTTAbstractionImpl::connectBroker(std::string& socket_path) {
