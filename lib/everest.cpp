@@ -380,8 +380,8 @@ json Everest::call_cmd(const Requirement& req, const std::string& cmd_name, json
 
         if (data.contains("error")) {
             EVLOG_error << fmt::format(
-                "{}: {} during command call: {}->{}()", data.at("error").at("event").get<std::string>(),
-                data.at("error").at("msg"),
+                "{}: {} during command call: {}->{}()", data.at("error").at(conversions::ERROR_TYPE).get<std::string>(),
+                data.at("error").at(conversions::ERROR_MSG),
                 this->config.printable_identifier(connection.module_id, connection.implementation_id), cmd_name);
             res_promise.set_value(CmdResult{std::nullopt, data.at("error")});
         } else {
@@ -919,7 +919,18 @@ void Everest::provide_cmd(const std::string& impl_id, const std::string& cmd_nam
             if (not error.has_value()) {
                 res_data["retval"] = handler(data.at("args"));
             }
-        } catch (const std::exception& e) {
+        } catch(const MessageParsingError& e) {
+            error = CmdResultError{CmdErrorType::MessageParsingError, e.what(), std::current_exception()};
+        } catch(const SchemaValidationError& e) {
+            error = CmdResultError{CmdErrorType::SchemaValidationError, e.what(), std::current_exception()};
+        } catch(const CmdTimeout& e) {
+            error = CmdResultError{CmdErrorType::CmdTimeout, e.what(), std::current_exception()};
+        } catch(const Shutdown& e) {
+            error = CmdResultError{CmdErrorType::Shutdown, e.what(), std::current_exception()};
+        } catch(const NotReady& e) {
+            error = CmdResultError{CmdErrorType::NotReady, e.what(), std::current_exception()};
+        }      
+        catch (const std::exception& e) {
             EVLOG_error << fmt::format("Exception during handling of: {}->{}({}): {}",
                                        this->config.printable_identifier(this->module_id, impl_id), cmd_name,
                                        fmt::join(arg_names, ","), e.what());
