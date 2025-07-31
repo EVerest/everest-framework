@@ -418,7 +418,7 @@ json Everest::call_cmd(const Requirement& req, const std::string& cmd_name, json
     CmdResult result;
     if (res_future_status == std::future_status::timeout) {
         result.error = CmdResultError{
-            CmdEvent::Timeout,
+            CmdErrorType::CmdTimeout,
             fmt::format("Timeout while waiting for result of {}->{}()",
                         this->config.printable_identifier(connection.module_id, connection.implementation_id),
                         cmd_name)};
@@ -432,20 +432,20 @@ json Everest::call_cmd(const Requirement& req, const std::string& cmd_name, json
         const auto& error = result.error.value();
         const auto error_message = fmt::format("{}", error.msg);
         switch (error.event) {
-        case CmdEvent::MessageParsingFailed:
+        case CmdErrorType::MessageParsingError:
             throw MessageParsingError(error_message);
-        case CmdEvent::SchemaValidationFailed:
+        case CmdErrorType::SchemaValidationError:
             throw SchemaValidationError(error_message);
-        case CmdEvent::HandlerException:
+        case CmdErrorType::HandlerException:
             throw HandlerException(error_message);
-        case CmdEvent::Timeout:
+        case CmdErrorType::CmdTimeout:
             throw CmdTimeout(error_message);
-        case CmdEvent::Shutdown:
+        case CmdErrorType::Shutdown:
             throw Shutdown(error_message);
-        case CmdEvent::NotReady:
+        case CmdErrorType::NotReady:
             throw NotReady(error_message);
         default:
-            throw CmdError(fmt::format("{}: {}", conversions::cmd_event_to_string(error.event), error.msg));
+            throw CmdError(fmt::format("{}: {}", conversions::cmd_error_type_to_string(error.event), error.msg));
         }
     }
 
@@ -908,7 +908,7 @@ void Everest::provide_cmd(const std::string& impl_id, const std::string& cmd_nam
             } catch (const std::exception& e) {
                 EVLOG_warning << fmt::format("Ignoring incoming cmd '{}' because not matching manifest schema: {}",
                                              cmd_name, e.what());
-                error = CmdResultError{CmdEvent::SchemaValidationFailed, e.what()};
+                error = CmdResultError{CmdErrorType::SchemaValidationError, e.what()};
             }
         }
 
@@ -923,12 +923,12 @@ void Everest::provide_cmd(const std::string& impl_id, const std::string& cmd_nam
             EVLOG_error << fmt::format("Exception during handling of: {}->{}({}): {}",
                                        this->config.printable_identifier(this->module_id, impl_id), cmd_name,
                                        fmt::join(arg_names, ","), e.what());
-            error = CmdResultError{CmdEvent::HandlerException, e.what(), std::current_exception()};
+            error = CmdResultError{CmdErrorType::HandlerException, e.what(), std::current_exception()};
         } catch (...) {
             EVLOG_error << fmt::format("Unknown exception during handling of: {}->{}({})",
                                        this->config.printable_identifier(this->module_id, impl_id), cmd_name,
                                        fmt::join(arg_names, ","));
-            error = CmdResultError{CmdEvent::HandlerException, "Unknown exception", std::current_exception()};
+            error = CmdResultError{CmdErrorType::HandlerException, "Unknown exception", std::current_exception()};
         }
 
         // check retval against manifest
@@ -948,7 +948,7 @@ void Everest::provide_cmd(const std::string& impl_id, const std::string& cmd_nam
                 EVLOG_warning << fmt::format("Ignoring return value of cmd '{}' because the validation of the result "
                                              "failed: {}\ndefinition: {}\ndata: {}",
                                              cmd_name, e.what(), cmd_definition, res_data);
-                error = CmdResultError{CmdEvent::SchemaValidationFailed, e.what()};
+                error = CmdResultError{CmdErrorType::SchemaValidationError, e.what()};
             }
         }
 
@@ -964,7 +964,7 @@ void Everest::provide_cmd(const std::string& impl_id, const std::string& cmd_nam
         // re-throw exception caught in handler
         if (error.has_value()) {
             auto err = error.value();
-            if (err.event == CmdEvent::HandlerException and not this->forward_exceptions) {
+            if (err.event == CmdErrorType::HandlerException and not this->forward_exceptions) {
                 if (err.ex) {
                     std::rethrow_exception(err.ex);
                 } else {
