@@ -25,6 +25,7 @@ static INIT_RUNTIME_ONCE: OnceLock<Pin<Arc<Runtime>>> = OnceLock::new();
 // Reexport everything so the clients can use it.
 pub use serde;
 pub use serde_json;
+pub use log;
 // TODO(ddo) Drop this again - its only there as a MVP for the enum support
 // of errors.
 pub use serde_yaml;

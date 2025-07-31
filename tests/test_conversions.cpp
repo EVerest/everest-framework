@@ -29,10 +29,10 @@ SCENARIO("Check conversions", "[!throws]") {
     GIVEN("Valid CmdError strings") {
         THEN("It shouldn't throw") {
             CHECK(Everest::conversions::string_to_cmd_error_type("MessageParsingError") ==
-                  Everest::CmdError::MessageParsingError);
+                  Everest::CmdErrorType::MessageParsingError);
 
             CHECK(Everest::conversions::string_to_cmd_error_type("SchemaValidationError") ==
-                  Everest::CmdError::SchemaValidationError);
+                  Everest::CmdErrorType::SchemaValidationError);
             CHECK(Everest::conversions::string_to_cmd_error_type("HandlerException") == Everest::CmdErrorType::HandlerException);
             CHECK(Everest::conversions::string_to_cmd_error_type("CmdTimeout") == Everest::CmdErrorType::CmdTimeout);
             CHECK(Everest::conversions::string_to_cmd_error_type("Shutdown") == Everest::CmdErrorType::Shutdown);
