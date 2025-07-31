@@ -1,6 +1,11 @@
 //! Integration test for the "cmd-errors" handling.
 //!
-//! The Rust binding can receive/return errors from command calls.
+//! The Rust binding can receive/return errors from command calls. The
+//! exceptions need the `forward_exceptions` setting. Then errors from the
+//! server should propagate to the client.
+//!
+//! Below we test all possible errors supported by EVerest. In user code it
+//! only `HandlerException` typically makes sense.
 #![allow(non_snake_case)]
 include!(concat!(env!("OUT_DIR"), "/generated.rs"));
 
@@ -56,16 +61,12 @@ fn main() {
     for (key, _expected) in [
         (
             "HandlerException",
-            Err(::everestrs::Error::HandlerException(
-                "my handler".to_string(),
-            )),
+            Err(::everestrs::Error::HandlerException(String::new())),
         ),
         ("foo", Ok(true)),
         (
             "SchemaValidationError",
-            Err(::everestrs::Error::SchemaValidationError(
-                "not my schema".to_string(),
-            )),
+            Err(::everestrs::Error::SchemaValidationError(String::new())),
         ),
         (
             "MessageParsingError",

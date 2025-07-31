@@ -1,4 +1,5 @@
 settings:
+  # This is the setting we want to test.
   forward_exceptions: true
 active_modules:
   example_0:
