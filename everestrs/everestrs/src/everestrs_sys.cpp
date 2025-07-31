@@ -202,7 +202,21 @@ void Module::raise_error(rust::Str implementation_id, ErrorType error_type) cons
 void Module::clear_error(rust::Str implementation_id, rust::Str error_type, bool clear_all) const {
     const auto manager = handle_->get_error_manager_impl(std::string(implementation_id));
 
-    if (error_type.empty()) {
+    // If the string in rust is empty, then the rust::Str is a string of the form "''"
+    // i.e. it contains 2 single quotes
+    // We check for strings consisting single quotes only, and consider them empty
+    bool empty_error = true;
+    const char* data = error_type.data();
+    const size_t error_string_length = error_type.size();
+    for (size_t i = 0; i < error_string_length; ++i) {
+        unsigned char symbol = static_cast<unsigned char>(data[i]);
+        if (symbol != '\'') {
+            empty_error = false;
+            break;
+        }
+    }
+
+    if (empty_error) {
         manager->clear_all_errors();
     } else {
         if (clear_all) {
