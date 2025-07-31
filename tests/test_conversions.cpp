@@ -13,7 +13,8 @@ SCENARIO("Check conversions", "[!throws]") {
 
             CHECK(Everest::conversions::cmd_error_type_to_string(Everest::CmdErrorType::SchemaValidationError) ==
                   "SchemaValidationError");
-            CHECK(Everest::conversions::cmd_error_type_to_string(Everest::CmdErrorType::HandlerException) == "HandlerException");
+            CHECK(Everest::conversions::cmd_error_type_to_string(Everest::CmdErrorType::HandlerException) ==
+                  "HandlerException");
             CHECK(Everest::conversions::cmd_error_type_to_string(Everest::CmdErrorType::CmdTimeout) == "CmdTimeout");
             CHECK(Everest::conversions::cmd_error_type_to_string(Everest::CmdErrorType::Shutdown) == "Shutdown");
             CHECK(Everest::conversions::cmd_error_type_to_string(Everest::CmdErrorType::NotReady) == "NotReady");
@@ -33,7 +34,8 @@ SCENARIO("Check conversions", "[!throws]") {
 
             CHECK(Everest::conversions::string_to_cmd_error_type("SchemaValidationError") ==
                   Everest::CmdErrorType::SchemaValidationError);
-            CHECK(Everest::conversions::string_to_cmd_error_type("HandlerException") == Everest::CmdErrorType::HandlerException);
+            CHECK(Everest::conversions::string_to_cmd_error_type("HandlerException") ==
+                  Everest::CmdErrorType::HandlerException);
             CHECK(Everest::conversions::string_to_cmd_error_type("CmdTimeout") == Everest::CmdErrorType::CmdTimeout);
             CHECK(Everest::conversions::string_to_cmd_error_type("Shutdown") == Everest::CmdErrorType::Shutdown);
             CHECK(Everest::conversions::string_to_cmd_error_type("NotReady") == Everest::CmdErrorType::NotReady);

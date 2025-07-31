@@ -138,10 +138,10 @@ inline constexpr int mqtt_get_config_timeout_ms = 5000;
 enum class CmdErrorType {
     MessageParsingError,   ///< Parsing of the message to the command handler has failed
     SchemaValidationError, ///< Schema validation of arguments or result has failed
-    HandlerException,       ///< An exception was thrown during handling of the command in user code
-    CmdTimeout,  ///< A timeout happened when calling the command (eg. when the callee doesn't respond to the caller)
-    Shutdown, ///< EVerest is shutting down during a command call
-    NotReady  ///< EVerest / the callee is not yet ready but received a command call already from another module
+    HandlerException,      ///< An exception was thrown during handling of the command in user code
+    CmdTimeout, ///< A timeout happened when calling the command (eg. when the callee doesn't respond to the caller)
+    Shutdown,   ///< EVerest is shutting down during a command call
+    NotReady    ///< EVerest / the callee is not yet ready but received a command call already from another module
 };
 
 struct CmdResultError {
