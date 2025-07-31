@@ -51,7 +51,8 @@ SCENARIO("Check conversions", "[!throws]") {
     GIVEN("Valid CmdErrorError") {
         THEN("It shouldn't throw") {
             Everest::CmdResultError cmd_result_error = {Everest::CmdErrorType::Shutdown, "message", nullptr};
-            json cmd_result_error_json = {{"event", "Shutdown"}, {"msg", "message"}};
+            json cmd_result_error_json = {{Everest::conversions::ERROR_TYPE, "Shutdown"},
+                                          {Everest::conversions::ERROR_MSG, "message"}};
             Everest::CmdResultError cmd_result_error_from_json = cmd_result_error_json;
             CHECK(json(cmd_result_error) == cmd_result_error_json);
             CHECK(json(cmd_result_error_from_json) == cmd_result_error_json);
