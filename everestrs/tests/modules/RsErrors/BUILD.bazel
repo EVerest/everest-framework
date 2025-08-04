@@ -1,5 +1,7 @@
 load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_test")
 load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
+load("//bazel:everest_env.bzl", "everest_test")
+load("//bazel:modules_def.bzl", "rs_everest_module")
 
 cargo_build_script(
     name = "build_script",
@@ -25,6 +27,7 @@ rust_binary(
     visibility = ["//visibility:public"],
     edition = "2021",
     deps = [
+        "@everest_framework_crate_index//:log",
         "@everest-framework//everestrs/everestrs",
         "@everest-framework//everestrs/everestrs:everestrs_sys",
         "@everest-framework//everestrs/everestrs:everestrs_bridge",
@@ -38,4 +41,21 @@ rust_test(
     edition="2021",
     srcs = [],
     crate = ":RsErrors",
+)
+
+rs_everest_module(
+    name = "RsErrorsModule",
+    binary = ":RsErrors",
+    manifest = "manifest.yaml",
+)
+
+everest_test(
+    name = "integration_test",
+    modules = [
+        ":RsErrorsModule",
+    ],
+    config_file = "config.yaml",
+    toolchains = ["@rules_python//python:current_py_toolchain"],
+    test_script = "test.sh",
+    tags = ["exclusive"]
 )
