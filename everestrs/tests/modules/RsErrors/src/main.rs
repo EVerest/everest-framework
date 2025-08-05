@@ -58,6 +58,9 @@ impl ErrorsMultipleClientSubscriber for ErrorCommunacator {
 }
 
 impl crate::generated::ErrorsMultipleServiceSubscriber for ErrorCommunacator {}
+impl crate::generated::ErrorsSelectedServiceSubscriber for ErrorCommunacator {}
+impl crate::generated::ErrorsNoneServiceSubscriber for ErrorCommunacator {}
+impl crate::generated::EmptyServiceSubscriber for ErrorCommunacator {}
 
 fn main() {
     let one_class = Arc::new(ErrorCommunacator {
@@ -65,13 +68,20 @@ fn main() {
         errors_cleared: Mutex::new(HashSet::new()),
         finished_on_ready: AtomicBool::new(false),
     });
-    let _module = Module::new(one_class.clone(), one_class.clone(), one_class.clone());
+    let _module = Module::new(
+        one_class.clone(),
+        one_class.clone(),
+        one_class.clone(),
+        one_class.clone(),
+        one_class.clone(),
+        one_class.clone(),
+    );
 
     let mut tests_passed = false;
     loop {
         std::thread::sleep(std::time::Duration::from_millis(250));
 
-        if (one_class.finished_on_ready.load(Ordering::Relaxed) & !tests_passed) {
+        if one_class.finished_on_ready.load(Ordering::Relaxed) & !tests_passed {
             let raised_set = one_class.errors_raised.lock().unwrap();
             let cleared_set = one_class.errors_cleared.lock().unwrap();
             log::info!("Raised Errors: {:?}", raised_set);
