@@ -8,12 +8,12 @@ use crate::generated::{ModulePublisher, OnReadySubscriber};
 use generated::errors::errors_multiple::{Error as ExampleError, ExampleErrorsError};
 
 use std::collections::HashSet;
-use std::sync::{atomic::AtomicBool, atomic::Ordering, Arc, Mutex};
+use std::sync::{Arc, Condvar, Mutex};
 
 struct ErrorCommunacator {
     errors_raised: Mutex<HashSet<ExampleErrorsError>>,
     errors_cleared: Mutex<HashSet<ExampleErrorsError>>,
-    finished_on_ready: AtomicBool,
+    errors_cleared_cv: Condvar,
 }
 
 impl Eq for ExampleErrorsError {}
@@ -35,8 +35,6 @@ impl OnReadySubscriber for ErrorCommunacator {
 
         publishers.multiple.clear_error(error_a);
         publishers.multiple.clear_all_errors();
-
-        self.finished_on_ready.store(true, Ordering::Relaxed);
     }
 }
 
@@ -54,6 +52,10 @@ impl ErrorsMultipleClientSubscriber for ErrorCommunacator {
         if let ExampleError::ExampleErrors(inner) = error {
             cleared_set.insert(inner.clone());
         }
+
+        if cleared_set.len() == 3 {
+            self.errors_cleared_cv.notify_one();
+        }
     }
 }
 
@@ -63,21 +65,28 @@ fn main() {
     let one_class = Arc::new(ErrorCommunacator {
         errors_raised: Mutex::new(HashSet::new()),
         errors_cleared: Mutex::new(HashSet::new()),
-        finished_on_ready: AtomicBool::new(false),
+        errors_cleared_cv: Condvar::new(),
     });
     let _module = Module::new(one_class.clone(), one_class.clone(), one_class.clone());
 
     let mut tests_passed = false;
+    // This mutex goes into the condvar, but it is dummy data as we know that the
+    // notify_once will fire after this
+    let mutex = Mutex::new(true);
     loop {
-        std::thread::sleep(std::time::Duration::from_millis(250));
+        let mutex_inner = mutex.lock().unwrap();
+        let res = one_class
+            .errors_cleared_cv
+            .wait_timeout(mutex_inner, std::time::Duration::from_secs(2))
+            .unwrap();
 
-        if one_class.finished_on_ready.load(Ordering::Relaxed) & !tests_passed {
+        if res.1.timed_out() & !tests_passed {
+            panic!("Timeout hit");
+        } else {
             let raised_set = one_class.errors_raised.lock().unwrap();
             let cleared_set = one_class.errors_cleared.lock().unwrap();
             log::info!("Raised Errors: {:?}", raised_set);
             log::info!("Cleared Errors: {:?}", cleared_set);
-            assert_eq!(raised_set.len(), 3);
-            assert_eq!(cleared_set.len(), 3);
             assert_eq!(*raised_set, *cleared_set);
             tests_passed = true;
         }
