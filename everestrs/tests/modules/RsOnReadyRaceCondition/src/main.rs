@@ -34,14 +34,14 @@ impl ExampleClientSubscriber for OneClass {
         log::info!("max current");
     }
 
-    fn on_error_raised(&self, _context: &Context, error: ExampleError) {
+    fn on_error_raised(&self, _context: &Context, _error: ExampleError) {
         assert!(self.on_ready_called.load(Ordering::Relaxed));
-        log::info!("Error raised {:?}", error);
+        log::info!("Error raised");
     }
 
-    fn on_error_cleared(&self, _context: &Context, error: ExampleError) {
+    fn on_error_cleared(&self, _context: &Context, _error: ExampleError) {
         assert!(self.on_ready_called.load(Ordering::Relaxed));
-        log::info!("Error cleared {:?}", error);
+        log::info!("Error cleared");
     }
 }
 
@@ -52,11 +52,7 @@ impl OnReadySubscriber for OneClass {
         publishers.example.max_current(12.3).unwrap();
         let error = ExampleError::ExampleErrors(ExampleErrorsError::ExampleErrorA);
         publishers.example.raise_error(error.clone());
-
-        let error = ExampleError::ExampleErrors(ExampleErrorsError::ExampleErrorB);
-        publishers.example.raise_error(error.clone());
         publishers.example.clear_error(error);
-        publishers.example.clear_all_errors();
 
         // TODO(ddo) Add here the `uses_something` call once the framework can
         // reject too early calls.
