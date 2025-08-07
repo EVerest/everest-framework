@@ -53,6 +53,10 @@ impl ErrorsMultipleClientSubscriber for ErrorCommunacator {
             cleared_set.insert(inner.clone());
         }
 
+        // The integration test links this module to another version of itself
+        // so the magic 3 here must match the number of calls to raise_error
+        // (and thus also clear_error through the clear_all_errors call)
+        // in on_ready
         if cleared_set.len() == 3 {
             self.errors_cleared_cv.notify_one();
         }
