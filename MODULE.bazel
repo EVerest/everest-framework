@@ -31,8 +31,6 @@ bazel_dep(name = "boost.program_options", version = BOOST_VERSION)
 
 bazel_dep(name = "boost.utility", version = BOOST_VERSION)
 
-bazel_dep(name = "boringssl", version = "0.20250311.0")
-
 bazel_dep(name = "fast_float", version = "6.1.6")
 
 bazel_dep(name = "nlohmann_json", version = "3.12.0", repo_name = "com_github_nlohmann_json")
