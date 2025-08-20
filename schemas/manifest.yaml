@@ -85,6 +85,10 @@ properties:
               Config set for this implementation (and possibly default
               values) declared as json schema
             $ref: '#/$defs/config_set_schema'
+          quantity:
+            type: integer
+            minimum: 0
+            default: 1
         additionalProperties: false
     # add empty provides if not already present
     default: {}

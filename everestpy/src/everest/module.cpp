@@ -98,33 +98,33 @@ void Module::subscribe_variable(const Fulfillment& fulfillment, const std::strin
 }
 
 void Module::raise_error(const std::string& impl_id, const Everest::error::Error& error) {
-    handle->get_error_manager_impl(impl_id)->raise_error(error);
+    handle->get_error_manager_impl(impl_id).at(0)->raise_error(error);
 }
 
 void Module::clear_error(const std::string& impl_id, const Everest::error::ErrorType& type) {
-    handle->get_error_manager_impl(impl_id)->clear_error(type);
+    handle->get_error_manager_impl(impl_id).at(0)->clear_error(type);
 }
 
 void Module::clear_error(const std::string& impl_id, const Everest::error::ErrorType& type,
                          const Everest::error::ErrorSubType& sub_type) {
-    handle->get_error_manager_impl(impl_id)->clear_error(type, sub_type);
+    handle->get_error_manager_impl(impl_id).at(0)->clear_error(type, sub_type);
 }
 
 void Module::clear_all_errors_of_impl(const std::string& impl_id) {
-    handle->get_error_manager_impl(impl_id)->clear_all_errors();
+    handle->get_error_manager_impl(impl_id).at(0)->clear_all_errors();
 }
 
 void Module::clear_all_errors_of_impl(const std::string& impl_id, const Everest::error::ErrorType& type) {
-    handle->get_error_manager_impl(impl_id)->clear_all_errors(type);
+    handle->get_error_manager_impl(impl_id).at(0)->clear_all_errors(type);
 }
 
 std::shared_ptr<Everest::error::ErrorStateMonitor>
 Module::get_error_state_monitor_impl(const std::string& impl_id) const {
-    return handle->get_error_state_monitor_impl(impl_id);
+    return handle->get_error_state_monitor_impl(impl_id).at(0);
 }
 
 std::shared_ptr<Everest::error::ErrorFactory> Module::get_error_factory(const std::string& impl_id) const {
-    return handle->get_error_factory(impl_id);
+    return handle->get_error_factory(impl_id).at(0);
 }
 
 void Module::subscribe_error(const Fulfillment& fulfillment, const Everest::error::ErrorType& type,
