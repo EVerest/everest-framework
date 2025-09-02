@@ -41,8 +41,11 @@ enum class HandlerType {
     Result,
     SubscribeVar,
     SubscribeError,
-    ClearErrorRequest,
     GetConfig,
+    GetConfigResponse,
+    ConfigRequest,
+    ModuleReady,
+    GlobalReady,
     ExternalMQTT,
     Unknown
 };
@@ -83,6 +86,31 @@ struct ModuleInfo {
     bool telemetry_enabled = false;
     bool global_errors_enabled = false;
     std::optional<Mapping> mapping;
+};
+
+enum class MqttMessageType {
+    Var,               ///< Variable message
+    Cmd,               ///< Command message
+    CmdResult,         ///< Command result message
+    ExternalMQTT,      ///< External MQTT message
+    RaiseError,        ///< Raise error message
+    ClearError,        ///< Clear error message
+    GetConfig,         ///< Get config request
+    GetConfigResponse, ///< Get config response
+    Telemetry,         ///< Telemetry message
+    Heartbeat,         ///< Heartbeat message
+    ModuleReady,       ///< Module ready message
+    GlobalReady        ///< Global ready message
+};
+
+std::string mqtt_message_type_to_string(MqttMessageType type);
+MqttMessageType string_to_mqtt_message_type(const std::string& str);
+
+struct MqttMessagePayload {
+    MqttMessageType type; ///< The type of the MQTT message
+    json data;            ///< The data of the MQTT message
+    MqttMessagePayload() = delete;
+    MqttMessagePayload(MqttMessageType type_, json data_) : type(type_), data(std::move(data_)){};
 };
 
 /// \brief Contains everything that's needed to initialize a requirement in user code
@@ -127,6 +155,12 @@ template <> struct adl_serializer<Fulfillment> {
     static void to_json(json& j, const Fulfillment& f);
     static Fulfillment from_json(const json& j);
 };
+
+template <> struct adl_serializer<MqttMessagePayload> {
+    static void to_json(json& j, const MqttMessagePayload& m);
+    static MqttMessagePayload from_json(const json& j);
+};
+
 NLOHMANN_JSON_NAMESPACE_END
 
 #define EVCALLBACK(function) [](auto&& PH1) { function(std::forward<decltype(PH1)>(PH1)); }
