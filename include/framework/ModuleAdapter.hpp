@@ -75,11 +75,13 @@ struct ErrorFactory;
 } // namespace error
 struct ModuleAdapter {
     using CallFunc = std::function<Result(const Requirement&, const std::string&, Parameters)>;
-    using PublishFunc = std::function<void(const std::string&, const std::string&, Value)>;
+    using PublishFunc = std::function<void(std::size_t, const std::string&, const std::string&, Value)>;
     using SubscribeFunc = std::function<void(const Requirement&, const std::string&, ValueCallback)>;
-    using GetErrorManagerImplFunc = std::function<std::shared_ptr<error::ErrorManagerImpl>(const std::string&)>;
-    using GetErrorStateMonitorImplFunc = std::function<std::shared_ptr<error::ErrorStateMonitor>(const std::string&)>;
-    using GetErrorFactoryFunc = std::function<std::shared_ptr<error::ErrorFactory>(const std::string&)>;
+    using GetErrorManagerImplFunc =
+        std::function<std::vector<std::shared_ptr<error::ErrorManagerImpl>>(const std::string&)>;
+    using GetErrorStateMonitorImplFunc =
+        std::function<std::vector<std::shared_ptr<error::ErrorStateMonitor>>(const std::string&)>;
+    using GetErrorFactoryFunc = std::function<std::vector<std::shared_ptr<error::ErrorFactory>>(const std::string&)>;
     using GetErrorManagerReqFunc = std::function<std::shared_ptr<error::ErrorManagerReq>(const Requirement&)>;
     using GetGlobalErrorManagerFunc = std::function<std::shared_ptr<error::ErrorManagerReqGlobal>()>;
     using GetGlobalErrorStateMonitorFunc = std::function<std::shared_ptr<error::ErrorStateMonitor>()>;
