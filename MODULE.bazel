@@ -43,6 +43,8 @@ bazel_dep(name = "fmt", version = "11.2.0", repo_name = "com_github_fmtlib_fmt")
 
 bazel_dep(name = "sqlite3", version = "3.49.1")
 
+bazel_dep(name = "openssl", version = "3.3.1.bcr.6")
+
 deps = use_extension("//third-party/bazel:extension.bzl", "deps")
 use_repo(
     deps,
