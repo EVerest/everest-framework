@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.14)
 
 project(everest-framework
-    VERSION 0.22.3
+    VERSION 0.23.0
     DESCRIPTION "The open operating system for e-mobility charging stations"
     LANGUAGES CXX C
 )
@@ -132,6 +132,7 @@ endif()
 
 # everest python wrapper
 if (EVEREST_ENABLE_PY_SUPPORT)
+    set(PYTHON_MODULE_EXTENSION ".so")
     add_subdirectory(everestpy)
 endif()
 
