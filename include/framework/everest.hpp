@@ -48,6 +48,11 @@ struct ErrorManagerReq;
 struct ErrorManagerReqGlobal;
 struct ErrorStateMonitor;
 struct ErrorFactory;
+
+struct ErrorWrapper {
+    Error error;
+    std::size_t index;
+};
 } // namespace error
 
 ///
@@ -74,6 +79,7 @@ public:
     /// \brief Allows a module to indicate that it provides the given command \p cmd
     ///
     void provide_cmd(const std::string& impl_id, const std::string& cmd_name, const JsonCommand& handler);
+    void provide_cmd(const std::string& impl_id, const std::string& cmd_name, const JsonCommandMultiple& handler);
     void provide_cmd(const cmd& cmd);
 
     ///
@@ -88,25 +94,31 @@ public:
     void publish_var(const std::string& impl_id, const std::string& var_name, nlohmann::json value);
 
     ///
+    /// \brief Publishes a variable at the given \p _index, of the given \p impl_id, names \p var_name with the given \p
+    /// value
+    ///
+    void publish_var(std::size_t index, const std::string& impl_id, const std::string& var_name, nlohmann::json value);
+
+    ///
     /// \brief Subscribes to a variable of another module identified by the given \p req and variable name \p
     /// var_name. The given \p callback is called when a new value becomes available
     ///
     void subscribe_var(const Requirement& req, const std::string& var_name, const JsonCallback& callback);
 
     ///
-    /// \brief Return the error manager for the given \p impl_id
+    /// \brief Return the error managers for the given \p impl_id
     ///
-    std::shared_ptr<error::ErrorManagerImpl> get_error_manager_impl(const std::string& impl_id);
+    std::vector<std::shared_ptr<error::ErrorManagerImpl>> get_error_manager_impl(const std::string& impl_id);
 
     ///
-    /// \brief Return the error state monitor for the given \p impl_id
+    /// \brief Return the error state monitors for the given \p impl_id
     ///
-    std::shared_ptr<error::ErrorStateMonitor> get_error_state_monitor_impl(const std::string& impl_id);
+    std::vector<std::shared_ptr<error::ErrorStateMonitor>> get_error_state_monitor_impl(const std::string& impl_id);
 
     ///
-    /// \brief Return the error factory for the given \p impl_id
+    /// \brief Return the error factories for the given \p impl_id
     ///
-    std::shared_ptr<error::ErrorFactory> get_error_factory(const std::string& impl_id);
+    std::vector<std::shared_ptr<error::ErrorFactory>> get_error_factory(const std::string& impl_id);
 
     ///
     /// \brief Return the error manager for the given \p req
@@ -208,10 +220,11 @@ private:
     std::shared_ptr<MQTTAbstraction> mqtt_abstraction;
     Config config;
     std::string module_id;
-    std::map<std::string, std::shared_ptr<error::ErrorManagerImpl>> impl_error_managers; // one per implementation
-    std::map<std::string, std::shared_ptr<error::ErrorStateMonitor>>
+    std::map<std::string, std::vector<std::shared_ptr<error::ErrorManagerImpl>>>
+        impl_error_managers; // one per implementation
+    std::map<std::string, std::vector<std::shared_ptr<error::ErrorStateMonitor>>>
         impl_error_state_monitors;                                                             // one per implementation
-    std::map<std::string, std::shared_ptr<error::ErrorFactory>> error_factories;               // one per implementation
+    std::map<std::string, std::vector<std::shared_ptr<error::ErrorFactory>>> error_factories;  // one per implementation
     std::map<Requirement, std::shared_ptr<error::ErrorManagerReq>> req_error_managers;         // one per requirement
     std::map<Requirement, std::shared_ptr<error::ErrorStateMonitor>> req_error_state_monitors; // one per requirement
     std::shared_ptr<error::ErrorManagerReqGlobal> global_error_manager;   // nullptr if not enabled in manifest
@@ -248,12 +261,12 @@ private:
     ///
     /// \brief Publishes the given \p error as a cleared error
     ///
-    void publish_cleared_error(const std::string& impl_id, const error::Error& error);
+    void publish_cleared_error(std::size_t index, const std::string& impl_id, const error::Error& error);
 
     ///
     /// \brief Publishes the given \p error as a raised error
     ///
-    void publish_raised_error(const std::string& impl_id, const error::Error& error);
+    void publish_raised_error(std::size_t index, const std::string& impl_id, const error::Error& error);
 
     ///
     /// \brief Subscribes to an error of another module indentified by the given \p req and error type
@@ -296,5 +309,12 @@ std::optional<Mapping> get_impl_mapping(std::optional<ModuleTierMappings> module
                                         const std::string& impl_id);
 
 } // namespace Everest
+
+NLOHMANN_JSON_NAMESPACE_BEGIN
+template <> struct adl_serializer<Everest::error::ErrorWrapper> {
+    static void to_json(nlohmann::json& j, const Everest::error::ErrorWrapper& e);
+    static void from_json(const nlohmann::json& j, Everest::error::ErrorWrapper& e);
+};
+NLOHMANN_JSON_NAMESPACE_END
 
 #endif // FRAMEWORK_EVEREST_HPP
