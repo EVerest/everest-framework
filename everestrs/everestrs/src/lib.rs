@@ -32,7 +32,8 @@ pub use serde_yaml;
 
 /// Errors matching the exceptions defined under `exceptions.hpp`.
 ///
-/// The tags must match the tags defined under `conversions.hpp`.
+/// The tags must match the tags defined under `conversions.hpp`. For client
+/// side code - always use `HandlerException`.
 #[derive(Error, Debug, serde::Serialize, serde::Deserialize)]
 #[serde(tag = "__everest__error_type", content = "__everest__error_msg")]
 pub enum Error {
@@ -42,7 +43,7 @@ pub enum Error {
     #[error("Schema Validation Error: {0}")]
     SchemaValidationError(String),
 
-    #[error("Hanlder Exception: {0}")]
+    #[error("Handler Exception: {0}")]
     HandlerException(String),
 
     #[error("Command Timeout: {0}")]
