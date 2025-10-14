@@ -5,6 +5,7 @@
 #include <list>
 #include <regex>
 #include <set>
+#include <tuple>
 
 #include <fmt/format.h>
 #include <fmt/ranges.h>
@@ -882,6 +883,15 @@ json ManagerConfig::replace_error_refs(json& interface_json) {
     return interface_json;
 }
 
+std::tuple<std::string, std::size_t> parse_requirement_id(const std::string& requirement_id) {
+    const auto strpos = requirement_id.find(".");
+    if (strpos != std::string::npos) {
+        return {requirement_id.substr(0, strpos),
+                std::stoi(requirement_id.substr(strpos + 1, requirement_id.length()))};
+    }
+    return {requirement_id, 0};
+}
+
 void ManagerConfig::resolve_all_requirements() {
     BOOST_LOG_FUNCTION();
 
@@ -909,7 +919,8 @@ void ManagerConfig::resolve_all_requirements() {
         }
 
         for (auto& element : this->manifests[module_config.module_name]["requires"].items()) {
-            const auto& requirement_id = element.key();
+            const auto& [requirement_id, requirement_index] = parse_requirement_id(element.key());
+
             const auto& requirement = element.value();
 
             if (module_config.connections.find(requirement_id) == module_config.connections.end()) {
@@ -944,8 +955,10 @@ void ManagerConfig::resolve_all_requirements() {
                 }
 
                 const auto& connection_module_name = this->module_configs.at(connection_module_id).module_name;
-                const auto& connection_impl_id = fulfillment.implementation_id;
+                const auto& [connection_impl_id, connection_impl_index] =
+                    parse_requirement_id(fulfillment.implementation_id);
                 const auto& connection_manifest = this->manifests[connection_module_name];
+
                 if (!connection_manifest.at("provides").contains(connection_impl_id)) {
                     EVLOG_AND_THROW(EverestConfigError(
                         fmt::format("Requirement '{}' of module {} not fulfilled: required module {} does not provide "
@@ -958,6 +971,13 @@ void ManagerConfig::resolve_all_requirements() {
                 // FIXME: if we were to copy here this costs us a huge amount of performance during startup
                 // FIXME: or does it really? tests are inconclusive right now...
                 auto connection_provides = connection_manifest.at("provides").at(connection_impl_id);
+                const auto& quantity = connection_provides.at("quantity");
+                if (connection_impl_index >= quantity) {
+                    EVLOG_AND_THROW(EverestConfigError(
+                        fmt::format("Requirement '{}' of module {} not fulfilled: requirement index '{}' is out of "
+                                    "bounds of quantity '{}'!",
+                                    requirement_id, printable_identifier(module_id), connection_impl_index, quantity)));
+                }
                 if (connection_provides.contains("config")) {
                     connection_provides.erase("config");
                 }
