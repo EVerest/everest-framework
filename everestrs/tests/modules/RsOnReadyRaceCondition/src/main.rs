@@ -7,6 +7,7 @@
 #![allow(non_snake_case)]
 include!(concat!(env!("OUT_DIR"), "/generated.rs"));
 
+use everestrs::ErrorType;
 use generated::errors::example::{Error as ExampleError, ExampleErrorsError};
 use generated::{
     Context, ExampleClientSubscriber, ExampleServiceSubscriber, Module, ModulePublisher,
@@ -34,12 +35,12 @@ impl ExampleClientSubscriber for OneClass {
         log::info!("max current");
     }
 
-    fn on_error_raised(&self, _context: &Context, _error: ExampleError) {
+    fn on_error_raised(&self, _context: &Context, _error: ErrorType<ExampleError>) {
         assert!(self.on_ready_called.load(Ordering::Relaxed));
         log::info!("Error raised");
     }
 
-    fn on_error_cleared(&self, _context: &Context, _error: ExampleError) {
+    fn on_error_cleared(&self, _context: &Context, _error: ErrorType<ExampleError>) {
         assert!(self.on_ready_called.load(Ordering::Relaxed));
         log::info!("Error cleared");
     }
