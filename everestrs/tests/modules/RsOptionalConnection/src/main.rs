@@ -2,9 +2,10 @@
 include!(concat!(env!("OUT_DIR"), "/generated.rs"));
 
 use everestrs::ErrorType;
+use generated::errors::example::Error as ExampleError;
 use generated::{
-    Context, ExampleClientSubscriber, ExampleServiceSubscriber, Module,
-    ModulePublisher, OnReadySubscriber,
+    Context, ExampleClientSubscriber, ExampleServiceSubscriber, Module, ModulePublisher,
+    OnReadySubscriber,
 };
 use std::sync::Arc;
 use std::{thread, time};
@@ -23,15 +24,11 @@ impl ExampleClientSubscriber for OptionalConnection {
         log::info!("Received {value}");
     }
 
-    fn on_error_raised(&self, _context: &Context, error: ErrorType<crate::generated::errors::example::Error>) {
+    fn on_error_raised(&self, _context: &Context, error: ErrorType<ExampleError>) {
         log::info!("Recieved an error {:?}", error.error_type);
     }
 
-    fn on_error_cleared(
-        &self,
-        _context: &Context,
-        error: ErrorType<crate::generated::errors::example::Error>,
-    ) {
+    fn on_error_cleared(&self, _context: &Context, error: ErrorType<ExampleError>) {
         log::info!("Cleared an error {:?} - what a relief", error.error_type);
     }
 }
@@ -48,7 +45,9 @@ impl OnReadySubscriber for OptionalConnection {
 
 fn main() {
     let one_class = Arc::new(OptionalConnection {});
-    let _module = Module::new(one_class.clone(), one_class.clone(), |_index| {one_class.clone()});
+    let _module = Module::new(one_class.clone(), one_class.clone(), |_index| {
+        one_class.clone()
+    });
     log::info!("Module initialized");
 
     loop {

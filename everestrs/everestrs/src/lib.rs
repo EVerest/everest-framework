@@ -58,21 +58,6 @@ pub enum Error {
 
 pub type Result<T> = ::std::result::Result<T, Error>;
 
-pub struct ErrorType<T> {
-    /// Serialised type from the FfiErrorType
-    pub error_type: T,
-    
-    /// Carried over directly from the FfiErrorType
-    pub description: String,
-
-    /// Carried over directly from the FfiErrorType
-    pub message: String,
-
-    /// The severity of the error.
-    /// Carried over directly from the FfiErrorType
-    pub severity: ErrorSeverity,
-}
-
 #[cxx::bridge]
 mod ffi {
     extern "Rust" {
@@ -362,6 +347,33 @@ unsafe impl Send for ffi::Module {}
 
 pub use ffi::{ErrorSeverity, ErrorType as FfiErrorType};
 
+#[derive(Debug)]
+pub struct ErrorType<T> {
+    /// Serialised type from the FfiErrorType
+    pub error_type: T,
+    
+    /// Carried over directly from the FfiErrorType
+    pub description: String,
+
+    /// Carried over directly from the FfiErrorType
+    pub message: String,
+
+    /// The severity of the error.
+    /// Carried over directly from the FfiErrorType
+    pub severity: ErrorSeverity,
+}
+
+impl<T> From<T> for ErrorType<T> {
+    fn from(t: T) -> ErrorType<T> {
+        ErrorType {
+            error_type: t,
+            description: String::new(),
+            message: String::new(),
+            severity: ErrorSeverity::High,
+        }
+    }
+}
+
 /// Arguments for an EVerest node.
 #[derive(Parser, Debug)]
 struct Args {
@@ -524,21 +536,19 @@ impl Runtime {
 
     /// Called from the generated code.
     /// The type T should be an error.
-    pub fn raise_error<T: serde::Serialize + core::fmt::Debug>(&self, impl_id: &str, error: T) {
-        let error_string = serde_yaml::to_string(&error).unwrap_or_default();
+    pub fn raise_error<T: serde::Serialize + core::fmt::Debug>(&self, impl_id: &str, error: ErrorType<T>) {
+        let error_string = serde_yaml::to_string(&error.error_type).unwrap_or_default();
         // Remove the new line -> this should be gone once we stop using yaml
         // since we don't really want yaml.
         let error_string = error_string.strip_suffix("\n").unwrap_or(&error_string);
 
-        // TODO(ddo) for now we don't support calling passing the `description`,
-        // `message` and `severity` from the user code.
+        debug!("Raising error {error_string:?} from {error:?}");
         let error_type = ffi::ErrorType {
             error_type: error_string.to_string(),
-            description: String::new(),
-            message: String::new(),
-            severity: ErrorSeverity::High,
+            description: error.description,
+            message: error.message,
+            severity: error.severity,
         };
-        debug!("Raising error {error_type:?} from {error:?}");
         self.cpp_module.raise_error(impl_id, error_type);
     }
 
