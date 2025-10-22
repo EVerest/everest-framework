@@ -5,6 +5,7 @@ use crate::generated::Context;
 use crate::generated::ErrorsMultipleClientSubscriber;
 use crate::generated::Module;
 use crate::generated::{ModulePublisher, OnReadySubscriber};
+use everestrs::ErrorType;
 use generated::errors::errors_multiple::{Error as ExampleError, ExampleErrorsError};
 
 use std::collections::HashSet;
@@ -39,17 +40,17 @@ impl OnReadySubscriber for ErrorCommunacator {
 }
 
 impl ErrorsMultipleClientSubscriber for ErrorCommunacator {
-    fn on_error_raised(&self, _context: &Context, error: ExampleError) {
+    fn on_error_raised(&self, _context: &Context, error: ErrorType<ExampleError>) {
         let mut raised_set = self.errors_raised.lock().unwrap();
-        log::info!("Error raised {:?}", error);
-        if let ExampleError::ExampleErrors(inner) = error {
+        log::info!("Error raised {:?}", error.error_type);
+        if let ExampleError::ExampleErrors(inner) = error.error_type {
             raised_set.insert(inner.clone());
         }
     }
-    fn on_error_cleared(&self, _context: &Context, error: ExampleError) {
+    fn on_error_cleared(&self, _context: &Context, error: ErrorType<ExampleError>) {
         let mut cleared_set = self.errors_cleared.lock().unwrap();
-        log::info!("Error cleared {:?}", error);
-        if let ExampleError::ExampleErrors(inner) = error {
+        log::info!("Error cleared {:?}", error.error_type);
+        if let ExampleError::ExampleErrors(inner) = error.error_type {
             cleared_set.insert(inner.clone());
         }
 

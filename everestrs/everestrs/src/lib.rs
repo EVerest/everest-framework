@@ -58,6 +58,21 @@ pub enum Error {
 
 pub type Result<T> = ::std::result::Result<T, Error>;
 
+pub struct ErrorType<T> {
+    /// Serialised type from the FfiErrorType
+    pub error_type: T,
+    
+    /// Carried over directly from the FfiErrorType
+    pub description: String,
+
+    /// Carried over directly from the FfiErrorType
+    pub message: String,
+
+    /// The severity of the error.
+    /// Carried over directly from the FfiErrorType
+    pub severity: ErrorSeverity,
+}
+
 #[cxx::bridge]
 mod ffi {
     extern "Rust" {
@@ -345,7 +360,7 @@ mod logger {
 unsafe impl Sync for ffi::Module {}
 unsafe impl Send for ffi::Module {}
 
-pub use ffi::{ErrorSeverity, ErrorType};
+pub use ffi::{ErrorSeverity, ErrorType as FfiErrorType};
 
 /// Arguments for an EVerest node.
 #[derive(Parser, Debug)]
@@ -517,7 +532,7 @@ impl Runtime {
 
         // TODO(ddo) for now we don't support calling passing the `description`,
         // `message` and `severity` from the user code.
-        let error_type = ErrorType {
+        let error_type = ffi::ErrorType {
             error_type: error_string.to_string(),
             description: String::new(),
             message: String::new(),

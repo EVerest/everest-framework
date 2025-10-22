@@ -1,6 +1,7 @@
 #![allow(non_snake_case)]
 include!(concat!(env!("OUT_DIR"), "/generated.rs"));
 
+use everestrs::ErrorType;
 use generated::{
     get_config, Context, ExampleClientSubscriber, ExampleServiceSubscriber, Module,
     ModulePublisher, OnReadySubscriber,
@@ -31,16 +32,16 @@ impl ExampleClientSubscriber for OneClass {
         log::info!("Received {value}");
     }
 
-    fn on_error_raised(&self, _context: &Context, error: crate::generated::errors::example::Error) {
-        log::warn!("Recieved an error {error:?}");
+    fn on_error_raised(&self, _context: &Context, error: ErrorType<crate::generated::errors::example::Error>) {
+        log::warn!("Recieved an error {:?}", error.error_type);
     }
 
     fn on_error_cleared(
         &self,
         _context: &Context,
-        error: crate::generated::errors::example::Error,
+        error: ErrorType<crate::generated::errors::example::Error>,
     ) {
-        log::info!("Cleared an error {error:?} - what a relief");
+        log::info!("Cleared an error {:?} - what a relief", error.error_type);
     }
 }
 
