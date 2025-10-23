@@ -5,11 +5,15 @@ use crate::generated::Context;
 use crate::generated::ErrorsMultipleClientSubscriber;
 use crate::generated::Module;
 use crate::generated::{ModulePublisher, OnReadySubscriber};
-use everestrs::ErrorType;
+use everestrs::{ErrorSeverity, ErrorType};
 use generated::errors::errors_multiple::{Error as ExampleError, ExampleErrorsError};
 
 use std::collections::HashSet;
 use std::sync::{Arc, Condvar, Mutex};
+
+const MESSAGE: &str = "a message";
+const DESCRIPTION: &str = "a description";
+const SEVERITY: ErrorSeverity = ErrorSeverity::Low;
 
 struct ErrorCommunacator {
     errors_raised: Mutex<HashSet<ExampleErrorsError>>,
@@ -30,8 +34,15 @@ impl OnReadySubscriber for ErrorCommunacator {
         let error_a = ExampleError::ExampleErrors(ExampleErrorsError::ExampleErrorA);
         let error_b = ExampleError::ExampleErrors(ExampleErrorsError::ExampleErrorB);
         let error_c = ExampleError::ExampleErrors(ExampleErrorsError::ExampleErrorC);
-        publishers.multiple.raise_error(error_a.clone());
-        publishers.multiple.raise_error(error_b);
+        publishers.multiple.raise_error(error_a.clone().into());
+        publishers.multiple.raise_error(error_b.into());
+        // Raise an error also with description and severity.
+        let error_c = ErrorType {
+            error_type: error_c,
+            description: DESCRIPTION.to_owned(),
+            message: MESSAGE.to_owned(),
+            severity: SEVERITY,
+        };
         publishers.multiple.raise_error(error_c);
 
         publishers.multiple.clear_error(error_a);
@@ -43,10 +54,18 @@ impl ErrorsMultipleClientSubscriber for ErrorCommunacator {
     fn on_error_raised(&self, _context: &Context, error: ErrorType<ExampleError>) {
         let mut raised_set = self.errors_raised.lock().unwrap();
         log::info!("Error raised {:?}", error.error_type);
-        if let ExampleError::ExampleErrors(inner) = error.error_type {
+        if let ExampleError::ExampleErrors(inner) = &error.error_type {
             raised_set.insert(inner.clone());
         }
+
+        // Check the handling for custom message, description and severity.
+        if let ExampleError::ExampleErrors(ExampleErrorsError::ExampleErrorC) = error.error_type {
+            assert_eq!(&error.description, DESCRIPTION);
+            assert_eq!(&error.message, MESSAGE);
+            assert_eq!(error.severity, SEVERITY);
+        }
     }
+
     fn on_error_cleared(&self, _context: &Context, error: ErrorType<ExampleError>) {
         let mut cleared_set = self.errors_cleared.lock().unwrap();
         log::info!("Error cleared {:?}", error.error_type);

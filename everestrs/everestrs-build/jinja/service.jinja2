@@ -68,7 +68,7 @@ impl {{trait.name | title }}ServicePublisher {
 {% endfor %}
 
 {%- if trait.errors %}
-    pub(crate) fn raise_error(&self, error: crate::generated::errors::{{ trait.name | snake }}::Error) {
+    pub(crate) fn raise_error(&self, error: ::everestrs::ErrorType<crate::generated::errors::{{ trait.name | snake }}::Error>) {
         self.runtime.raise_error(self.implementation_id, error);
     }
 
