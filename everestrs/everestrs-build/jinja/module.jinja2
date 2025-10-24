@@ -220,7 +220,7 @@ impl ::everestrs::Subscriber for Module {
         &self,
         implementation_id: &str,
         index: usize,
-        error: ::everestrs::ErrorType,
+        error: ::everestrs::FfiErrorType,
         raised: bool
     ) {
         let context = Context {

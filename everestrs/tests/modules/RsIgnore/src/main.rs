@@ -32,7 +32,7 @@ impl OnReadySubscriber for OneClass {
         // Call the other module. This calls should be ignored.
         publishers.example.max_current(12.3).unwrap();
         let error = ExampleError::ExampleErrors(ExampleErrorsError::ExampleErrorA);
-        publishers.example.raise_error(error.clone());
+        publishers.example.raise_error(error.clone().into());
         publishers.example.clear_error(error);
     }
 }
