@@ -17,7 +17,11 @@ impl ExampleServiceSubscriber for OneClass {
         use crate::generated::errors::example::ExampleErrorsError;
         let error = ExampleError::ExampleErrors(ExampleErrorsError::ExampleErrorA);
         if key.is_empty() {
-            context.publisher.foobar.raise_error(error.into());
+            // Explicit cast
+            let error: ErrorType<_> = error.into();
+            context.publisher.foobar.raise_error(error);
+        } else if &key == "clear_all" {
+            context.publisher.foobar.clear_all_errors();
         } else {
             context.publisher.foobar.clear_error(error);
         }
@@ -82,12 +86,31 @@ mod test {
 
     #[test]
     fn test_uses_something() {
+        use mockall::Sequence;
+
+        let mut seq = Sequence::new();
         let mut everest_mock = ModulePublisher::default();
+
         everest_mock
             .foobar
             .expect_raise_error()
             .times(1)
+            .in_sequence(&mut seq)
             .return_once(|_| ());
+
+        everest_mock
+            .foobar
+            .expect_clear_error()
+            .times(1)
+            .in_sequence(&mut seq)
+            .return_once(|_| ());
+
+        everest_mock
+            .foobar
+            .expect_clear_all_errors()
+            .times(1)
+            .in_sequence(&mut seq)
+            .return_once(|| ());
 
         let context = Context {
             name: "foo",
@@ -96,6 +119,8 @@ mod test {
         };
 
         let module = OneClass {};
-        let _ = module.uses_something(&context, String::new());
+        for message in [String::new(), "clear".to_owned(), "clear_all".to_owned()] {
+            let _ = module.uses_something(&context, message);
+        }
     }
 }
