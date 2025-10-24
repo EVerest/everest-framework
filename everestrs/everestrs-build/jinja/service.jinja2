@@ -90,9 +90,11 @@ mockall::mock!{
 {% endfor %}
 
 {%- if trait.errors %}
-    pub(crate) fn raise_error(&self, error: crate::generated::errors::{{ trait.name | snake }}::Error);
+    pub(crate) fn raise_error(&self, error: ::everestrs::ErrorType<crate::generated::errors::{{ trait.name | snake }}::Error>);
 
     pub(crate) fn clear_error(&self, error: crate::generated::errors::{{ trait.name | snake }}::Error);
+
+    pub(crate) fn clear_all_errors(&self);
 {%- endif %}
    }
 
