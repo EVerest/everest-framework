@@ -39,14 +39,26 @@ endif()
 # make own cmake modules available
 list(INSERT CMAKE_MODULE_PATH 0 "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
+# this policy allows us to continue using the removed FindBoost module for now
+if(POLICY CMP0167)
+    cmake_policy(SET CMP0167 OLD)
+endif()
+
 # dependencies
 find_package(Boost
     COMPONENTS
         program_options
-        system
         thread
     REQUIRED
 )
+
+if(Boost_VERSION_STRING VERSION_LESS "1.69.0")
+    find_package(Boost
+        COMPONENTS
+            system
+        REQUIRED
+    )
+endif()
 
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(libcap
