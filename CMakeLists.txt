@@ -43,10 +43,17 @@ list(INSERT CMAKE_MODULE_PATH 0 "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 find_package(Boost
     COMPONENTS
         program_options
-        system
         thread
     REQUIRED
 )
+
+if(Boost_VERSION_STRING VERSION_LESS "1.69.0")
+    find_package(Boost
+        COMPONENTS
+            system
+        REQUIRED
+    )
+endif()
 
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(libcap
