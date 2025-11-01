@@ -77,7 +77,7 @@ json get_module_config(std::shared_ptr<MQTTAbstraction> mqtt, const std::string&
     const auto& everest_prefix = mqtt->get_everest_prefix();
 
     const auto get_config_topic = fmt::format("{}config/request", everest_prefix);
-    const auto config_topic = fmt::format("{}modules/{}/response", everest_prefix, module_id);
+    const auto response_config_topic = fmt::format("{}modules/{}/response", everest_prefix, module_id);
     std::promise<json> res_promise;
     std::future<json> res_future = res_promise.get_future();
 
@@ -92,8 +92,8 @@ json get_module_config(std::shared_ptr<MQTTAbstraction> mqtt, const std::string&
     };
 
     const std::shared_ptr<TypedHandler> res_token =
-        std::make_shared<TypedHandler>(HandlerType::GetConfig, std::make_shared<Handler>(res_handler));
-    mqtt->register_handler(config_topic, res_token, QOS::QOS2);
+        std::make_shared<TypedHandler>(HandlerType::GetConfigResponse, std::make_shared<Handler>(res_handler));
+    mqtt->register_handler(response_config_topic, res_token, QOS::QOS2);
 
     config::GetRequest get_request;
     get_request.type = config::GetType::Module;
@@ -101,7 +101,9 @@ json get_module_config(std::shared_ptr<MQTTAbstraction> mqtt, const std::string&
     request.request = get_request;
     request.origin = module_id;
     request.type = config::Type::Get;
-    mqtt->publish(get_config_topic, request, QOS::QOS2);
+
+    MqttMessagePayload payload{MqttMessageType::GetConfig, request};
+    mqtt->publish(get_config_topic, payload, QOS::QOS2);
 
     // wait for result future
     const std::chrono::time_point<std::chrono::steady_clock> res_wait =
@@ -113,14 +115,14 @@ json get_module_config(std::shared_ptr<MQTTAbstraction> mqtt, const std::string&
 
     json result;
     if (res_future_status == std::future_status::timeout) {
-        mqtt->unregister_handler(config_topic, res_token);
+        mqtt->unregister_handler(response_config_topic, res_token);
         EVLOG_AND_THROW(
             EverestTimeoutError(fmt::format("Timeout while waiting for result of get_config of {}", module_id)));
     }
     if (res_future_status == std::future_status::ready) {
         result = res_future.get();
     }
-    mqtt->unregister_handler(config_topic, res_token);
+    mqtt->unregister_handler(response_config_topic, res_token);
 
     result.update(get_definitions(mqtt));
 
