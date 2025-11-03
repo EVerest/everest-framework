@@ -52,9 +52,9 @@ def _deps_impl(module_ctx):
     maybe(
         http_archive,
         name = "com_github_biojppm_c4core",
-        url = "https://github.com/biojppm/c4core/archive/7eb1f39d8c08fb98c089ec6c6ab77e7dc01c991e.tar.gz",
-        sha256 = "904c1bc6dc178ebe9a581f4d7add48bf7c27310dcc9c7d3686ef4bbe0e0be577",
-        strip_prefix = "c4core-7eb1f39d8c08fb98c089ec6c6ab77e7dc01c991e",
+        url = "https://github.com/biojppm/c4core/archive/f6acc1d3eb5b61b4cfe75ec67c5a7a2beee59e8a.tar.gz",
+        sha256 = "397f69ef8d0588807c8c5ef7a1f84ba6ac77e7229f81d1e06997d3b8dd675af3",
+        strip_prefix = "c4core-f6acc1d3eb5b61b4cfe75ec67c5a7a2beee59e8a",
         build_file = "@everest-framework//third-party/bazel:BUILD.c4core.bazel",
     )
 
