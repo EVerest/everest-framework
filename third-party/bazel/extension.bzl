@@ -43,9 +43,9 @@ def _deps_impl(module_ctx):
     maybe(
         http_archive,
         name = "com_github_biojppm_rapidyaml",
-        url = "https://github.com/biojppm/rapidyaml/archive/47ec2fa184209687c20fd5bc05621e1cb1200311.tar.gz",
-        sha256 = "4edd856d8ced361b80286cde8de40488bb268756b137add912616210a28c2744",
-        strip_prefix = "rapidyaml-47ec2fa184209687c20fd5bc05621e1cb1200311",
+        url = "https://github.com/biojppm/rapidyaml/archive/653eac9741c7728f2a87435b981737894149e002.tar.gz",
+        sha256 = "f0fe32e47a4f378753fb65edef07ae3cc3a8db870daf847e6055799330e988c6",
+        strip_prefix = "rapidyaml-653eac9741c7728f2a87435b981737894149e002",
         build_file = "@everest-framework//third-party/bazel:BUILD.rapidyaml.bazel",
     )
 
