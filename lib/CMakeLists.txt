@@ -63,6 +63,10 @@ target_include_directories(framework
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/everest>
 )
 
+if(Boost_VERSION_STRING VERSION_LESS "1.69.0")
+    set(EVEREST_FRAMEWORK_BOOST_SYSTEM_LINK_LIBRARY Boost::system)
+endif()
+
 target_link_libraries(framework
     PUBLIC
         date::date-tz
@@ -74,7 +78,7 @@ target_link_libraries(framework
         everest::sqlite
         ${STD_FILESYSTEM_COMPAT_LIB}
     PRIVATE
-        Boost::system
+        ${EVEREST_FRAMEWORK_BOOST_SYSTEM_LINK_LIBRARY}
         Boost::thread
         Boost::program_options
         mqttc
