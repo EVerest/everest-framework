@@ -45,6 +45,8 @@ bazel_dep(name = "sqlite3", version = "3.49.1")
 
 bazel_dep(name = "openssl", version = "3.3.1.bcr.6")
 
+bazel_dep(name = "rapidyaml", version = "0.10.0")
+
 deps = use_extension("//third-party/bazel:extension.bzl", "deps")
 use_repo(
     deps,
@@ -52,9 +54,6 @@ use_repo(
     "com_github_everest_everest-sqlite",
     "com_github_pboettch_json-schema-validator",
     "com_github_HowardHinnant_date",
-    "com_github_biojppm_rapidyaml",
-    "com_github_biojppm_c4core",
-    "com_github_biojppm_debugbreak",
     "com_github_warmcatt_libwebsockets",
     "com_github_LiamBindle_mqtt-c",
     "libcap",
