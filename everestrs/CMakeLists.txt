@@ -1,9 +1,48 @@
-set(CXXBRIDGE_BINARY ${CMAKE_CURRENT_BINARY_DIR}/cargo/bin/cxxbridge)
-if (NOT EXISTS ${CXXBRIDGE_BINARY})
+set(CXXBRIDGE_VERSION 1.0.189) # Must be kept in sync with `everestrs/Cargo.toml`
+set(CXXBRIDGE_INSTALL_PATH ${CMAKE_CURRENT_BINARY_DIR}/cargo/bin/cxxbridge)
+
+# Checks if the cxxbridge binary at CXXBRIDGE_PATH exists matches the required version.
+# If not, sets VERSION_MATCHES to FALSE.
+function(everestrs_check_cxxbridge_version CXXBRIDGE_PATH VERSION_MATCHES)
+    if(NOT CXXBRIDGE_BINARY OR NOT EXISTS ${CXXBRIDGE_BINARY})
+        set(${VERSION_MATCHES} FALSE PARENT_SCOPE)
+    endif()
+
+    execute_process(
+        COMMAND
+            ${CXXBRIDGE_BINARY} --version
+        WORKING_DIRECTORY
+            ${CMAKE_CURRENT_BINARY_DIR}
+        OUTPUT_VARIABLE
+            CXXBRIDGE_VERSION_OUTPUT
+        ERROR_QUIET
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+
+    if(CXXBRIDGE_VERSION_OUTPUT MATCHES "cxxbridge ${CXXBRIDGE_VERSION}")
+        set(${VERSION_MATCHES} TRUE PARENT_SCOPE)
+    else()
+        set(${VERSION_MATCHES} FALSE PARENT_SCOPE)
+    endif()
+endfunction()
+
+# If cxxbridge is already installed system-wide, check if it's the correct version.
+find_program(CXXBRIDGE_BINARY cxxbridge)
+everestrs_check_cxxbridge_version(${CXXBRIDGE_BINARY} CXXBRIDGE_INSTALLED)
+
+# Otherwise, check if we previously installed it in our build dir.
+if(NOT CXXBRIDGE_INSTALLED)
+    set(CXXBRIDGE_BINARY ${CXXBRIDGE_INSTALL_PATH})
+    everestrs_check_cxxbridge_version(${CXXBRIDGE_BINARY} CXXBRIDGE_INSTALLED)
+endif()
+
+# Either we never had cxxbridge installed, or the version is incorrect. Install the correct version to our build dir.
+if(NOT CXXBRIDGE_INSTALLED)
     message(STATUS "Fetching rust cxxbridge cli tool")
     execute_process(
         COMMAND
-            cargo install cxxbridge-cmd --root ${CMAKE_CURRENT_BINARY_DIR}/cargo
+            ${CMAKE_COMMAND} -E env --unset=CARGO_BUILD_TARGET # Ensure we always build for the host
+            cargo install cxxbridge-cmd --force --version ${CXXBRIDGE_VERSION} --root ${CMAKE_CURRENT_BINARY_DIR}/cargo
         WORKING_DIRECTORY
             ${CMAKE_CURRENT_BINARY_DIR}
         RESULT_VARIABLE
@@ -13,10 +52,12 @@ if (NOT EXISTS ${CXXBRIDGE_BINARY})
             CARGO_INSTALL_ERROR
     )
 
-    if (CARGO_INSTALL_RESULT)
+    if(NOT CARGO_INSTALL_RESULT)
+        set(CXXBRIDGE_BINARY ${CXXBRIDGE_INSTALL_PATH})
+    else()
         message(FATAL_ERROR "cargo install cxxbridge-cmd failed with:\n${CARGO_INSTALL_ERROR}")
-    endif ()
-endif ()
+    endif()
+endif()
 
 set(CXXBRIDGE_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR})
 set(CXXBRIDGE_HEADER ${CXXBRIDGE_OUTPUT_DIR}/rust/cxx.h)
