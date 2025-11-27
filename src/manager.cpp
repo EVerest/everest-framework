@@ -178,9 +178,16 @@ void exec_python_module(system::SubProcess& proc_handle, const ModuleStartInfo& 
                         const MQTTSettings& mqtt_settings) {
     // instead of using setenv, using execvpe might be a better way for a controlled environment!
 
-    const auto pythonpath = rs.prefix / defaults::LIB_DIR / defaults::NAMESPACE / "everestpy";
-    setenv("PYTHONPATH", pythonpath.c_str(), 0);
     setup_environment(module_info, rs, mqtt_settings);
+
+    // Prepend the everestpy path to $PYTHONPATH. This ensures modules can always find everestpy.
+    const auto everestpy_path = rs.prefix / defaults::LIB_DIR / defaults::NAMESPACE / "everestpy";
+    if (const auto prev_pythonpath = std::getenv("PYTHONPATH")) {
+        const auto pythonpath = fmt::format("{}:{}", everestpy_path.string(), prev_pythonpath);
+        setenv("PYTHONPATH", pythonpath.c_str(), 1);
+    } else {
+        setenv("PYTHONPATH", everestpy_path.c_str(), 1);
+    }
 
     std::vector<std::string> arguments = {"python3", module_info.path.c_str()};
     exec_module("python3", arguments, proc_handle);
