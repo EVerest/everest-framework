@@ -1,7 +1,7 @@
 set(CXXBRIDGE_VERSION 1.0.189) # Must be kept in sync with `everestrs/Cargo.toml`
 set(CXXBRIDGE_INSTALL_PATH ${CMAKE_CURRENT_BINARY_DIR}/cargo/bin/cxxbridge)
 
-# Checks if the cxxbridge binary at CXXBRIDGE_PATH exists matches the required version.
+# Checks if the cxxbridge binary at CXXBRIDGE_PATH exists and matches the required version.
 # If not, sets VERSION_MATCHES to FALSE.
 function(everestrs_check_cxxbridge_version CXXBRIDGE_PATH VERSION_MATCHES)
     if(NOT CXXBRIDGE_BINARY OR NOT EXISTS ${CXXBRIDGE_BINARY})
