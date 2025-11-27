@@ -189,8 +189,31 @@ void exec_python_module(system::SubProcess& proc_handle, const ModuleStartInfo& 
         setenv("PYTHONPATH", everestpy_path.c_str(), 1);
     }
 
-    std::vector<std::string> arguments = {"python3", module_info.path.c_str()};
-    exec_module("python3", arguments, proc_handle);
+    std::string python_binary = "python3";
+
+    // Check if a virtual environment exists in the module directory, and if so use its python runtime.
+    const auto venv_dir = module_info.path.parent_path() / ".venv";
+    if (fs::exists(venv_dir)) {
+        const auto venv_bin_dir = venv_dir / "bin";
+        const auto venv_python = venv_bin_dir / "python3";
+        if (fs::exists(venv_python)) {
+            // Activate the virtual environment. This approximates the behaviour of the `.venv/bin/activate` script.
+            python_binary = venv_python.string();
+            setenv("VIRTUAL_ENV", venv_dir.c_str(), 1);
+            setenv("VIRTUAL_ENV_PROMPT", "venv", 1);
+            unsetenv("PYTHONHOME");
+
+            if (const auto prev_path = std::getenv("PATH")) {
+                const auto path = fmt::format("{}:{}", venv_bin_dir.string(), prev_path);
+                setenv("PATH", path.c_str(), 1);
+            } else {
+                setenv("PATH", venv_bin_dir.c_str(), 1);
+            }
+        }
+    }
+
+    std::vector<std::string> arguments = {python_binary, module_info.path.c_str()};
+    exec_module(python_binary, arguments, proc_handle);
 }
 
 void exec_module(const RuntimeSettings& rs, const MQTTSettings& mqtt_settings, const ModuleStartInfo& module,
