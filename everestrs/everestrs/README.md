@@ -40,3 +40,28 @@ To enable mocking in your code you need to do some steps however
 * Add a `mockall` feature to your module and enable it for your tests.
 
 Then all publishers are mocked with `mockall`.
+
+## Building from external repositories without CMake
+
+Note that the `everest-core` and `everest-framework` repositories are
+automatically configured for this use case, this section is only relevant for
+Rust modules residing in their own repositories.
+
+While external Rust modules can be compiled using CMake without any setup,
+compiling with `cargo` directly requires some additional setup. This is
+required for rust-analyzer's IDE integration to work properly.
+
+* First, build your EVerest workspace with Rust support enabled by
+  passing `-DEVEREST_ENABLE_RS_SUPPORT=ON` to CMake.
+* Install it using `cmake --install . --prefix build/dist`. Replace
+  `build/dist` with the installation directory you'd like to use.
+* Create a file named `.cargo/config.toml` in your repository's `modules`
+  directory. This file should contain the following, with `<dist-path>`
+  replaced by the installation directory you used in the previous step:
+
+  ```toml
+  [env]
+  # Match CMAKE_INSTALL_LIBDIR, unfortunately Cargo cannot pick automatically: https://github.com/rust-lang/cargo/issues/10273
+  EVEREST_LIB_DIR = "../../<dist-path>/lib64" # For x86_64
+  EVEREST_LIB_DIR = "../../<dist-path>/lib"   # For aarch64
+  ```
