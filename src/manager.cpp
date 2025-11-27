@@ -4,10 +4,8 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
-#include <list>
 #include <map>
 #include <mutex>
-#include <thread>
 #include <unordered_map>
 
 #include <cstdlib>
@@ -368,7 +366,7 @@ std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbstractio
             continue;
         }
 
-        // FIXME (aw): implicitely adding ModuleReadyInfo and setting its ready member
+        // FIXME (aw): implicitly adding ModuleReadyInfo and setting its ready member
         auto module_it = modules_ready.emplace(module_id, ModuleReadyInfo{false, nullptr, nullptr}).first;
 
         std::vector<std::string> capabilities;
@@ -378,7 +376,7 @@ std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbstractio
         }
 
         if (not capabilities.empty()) {
-            EVLOG_info << fmt::format("Module {} wants to aquire the following capabilities: {}", module_name,
+            EVLOG_info << fmt::format("Module {} wants to acquire the following capabilities: {}", module_name,
                                       fmt::join(capabilities.begin(), capabilities.end(), " "));
         }
 
@@ -837,7 +835,7 @@ int boot(const po::variables_map& vm) {
 
             const auto module_iter = module_handles.find(pid);
             if (module_iter == module_handles.end()) {
-                throw std::runtime_error(fmt::format("Unkown child width pid ({}) died.", pid));
+                throw std::runtime_error(fmt::format("Unknown child width pid ({}) died.", pid));
             }
 
             const auto module_name = module_iter->second;
@@ -888,7 +886,7 @@ int boot(const po::variables_map& vm) {
                 }
             } else {
                 // unknown payload
-                EVLOG_error << fmt::format("Received unkown command via controller ipc:\n{}\n... ignoring",
+                EVLOG_error << fmt::format("Received unknown command via controller ipc:\n{}\n... ignoring",
                                            payload.dump(DUMP_INDENT));
             }
         } else if (msg.status == controller_ipc::MESSAGE_RETURN_STATUS::ERROR) {
