@@ -36,6 +36,11 @@ include(test_utilities.cmake)
 
 setup_test_directory(empty_config)
 setup_test_directory(valid_config)
+setup_test_directory(valid_config_custom_prefix)
+file(RENAME ${CMAKE_CURRENT_BINARY_DIR}/valid_config_custom_prefix ${CMAKE_CURRENT_BINARY_DIR}/valid_config_custom_prefix_tmp)
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/valid_config_custom_prefix)
+file(RENAME ${CMAKE_CURRENT_BINARY_DIR}/valid_config_custom_prefix_tmp ${CMAKE_CURRENT_BINARY_DIR}/valid_config_custom_prefix/usr)
+file(RENAME ${CMAKE_CURRENT_BINARY_DIR}/valid_config_custom_prefix/usr/etc ${CMAKE_CURRENT_BINARY_DIR}/valid_config_custom_prefix/etc)
 setup_test_directory(valid_module_config TESTValidManifest test_interface)
 setup_test_directory(valid_module_config_userconfig TESTValidManifest test_interface
     CONFIG valid_module_config_config.yaml
