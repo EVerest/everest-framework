@@ -235,11 +235,11 @@ void Module::raise_error(rust::Str implementation_id, ErrorType error_type) cons
                                       module_id_,
                                       std::string(implementation_id),
                                       static_cast<Everest::error::Severity>(error_type.severity)};
-    handle_->get_error_manager_impl(std::string(implementation_id))->raise_error(error);
+    handle_->get_error_manager_impl(std::string(implementation_id)).at(0)->raise_error(error);
 }
 
 void Module::clear_error(rust::Str implementation_id, rust::Str error_type, bool clear_all) const {
-    const auto manager = handle_->get_error_manager_impl(std::string(implementation_id));
+    const auto manager = handle_->get_error_manager_impl(std::string(implementation_id)).at(0);
 
     if (error_type.empty()) {
         manager->clear_all_errors();

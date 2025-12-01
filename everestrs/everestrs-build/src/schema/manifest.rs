@@ -36,6 +36,8 @@ pub struct ProvidesEntry {
     pub description: String,
     #[serde(default)]
     pub config: BTreeMap<String, ConfigEntry>,
+    #[serde(default)]
+    pub quantity: i64,
 }
 
 #[derive(Debug, Deserialize)]

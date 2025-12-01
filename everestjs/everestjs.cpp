@@ -303,7 +303,7 @@ static Napi::Value raise_error(const std::string& impl_id, const Napi::CallbackI
     const Napi::Env& env = info.Env();
 
     try {
-        ctx->everest->get_error_manager_impl(impl_id)->raise_error(convertToError(info[0]));
+        ctx->everest->get_error_manager_impl(impl_id).at(0)->raise_error(convertToError(info[0]));
     } catch (std::exception& e) {
         EVLOG_AND_RETHROW(env);
     }
@@ -318,18 +318,18 @@ static Napi::Value clear_error(const std::string& impl_id, const Napi::CallbackI
     try {
         const int info_length = info.Length();
         if (info_length == 1) {
-            ctx->everest->get_error_manager_impl(impl_id)->clear_error(convertToErrorType(info[0]));
+            ctx->everest->get_error_manager_impl(impl_id).at(0)->clear_error(convertToErrorType(info[0]));
         } else if (info_length == 2) {
             if (info[1].IsBoolean()) {
                 if (info[1].As<Napi::Boolean>()) {
-                    ctx->everest->get_error_manager_impl(impl_id)->clear_all_errors(convertToErrorType(info[0]));
+                    ctx->everest->get_error_manager_impl(impl_id).at(0)->clear_all_errors(convertToErrorType(info[0]));
                 } else {
-                    ctx->everest->get_error_manager_impl(impl_id)->clear_error(convertToErrorType(info[0]));
+                    ctx->everest->get_error_manager_impl(impl_id).at(0)->clear_error(convertToErrorType(info[0]));
                 }
 
             } else {
-                ctx->everest->get_error_manager_impl(impl_id)->clear_error(convertToErrorType(info[0]),
-                                                                           convertToErrorSubType(info[1]));
+                ctx->everest->get_error_manager_impl(impl_id).at(0)->clear_error(convertToErrorType(info[0]),
+                                                                                 convertToErrorSubType(info[1]));
             }
         } else {
             throw Everest::EverestApiError("There is no handler for " + std::to_string(info_length) + " arguments");
@@ -347,7 +347,7 @@ static Napi::Value clear_all_errors_of_impl(const std::string& impl_id, const Na
     const Napi::Env& env = info.Env();
 
     try {
-        ctx->everest->get_error_manager_impl(impl_id)->clear_all_errors();
+        ctx->everest->get_error_manager_impl(impl_id).at(0)->clear_all_errors();
     } catch (std::exception& e) {
         EVLOG_AND_RETHROW(env);
     }
@@ -363,8 +363,8 @@ static Napi::Value is_error_active_impl(const std::string& impl_id, const Napi::
     bool result = false;
 
     try {
-        result = ctx->everest->get_error_state_monitor_impl(impl_id)->is_error_active(convertToErrorType(info[0]),
-                                                                                      convertToErrorSubType(info[1]));
+        result = ctx->everest->get_error_state_monitor_impl(impl_id).at(0)->is_error_active(
+            convertToErrorType(info[0]), convertToErrorSubType(info[1]));
     } catch (std::exception& e) {
         EVLOG_AND_RETHROW(env);
     }
@@ -381,10 +381,10 @@ static Napi::Value is_condition_satisfied_impl(const std::string& impl_id, const
 
     try {
         if (isSingleErrorStateCondition(info[0])) {
-            result = ctx->everest->get_error_state_monitor_impl(impl_id)->is_condition_satisfied(
+            result = ctx->everest->get_error_state_monitor_impl(impl_id).at(0)->is_condition_satisfied(
                 convertToErrorStateCondition(info[0]));
         } else {
-            result = ctx->everest->get_error_state_monitor_impl(impl_id)->is_condition_satisfied(
+            result = ctx->everest->get_error_state_monitor_impl(impl_id).at(0)->is_condition_satisfied(
                 convertToErrorStateConditionList(info[0]));
         }
     } catch (std::exception& e) {
@@ -401,17 +401,17 @@ static Napi::Value create_error(const std::string& impl_id, const Napi::Callback
 
     try {
         if (info.Length() == 0) {
-            return convertToNapiValue(env, ctx->everest->get_error_factory(impl_id)->create_error());
+            return convertToNapiValue(env, ctx->everest->get_error_factory(impl_id).at(0)->create_error());
         } else if (info.Length() == 3) {
             return convertToNapiValue(
-                env, ctx->everest->get_error_factory(impl_id)->create_error(
+                env, ctx->everest->get_error_factory(impl_id).at(0)->create_error(
                          convertToErrorType(info[0]), convertToErrorSubType(info[1]), info[2].ToString().Utf8Value()));
         } else if (info.Length() == 4) {
-            return convertToNapiValue(env, ctx->everest->get_error_factory(impl_id)->create_error(
+            return convertToNapiValue(env, ctx->everest->get_error_factory(impl_id).at(0)->create_error(
                                                convertToErrorType(info[0]), convertToErrorSubType(info[1]),
                                                info[2].ToString().Utf8Value(), convertToErrorSeverity(info[3])));
         } else if (info.Length() == 5) {
-            return convertToNapiValue(env, ctx->everest->get_error_factory(impl_id)->create_error(
+            return convertToNapiValue(env, ctx->everest->get_error_factory(impl_id).at(0)->create_error(
                                                convertToErrorType(info[0]), convertToErrorSubType(info[1]),
                                                info[2].ToString().Utf8Value(), convertToErrorSeverity(info[3]),
                                                convertToErrorState(info[4])));
