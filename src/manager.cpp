@@ -116,19 +116,23 @@ void setup_environment(const ModuleStartInfo& module_info, const RuntimeSettings
     }
 }
 
-std::vector<char*> arguments_to_exec_argv(std::vector<std::string>& arguments) {
+static void exec_module(const std::string& bin, std::vector<std::string>& arguments, system::SubProcess& proc_handle) {
+    // Convert the argument list to the format required by `execv*()`.
     std::vector<char*> argv_list(arguments.size() + 1);
-    std::transform(arguments.begin(), arguments.end(), argv_list.begin(),
-                   [](std::string& value) { return value.data(); });
+    std::transform(arguments.begin(), arguments.end(), argv_list.begin(), [](auto& value) { return value.data(); });
+    argv_list.back() = nullptr; // Add a null terminator
 
-    // add NULL for exec
-    argv_list.back() = nullptr;
-    return argv_list;
+    // Execute the module binary, replacing the current process.
+    execvp(bin.c_str(), argv_list.data());
+
+    // `execv()` failed, notify the parent process and exit.
+    const auto msg = fmt::format("Syscall to execv() with \"{} {}\" failed ({})", bin,
+                                 fmt::join(arguments.begin() + 1, arguments.end(), " "), strerror(errno));
+    proc_handle.send_error_and_exit(msg);
 }
 
 void exec_cpp_module(system::SubProcess& proc_handle, const ModuleStartInfo& module_info, const RuntimeSettings& rs,
                      const MQTTSettings& mqtt_settings) {
-    const auto exec_binary = module_info.path.c_str();
     std::vector<std::string> arguments = {
         module_info.printable_name,
         "--prefix",
@@ -149,13 +153,7 @@ void exec_cpp_module(system::SubProcess& proc_handle, const ModuleStartInfo& mod
                                            std::to_string(mqtt_settings.broker_port)});
     }
 
-    const auto argv_list = arguments_to_exec_argv(arguments);
-    execv(exec_binary, argv_list.data());
-
-    // exec failed
-    proc_handle.send_error_and_exit(fmt::format("Syscall to execv() with \"{} {}\" failed ({})", exec_binary,
-                                                fmt::join(arguments.begin() + 1, arguments.end(), " "),
-                                                strerror(errno)));
+    exec_module(module_info.path.string(), arguments, proc_handle);
 }
 
 void exec_javascript_module(system::SubProcess& proc_handle, const ModuleStartInfo& module_info,
@@ -165,10 +163,7 @@ void exec_javascript_module(system::SubProcess& proc_handle, const ModuleStartIn
     // FIXME (aw): everest directory layout
     const auto node_modules_path = rs.prefix / defaults::LIB_DIR / defaults::NAMESPACE / "node_modules";
     setenv("NODE_PATH", node_modules_path.c_str(), 0);
-
     setup_environment(module_info, rs, mqtt_settings);
-
-    const auto node_binary = "node";
 
     std::vector<std::string> arguments = {
         "node",
@@ -176,36 +171,49 @@ void exec_javascript_module(system::SubProcess& proc_handle, const ModuleStartIn
         module_info.path.string(),
     };
 
-    const auto argv_list = arguments_to_exec_argv(arguments);
-    execvp(node_binary, argv_list.data());
-
-    // exec failed
-    proc_handle.send_error_and_exit(fmt::format("Syscall to execv() with \"{} {}\" failed ({})", node_binary,
-                                                fmt::join(arguments.begin() + 1, arguments.end(), " "),
-                                                strerror(errno)));
+    exec_module("node", arguments, proc_handle);
 }
 
 void exec_python_module(system::SubProcess& proc_handle, const ModuleStartInfo& module_info, const RuntimeSettings& rs,
                         const MQTTSettings& mqtt_settings) {
     // instead of using setenv, using execvpe might be a better way for a controlled environment!
 
-    const auto pythonpath = rs.prefix / defaults::LIB_DIR / defaults::NAMESPACE / "everestpy";
-
-    setenv("PYTHONPATH", pythonpath.c_str(), 0);
-
     setup_environment(module_info, rs, mqtt_settings);
 
-    const auto python_binary = "python3";
+    // Prepend the everestpy path to $PYTHONPATH. This ensures modules can always find everestpy.
+    const auto everestpy_path = rs.prefix / defaults::LIB_DIR / defaults::NAMESPACE / "everestpy";
+    if (const auto prev_pythonpath = std::getenv("PYTHONPATH")) {
+        const auto pythonpath = fmt::format("{}:{}", everestpy_path.string(), prev_pythonpath);
+        setenv("PYTHONPATH", pythonpath.c_str(), 1);
+    } else {
+        setenv("PYTHONPATH", everestpy_path.c_str(), 1);
+    }
+
+    std::string python_binary = "python3";
+
+    // Check if a virtual environment exists in the module directory, and if so use its python runtime.
+    const auto venv_dir = module_info.path.parent_path() / ".venv";
+    if (fs::exists(venv_dir)) {
+        const auto venv_bin_dir = venv_dir / "bin";
+        const auto venv_python = venv_bin_dir / "python3";
+        if (fs::exists(venv_python)) {
+            // Activate the virtual environment. This approximates the behaviour of the `.venv/bin/activate` script.
+            python_binary = venv_python.string();
+            setenv("VIRTUAL_ENV", venv_dir.c_str(), 1);
+            setenv("VIRTUAL_ENV_PROMPT", "venv", 1);
+            unsetenv("PYTHONHOME");
+
+            if (const auto prev_path = std::getenv("PATH")) {
+                const auto path = fmt::format("{}:{}", venv_bin_dir.string(), prev_path);
+                setenv("PATH", path.c_str(), 1);
+            } else {
+                setenv("PATH", venv_bin_dir.c_str(), 1);
+            }
+        }
+    }
 
     std::vector<std::string> arguments = {python_binary, module_info.path.c_str()};
-
-    const auto argv_list = arguments_to_exec_argv(arguments);
-    execvp(python_binary, argv_list.data());
-
-    // exec failed
-    proc_handle.send_error_and_exit(fmt::format("Syscall to execv() with \"{} {}\" failed ({})", python_binary,
-                                                fmt::join(arguments.begin() + 1, arguments.end(), " "),
-                                                strerror(errno)));
+    exec_module(python_binary, arguments, proc_handle);
 }
 
 void exec_module(const RuntimeSettings& rs, const MQTTSettings& mqtt_settings, const ModuleStartInfo& module,
