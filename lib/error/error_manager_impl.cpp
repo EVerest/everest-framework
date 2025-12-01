@@ -95,6 +95,10 @@ std::list<ErrorPtr> ErrorManagerImpl::clear_error(const ErrorType& type, const E
 std::list<ErrorPtr> ErrorManagerImpl::clear_all_errors() {
     const std::list<ErrorFilter> filters = {};
     std::list<ErrorPtr> res = database->remove_errors(filters);
+    if (res.empty()) {
+        EVLOG_debug << "No errors can be cleared, because no errors are active";
+        return res;
+    }
     std::stringstream ss;
     ss << "Cleared " << res.size() << " errors:" << std::endl;
     for (const ErrorPtr& error : res) {
