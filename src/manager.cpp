@@ -292,13 +292,19 @@ std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbstractio
     for (auto& interface_definition : interface_definitions.items()) {
         interface_names.push_back(interface_definition.key());
     }
-    mqtt_abstraction.publish(fmt::format("{}interfaces", ms.mqtt_settings.everest_prefix), interface_names, QOS::QOS2,
-                             true);
+
+    MqttMessagePayload payload{MqttMessageType::GetConfigResponse, interface_names};
+
+    mqtt_abstraction.publish(fmt::format("{}interfaces", ms.mqtt_settings.everest_prefix), payload, QOS::QOS2, true);
 
     for (const auto& interface_definition : interface_definitions.items()) {
+
+        MqttMessagePayload interface_definition_payload{MqttMessageType::GetConfigResponse,
+                                                        interface_definition.value()};
+
         mqtt_abstraction.publish(
             fmt::format("{}interface_definitions/{}", ms.mqtt_settings.everest_prefix, interface_definition.key()),
-            interface_definition.value(), QOS::QOS2, true);
+            interface_definition_payload, QOS::QOS2, true);
     }
 
     const auto type_definitions = config.get_types();
@@ -306,32 +312,52 @@ std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbstractio
     for (auto& type_definition : type_definitions.items()) {
         type_names.push_back(type_definition.key());
     }
-    mqtt_abstraction.publish(fmt::format("{}types", ms.mqtt_settings.everest_prefix), type_names, QOS::QOS2, true);
+
+    MqttMessagePayload type_names_payload{MqttMessageType::GetConfigResponse, type_names};
+
+    mqtt_abstraction.publish(fmt::format("{}types", ms.mqtt_settings.everest_prefix), type_names_payload, QOS::QOS2,
+                             true);
     for (const auto& type_definition : type_definitions.items()) {
+
+        MqttMessagePayload type_definition_payload{MqttMessageType::GetConfigResponse, type_definition.value()};
+
         // type_definition keys already start with a / so omit it in the topic name
         mqtt_abstraction.publish(
             fmt::format("{}type_definitions{}", ms.mqtt_settings.everest_prefix, type_definition.key()),
-            type_definition.value(), QOS::QOS2, true);
+            type_definition_payload, QOS::QOS2, true);
     }
 
     const auto settings = config.get_settings();
-    mqtt_abstraction.publish(fmt::format("{}settings", ms.mqtt_settings.everest_prefix), settings, QOS::QOS2, true);
+
+    MqttMessagePayload settings_payload{MqttMessageType::GetConfigResponse, settings};
+
+    mqtt_abstraction.publish(fmt::format("{}settings", ms.mqtt_settings.everest_prefix), settings_payload, QOS::QOS2,
+                             true);
 
     if (ms.runtime_settings.validate_schema) {
         const auto schemas = config.get_schemas();
-        mqtt_abstraction.publish(fmt::format("{}schemas", ms.mqtt_settings.everest_prefix), schemas, QOS::QOS2, true);
+
+        MqttMessagePayload schemas_payload{MqttMessageType::GetConfigResponse, schemas};
+
+        mqtt_abstraction.publish(fmt::format("{}schemas", ms.mqtt_settings.everest_prefix), schemas_payload, QOS::QOS2,
+                                 true);
     }
     const auto manifests = config.get_manifests();
 
     for (const auto& manifest : manifests.items()) {
         auto manifest_copy = manifest.value();
         manifest_copy.erase("config");
+
+        MqttMessagePayload manifest_payload{MqttMessageType::GetConfigResponse, manifest_copy};
+
         mqtt_abstraction.publish(fmt::format("{}manifests/{}", ms.mqtt_settings.everest_prefix, manifest.key()),
-                                 manifest_copy, QOS::QOS2, true);
+                                 manifest_payload, QOS::QOS2, true);
     }
 
-    mqtt_abstraction.publish(fmt::format("{}module_names", ms.mqtt_settings.everest_prefix), module_names, QOS::QOS2,
-                             true);
+    MqttMessagePayload module_names_payload{MqttMessageType::GetConfigResponse, module_names};
+
+    mqtt_abstraction.publish(fmt::format("{}module_names", ms.mqtt_settings.everest_prefix), module_names_payload,
+                             QOS::QOS2, true);
 
     for (const auto& [module_id_, module_config] : module_configurations) {
         const auto& module_name = module_config.module_name;
@@ -397,7 +423,10 @@ std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbstractio
                     TERMINAL_STYLE_OK, "🚙🚙🚙 All modules are initialized. EVerest up and running [{}ms] 🚙🚙🚙",
                     std::chrono::duration_cast<std::chrono::milliseconds>(complete_end_time - complete_start_time)
                         .count());
-                mqtt_abstraction.publish(fmt::format("{}ready", mqtt_everest_prefix), nlohmann::json(true));
+
+                MqttMessagePayload payload{MqttMessageType::GlobalReady, nlohmann::json(true)};
+
+                mqtt_abstraction.publish(fmt::format("{}ready", mqtt_everest_prefix), payload);
             } else if (!standalone_modules.empty()) {
                 if (modules_spawned == modules_ready.size() - standalone_modules.size()) {
                     EVLOG_info << fmt::format(fg(fmt::terminal_color::green),
@@ -409,7 +438,7 @@ std::map<pid_t, std::string> start_modules(ManagerConfig& config, MQTTAbstractio
 
         const std::string ready_topic = fmt::format("{}/ready", config.mqtt_module_prefix(module_id));
         module_it->second.ready_token =
-            std::make_shared<TypedHandler>(HandlerType::ExternalMQTT, std::make_shared<Handler>(module_ready_handler));
+            std::make_shared<TypedHandler>(HandlerType::ModuleReady, std::make_shared<Handler>(module_ready_handler));
         mqtt_abstraction.register_handler(ready_topic, module_it->second.ready_token, QOS::QOS2);
 
         if (std::any_of(standalone_modules.begin(), standalone_modules.end(),

@@ -42,33 +42,6 @@ def _deps_impl(module_ctx):
 
     maybe(
         http_archive,
-        name = "com_github_biojppm_rapidyaml",
-        url = "https://github.com/biojppm/rapidyaml/archive/47ec2fa184209687c20fd5bc05621e1cb1200311.tar.gz",
-        sha256 = "4edd856d8ced361b80286cde8de40488bb268756b137add912616210a28c2744",
-        strip_prefix = "rapidyaml-47ec2fa184209687c20fd5bc05621e1cb1200311",
-        build_file = "@everest-framework//third-party/bazel:BUILD.rapidyaml.bazel",
-    )
-
-    maybe(
-        http_archive,
-        name = "com_github_biojppm_c4core",
-        url = "https://github.com/biojppm/c4core/archive/7eb1f39d8c08fb98c089ec6c6ab77e7dc01c991e.tar.gz",
-        sha256 = "904c1bc6dc178ebe9a581f4d7add48bf7c27310dcc9c7d3686ef4bbe0e0be577",
-        strip_prefix = "c4core-7eb1f39d8c08fb98c089ec6c6ab77e7dc01c991e",
-        build_file = "@everest-framework//third-party/bazel:BUILD.c4core.bazel",
-    )
-
-    maybe(
-        http_archive,
-        name = "com_github_biojppm_debugbreak",
-        url = "https://github.com/biojppm/debugbreak/archive/328e4abca3384cbd0a69e70f263cc7b2794bff09.tar.gz",
-        sha256 = "e90bc63f50e516af1a65991ffa0410fd2698fd0936041f387824b2114e72a549",
-        strip_prefix = "debugbreak-328e4abca3384cbd0a69e70f263cc7b2794bff09",
-        build_file = "@everest-framework//third-party/bazel:BUILD.debugbreak.bazel",
-    )
-
-    maybe(
-        http_archive,
         name = "com_github_warmcatt_libwebsockets",
         url = "https://github.com/warmcat/libwebsockets/archive/adc128ca082a3c6fb9d4abbadefc09e3bc736724.tar.gz",
         sha256 = "8da42692347ba5bc3cbd89dc2b30aba3934ad51085ebeb2f8657321bf7164831",
