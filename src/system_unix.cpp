@@ -61,8 +61,10 @@ GetPasswdEntryResult get_passwd_entry(const std::string& user_name) {
         return GetPasswdEntryResult("Could not get supplementary groups for user name: " + user_name);
     }
 
-    return GetPasswdEntryResult(entry->pw_uid, entry->pw_gid,
-                                std::vector<gid_t>(groups.begin(), groups.begin() + ngroups));
+    // Clang-tidy recommends using `std::span` here instead, which isn't available in C++17.
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    const std::vector<gid_t> user_groups{groups.begin(), groups.begin() + ngroups};
+    return GetPasswdEntryResult(entry->pw_uid, entry->pw_gid, user_groups);
 }
 } // namespace
 
@@ -137,7 +139,8 @@ std::string set_real_user(const std::string& user_name) {
 void SubProcess::send_error_and_exit(const std::string& message) {
     assert(pid == 0);
 
-    write(fd, message.c_str(), std::min(message.size(), MAX_PIPE_MESSAGE_SIZE - 1));
+    // There isn't  much we can do if writing the error message fails, just exit
+    [[maybe_unused]] auto _write = write(fd, message.c_str(), std::min(message.size(), MAX_PIPE_MESSAGE_SIZE - 1));
     close(fd);
     _exit(EXIT_FAILURE);
 }
