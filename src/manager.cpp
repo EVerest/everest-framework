@@ -117,13 +117,13 @@ void setup_environment(const ModuleStartInfo& module_info, const RuntimeSettings
 }
 
 static void exec_module(const std::string& bin, std::vector<std::string>& arguments, system::SubProcess& proc_handle) {
-    // Convert the argument list to the format required by `execv()`.
+    // Convert the argument list to the format required by `execv*()`.
     std::vector<char*> argv_list(arguments.size() + 1);
     std::transform(arguments.begin(), arguments.end(), argv_list.begin(), [](auto& value) { return value.data(); });
     argv_list.back() = nullptr; // Add a null terminator
 
     // Execute the module binary, replacing the current process.
-    execv(bin.c_str(), argv_list.data());
+    execvp(bin.c_str(), argv_list.data());
 
     // `execv()` failed, notify the parent process and exit.
     const auto msg = fmt::format("Syscall to execv() with \"{} {}\" failed ({})", bin,
