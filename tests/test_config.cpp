@@ -28,6 +28,13 @@ SCENARIO("Check ManagerSettings Constructor", "[!throws]") {
             CHECK_NOTHROW(Everest::ManagerSettings(bin_dir + "valid_config/", bin_dir + "valid_config/config.yaml"));
         }
     }
+    GIVEN("A valid prefix and a valid config file with a custom prefix") {
+        THEN("It should not throw") {
+            auto ms = Everest::ManagerSettings(bin_dir + "valid_config_custom_prefix/usr",
+                                               bin_dir + "valid_config_custom_prefix/usr/config.yaml");
+            CHECK(ms.runtime_settings.etc_dir == bin_dir + "valid_config_custom_prefix/etc/everest");
+        }
+    }
     GIVEN("A broken yaml file") {
         // FIXME (aw): this also throws, if the folder doesn't even exists or some other things fail
         THEN("It should throw") {

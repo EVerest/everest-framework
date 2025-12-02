@@ -116,11 +116,13 @@ void ManagerSettings::init_settings(const everest::config::Settings& settings) {
     fs::path etc_dir;
     {
         // etc directory
-        const auto default_etc_dir = fs::path(defaults::SYSCONF_DIR) / defaults::NAMESPACE;
-        if (prefix.string() != "/usr") {
-            etc_dir = prefix / default_etc_dir;
-        } else {
+        const auto default_etc_dir = (fs::path(defaults::SYSCONF_DIR) / defaults::NAMESPACE).relative_path();
+        if (prefix.string() == "/usr") {
             etc_dir = fs::path("/") / default_etc_dir;
+        } else if (prefix.filename() == "usr") {
+            etc_dir = prefix.parent_path() / default_etc_dir;
+        } else {
+            etc_dir = prefix / default_etc_dir;
         }
         etc_dir = assert_dir(etc_dir.string(), "Default etc directory");
     }
