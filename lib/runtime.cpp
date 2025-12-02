@@ -664,7 +664,8 @@ bool ModuleLoader::parse_command_line(int argc, char* argv[]) {
 
     if (vm.count("config") != 0) {
         std::cout
-            << "--config is not used anymore, modules request their config automatically via MQTT" << "\n"
+            << "--config is not used anymore, modules request their config automatically via MQTT"
+            << "\n"
             << "If you want to influence this config loading behavior you can specify the appropriate --mqtt_* flags"
             << "\n";
     }
