@@ -493,8 +493,7 @@ void Everest::publish_var(const std::string& impl_id, const std::string& var_nam
 
     const auto var_topic = fmt::format("{}/var/{}", this->config.mqtt_prefix(this->module_id, impl_id), var_name);
 
-    const json var_publish_data = {{"data", value}};
-    MqttMessagePayload payload{MqttMessageType::Var, var_publish_data};
+    MqttMessagePayload payload{MqttMessageType::Var, value};
 
     // FIXME(kai): implement an efficient way of choosing qos for each variable
     this->mqtt_abstraction->publish(var_topic, payload, QOS::QOS2);
@@ -976,9 +975,7 @@ void Everest::provide_cmd(const std::string& impl_id, const std::string& cmd_nam
             res_data["error"] = error.value();
         }
 
-        const json res_publish_data = json::object({{"type", "result"}, {"data", res_data}});
-
-        MqttMessagePayload payload{MqttMessageType::CmdResult, res_publish_data};
+        MqttMessagePayload payload{MqttMessageType::CmdResult, res_data};
         const auto final_cmd_response_topic =
             fmt::format("{}/response/{}", cmd_topic, data.at("origin").get<std::string>());
         this->mqtt_abstraction->publish(final_cmd_response_topic, payload);
