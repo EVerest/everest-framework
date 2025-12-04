@@ -268,7 +268,7 @@ void MessageHandler::register_handler(const std::string& topic, std::shared_ptr<
 // Private message handler methods
 void MessageHandler::handle_var_message(const std::string& topic, const json& data) {
     execute_handlers_from_vector(var_handlers, topic,
-                                 [&](const auto& handler) { (*handler->handler)(topic, data.at("data")); });
+                                 [&](const auto& handler) { (*handler->handler)(topic, data); });
 }
 
 void MessageHandler::handle_cmd_message(const std::string& topic, const json& data) {
@@ -306,7 +306,7 @@ void MessageHandler::handle_module_ready_message(const std::string& topic, const
 }
 
 void MessageHandler::handle_cmd_result(const std::string& topic, const json& payload) {
-    const auto& data = payload.at("data").at("data");
+    const auto& data = payload.at("data");
     const auto id = data.at("id").get<std::string>();
 
     std::shared_ptr<TypedHandler> handler_copy;

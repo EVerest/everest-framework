@@ -23,7 +23,8 @@ The payload contains the actual variable data in the `data` field.
 
 ```json
 {
-  "data": <variable_value>
+  "data": <variable_value>,
+  "msg_type": "Var"
 }
 ```
 
@@ -41,12 +42,15 @@ The following structure applies for command topics. Modules that provide (implem
 
 ```json
 {
-  "id": "<unique_call_id>",
-  "args": {
-    "arg1": "value1",
-    "arg2": "value2"
+  "data": {
+    "id": "<unique_call_id>",
+    "args": {
+      "arg1": "value1",
+      "arg2": "value2"
+    },
+    "origin": "<calling_module_id>"
   },
-  "origin": "<calling_module_id>"
+  "msg_type": "Cmd"
 }
 ```
 
@@ -66,13 +70,12 @@ The following structure applies for command response topics. These are used to s
 
 ```json
 {
-  "name": "<cmd_name>",
-  "type": "result",
   "data": {
-    "id": "<matching_call_id>",
-    "retval": <return_value>,
-    "origin": "<responding_module_id>"
-  }
+    "id": <matching_call_id>,
+    "origin": <responding_module_id>,
+    "retval": <return_value>
+  },
+  "msg_type": "CmdResult"
 }
 ```
 
@@ -80,16 +83,12 @@ The following structure applies for command response topics. These are used to s
 
 ```json
 {
-  "name": "<cmd_name>",
-  "type": "result",
   "data": {
-    "id": "<matching_call_id>",
-    "error": {
-      "event": "<error_type>",
-      "msg": "<error_message>"
-    },
-    "origin": "<responding_module_id>"
-  }
+    "id": <matching_call_id>,
+    "origin": <responding_module_id>,
+    "error": <error_value>
+  },
+  "msg_type": "CmdResult"
 }
 ```
 
@@ -111,24 +110,32 @@ The following structure applies for error topics. Errors are raised by modules a
 ### Topic Structure
 
 ```bash
-{everest_prefix}modules/{module_id}/impl/{impl_id}/error/{error_type}
+{everest_prefix}modules/{module_id}/impl/{impl_id}/error/{error_namespace}/{error_type}
 ```
 
 ### Message Payload Structure
 
 ```json
 {
-  "type": "<error_namespace>/<error_name>",
-  "message": "<error_description>",
-  "severity": "<error_severity>",
-  "origin": {
-    "module_id": "<originating_module>",
-    "implementation_id": "<originating_impl>",
-    "evse": <evse_number>,
-    "connector": <connector_number>
+  "data": {
+    "description": "<error_description>",
+    "message": "<error_message>",
+    "origin": {
+      "implementation_id": "<originating_impl>",
+      "mapping": {
+        "evse": 1
+      },
+      "module_id": "<originating_module>"
+    },
+    "severity": "<error_severity>",
+    "state": "<error_state>",
+    "sub_type": "<error_sub_type>",
+    "timestamp": "<iso_timestamp>",
+    "type": "<error_type>",
+    "uuid": "<unique_error_id>",
+    "vendor_id": "<vendor_name>"
   },
-  "state": "<error_state>",
-  "timestamp": "<iso_timestamp>",
-  "uuid": "<unique_error_id>"
+  "msg_type": "RaiseError"
 }
 ```
+
